@@ -6,10 +6,8 @@ namespace WinPhone.Mail.Protocols.Transport
 {
     public interface ITransport : IDisposable
     {
-        Task ConnectAsync();
+        Task<Stream> ConnectAsync();
 
-        void Connect();
-
-        Stream GetStream();
+        Stream Connect(); // TODO: Remove, not supported on phone
     }
 }

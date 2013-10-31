@@ -69,8 +69,7 @@ namespace WinPhone.Mail.Protocols
                 Ssl = ssl;
 
                 _Connection = new SystemNetTransport(hostname, port, ssl, validateCertificate);
-                _Connection.Connect();
-                _Stream = _Connection.GetStream();
+                _Stream = _Connection.Connect(); // TODO: Async required for phone.
 
                 OnConnected(GetResponse());
 

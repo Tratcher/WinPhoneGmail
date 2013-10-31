@@ -28,7 +28,7 @@ namespace WinPhone.Mail.Protocols.Transport
         private bool ValidateCert { get; set; }
         private Stream Stream { get; set; }
 
-        public void Connect()
+        public Stream Connect()
         {
             Socket.Connect(Host, Port);
             Stream = new NetworkStream(Socket);
@@ -47,9 +47,11 @@ namespace WinPhone.Mail.Protocols.Transport
                 Stream = sslStream;
                 sslStream.AuthenticateAsClient(Host);
             }
+
+            return Stream;
         }
 
-        public async Task ConnectAsync()
+        public async Task<Stream> ConnectAsync()
         {
             await Task.Factory.FromAsync(Socket.BeginConnect, Socket.EndConnect, Host, Port, state: null);
 
@@ -67,10 +69,7 @@ namespace WinPhone.Mail.Protocols.Transport
                 Stream = sslStream;
                 await sslStream.AuthenticateAsClientAsync(Host);
             }
-        }
 
-        public Stream GetStream()
-        {
             return Stream;
         }
 
