@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace WinPhone.Mail.Protocols
 {
     public class Pop3Client : TextClient, IMailClient
     {
-        public Pop3Client() { }
-        public Pop3Client(string host, string username, string password, int port = 110, bool secure = false, bool validateCertificate = true)
+        public Pop3Client()
         {
-            Connect(host, port, secure, validateCertificate);
-            Login(username, password);
+        }
+
+        public async Task ConnectAsync(string host, string username, string password, int port = 110, bool secure = false, bool validateCertificate = true)
+        {
+            await ConnectAsync(host, port, secure, validateCertificate);
+            await LoginAsync(username, password);
         }
 
         internal override void OnLogin(string username, string password)

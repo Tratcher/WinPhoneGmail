@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace WinPhone.Mail.Protocols
 {
@@ -131,7 +132,53 @@ namespace WinPhone.Mail.Protocols
                 return encoding.GetString(mem.ToArray());
             }
         }
+        /* TODO:
+        internal static async Task<string> ReadLineAsync(this Stream stream, ref int maxLength, Encoding encoding, char? termChar)
+        {
+            if (stream.CanTimeout)
+                stream.ReadTimeout = 10000;
 
+            var maxLengthSpecified = maxLength > 0;
+            int i;
+            byte b = 0, b0;
+            var read = false;
+            using (var mem = new MemoryStream())
+            {
+                while (true)
+                {
+                    b0 = b;
+                    i = stream.ReadByte();
+                    if (i == -1) break;
+                    else read = true;
+
+                    b = (byte)i;
+                    if (maxLengthSpecified) maxLength--;
+
+                    if (maxLengthSpecified && mem.Length == 1 && b == termChar && b0 == termChar)
+                    {
+                        maxLength++;
+                        continue;
+                    }
+
+                    if (b == 10 || b == 13)
+                    {
+                        if (mem.Length == 0 && b == 10)
+                        {
+                            continue;
+                        }
+                        else break;
+                    }
+
+                    mem.WriteByte(b);
+                    if (maxLengthSpecified && maxLength == 0)
+                        break;
+                }
+
+                if (mem.Length == 0 && !read) return null;
+                return encoding.GetString(mem.ToArray());
+            }
+        }
+        */
         internal static string ReadToEnd(this Stream stream, int maxLength, Encoding encoding)
         {
             if (stream.CanTimeout)

@@ -54,6 +54,7 @@ namespace WinPhone.Mail.Protocols.Transport
         public async Task<Stream> ConnectAsync()
         {
             await Task.Factory.FromAsync(Socket.BeginConnect, Socket.EndConnect, Host, Port, state: null);
+            Stream = new NetworkStream(Socket);
 
             if (Ssl)
             {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using WinPhone.Mail.Protocols.Transport;
 
 namespace WinPhone.Mail.Protocols
@@ -43,14 +44,14 @@ namespace WinPhone.Mail.Protocols
             CheckResultOK(result);
         }
 
-        public virtual void Login(string username, string password)
+        public virtual async Task LoginAsync(string username, string password)
         {
             if (!IsConnected)
             {
                 throw new Exception("You must connect first!");
             }
             IsAuthenticated = false;
-            OnLogin(username, password);
+            OnLogin(username, password); // TODO: Async
             IsAuthenticated = true;
         }
 
@@ -60,7 +61,7 @@ namespace WinPhone.Mail.Protocols
             OnLogout();
         }
         
-        public virtual void Connect(string hostname, int port, bool ssl, bool validateCertificate)
+        public virtual async Task ConnectAsync(string hostname, int port, bool ssl, bool validateCertificate)
         {
             try
             {
@@ -69,12 +70,11 @@ namespace WinPhone.Mail.Protocols
                 Ssl = ssl;
 
                 _Connection = new SystemNetTransport(hostname, port, ssl, validateCertificate);
-                _Stream = _Connection.Connect(); // TODO: Async required for phone.
+                _Stream = await _Connection.ConnectAsync(); // TODO: Async required for phone.
 
                 OnConnected(GetResponse());
 
                 IsConnected = true;
-                Host = hostname;
             }
             catch (Exception)
             {
@@ -111,7 +111,13 @@ namespace WinPhone.Mail.Protocols
             int max = 0;
             return _Stream.ReadLine(ref max, Encoding, null);
         }
-
+        /* TODO:
+        protected virtual Task<string> GetResponseAsync()
+        {
+            int max = 0;
+            return _Stream.ReadLineAsync(ref max, Encoding, null);
+        }
+        */
         protected virtual void SendCommandCheckOK(string command)
         {
             CheckResultOK(SendCommandGetResponse(command));

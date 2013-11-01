@@ -17,8 +17,9 @@ namespace ConsoleApplication1
             int port = 993;
             bool useSsl = true;
 
-            using (var imap = new ImapClient(host, username, password, ImapClient.AuthMethods.Login, port, useSsl))
+            using (var imap = new ImapClient(ImapClient.AuthMethods.Login))
             {
+                imap.ConnectAsync(host, username, password, port, useSsl).Wait();
                 MailMessage[] messages = imap.GetMessages(0, 15, true, false);
                 foreach (var message in messages)
                 {
