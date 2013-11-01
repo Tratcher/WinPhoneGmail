@@ -4,7 +4,6 @@ using System.Collections.Specialized;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Mail;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -554,18 +553,6 @@ namespace WinPhone.Mail.Protocols
             if (events == null)
                 return;
             events(sender, args);
-        }
-
-        internal static MailAddress ToEmailAddress(this string input)
-        {
-            try
-            {
-                return new MailAddress(input);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
         }
 
         internal static bool Is(this string input, string other)

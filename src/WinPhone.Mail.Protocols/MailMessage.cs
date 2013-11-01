@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Net.Mail;
 using System.Text;
 
 namespace WinPhone.Mail.Protocols
@@ -222,7 +221,7 @@ namespace WinPhone.Mail.Protocols
         }
 
         private static readonly string[] SpecialHeaders = "Date,To,Cc,Reply-To,Bcc,Sender,From,Message-ID,Importance,Subject".Split(',');
-        public virtual void Save(System.IO.TextWriter txt)
+        public virtual void Save(TextWriter txt)
         {
             txt.WriteLine("Date: {0}", Date.GetRFC2060Date());
             txt.WriteLine("To: {0}", string.Join("; ", To.Select(x => x.ToString())));

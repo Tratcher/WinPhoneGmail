@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Mail;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace WinPhone.Mail.Protocols
@@ -143,46 +143,73 @@ namespace WinPhone.Mail.Protocols
 
         public virtual MailAddress[] GetMailAddresses(string header)
         {
-            const int notFound = -1;
-
             var mailAddresses = new List<MailAddress>();
 
             var headerValue = this[header].RawValue.Trim();
 
-            var mailAddressStartIndex = 0;
-            var mailAddressEndIndex = 0;
+            // TODO: possible null header value?
+            // TODO: Add real e-mail address parsing here, we can't rely on System.Net.Mail.
+            // Doesn't have to be fancy, just enough to separate a list, and maybe the display name.
 
-            while (mailAddressEndIndex < headerValue.Length)
+            List<string> addresses = SplitQuotedList(headerValue);
+
+            for (int i = 0; i < addresses.Count; i++)
             {
-                // Start searching for the next comma by skipping the previous mailAddressEndIndex
-                mailAddressEndIndex = headerValue.IndexOf(',', mailAddressEndIndex);
-
-                if (mailAddressEndIndex == notFound)
+                string address = addresses[i];
+                if (!string.IsNullOrWhiteSpace(address))
                 {
-                    mailAddressEndIndex = headerValue.Length;
-                }
+                    address = address.Trim();
+                    string displayName = string.Empty;
 
-                var possibleMailAddress = headerValue.Substring(mailAddressStartIndex, mailAddressEndIndex - mailAddressStartIndex);
+                    int bracketIndex = address.IndexOf('<');
+                    if (bracketIndex >= 0 && address.EndsWith(">"))
+                    {
+                        displayName = address.Substring(0, bracketIndex).Trim();
+                        address = address.Substring(bracketIndex + 1, address.Length - bracketIndex - 2).Trim();
 
-                var mailAddress = possibleMailAddress.Trim().ToEmailAddress();
+                        // Remove quotes, if any.
+                        if (displayName.Length > 1 && displayName[0] == '"' && displayName[displayName.Length - 1] == '"')
+                        {
+                            displayName = displayName.Substring(1, displayName.Length - 2);
+                        }
+                    }
 
-                if (mailAddress != null)
-                {
+                    var mailAddress = new MailAddress(address, displayName);
                     mailAddresses.Add(mailAddress);
-                    mailAddressStartIndex = mailAddressEndIndex + 1;
-                    mailAddressEndIndex = mailAddressStartIndex;
-                }
-                else
-                {
-                    // Increase the end index by one so the search for the next comma skips beyond the previous found comma
-                    mailAddressEndIndex++;
                 }
             }
 
             return mailAddresses.ToArray();
         }
 
-        public static HeaderDictionary Parse(string headers, System.Text.Encoding encoding)
+        private List<string> SplitQuotedList(string headerValue)
+        {
+            List<string> segments = new List<string>();
+            bool inQuotes = false;
+            int priorIndex = -1;
+            for (int i = 0; i < headerValue.Length; i++)
+            {
+                char chr = headerValue[i];
+                if (chr == '"')
+                {
+                    inQuotes = !inQuotes;
+                }
+                else if (!inQuotes &&
+                    (chr == ',' || chr == ';'))
+                {
+                    segments.Add(headerValue.Substring(priorIndex + 1, i - priorIndex - 1));
+                    priorIndex = i;
+                }
+                else if (i == headerValue.Length - 1)
+                {
+                    segments.Add(headerValue.Substring(priorIndex + 1));
+                }
+            }
+
+            return segments;
+        }
+
+        public static HeaderDictionary Parse(string headers, Encoding encoding)
         {
             headers = Utilities.DecodeWords(headers, encoding);
             var temp = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
