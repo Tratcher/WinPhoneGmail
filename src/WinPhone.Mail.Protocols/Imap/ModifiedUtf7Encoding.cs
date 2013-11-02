@@ -28,7 +28,8 @@ namespace WinPhone.Mail.Protocols.Imap
                 {
                     string substring = result.Substring(indexOfAmpersand + 1, indexOfMinus - indexOfAmpersand - 1);
                     string modifiedBase64 = "+" + substring.Replace(',', '/');
-                    result = result.Replace("&" + substring + "-", Encoding.UTF7.GetString(Encoding.UTF8.GetBytes(modifiedBase64)));
+                    byte[] bytes = Encoding.UTF8.GetBytes(modifiedBase64);
+                    result = result.Replace("&" + substring + "-", Utilities.UTF7.GetString(bytes, 0 , bytes.Length));
                 }
             }
 
@@ -89,7 +90,8 @@ namespace WinPhone.Mail.Protocols.Imap
 
         private static string EncodeNonPrintableAsciiString(string nonAsciiString)
         {
-            return Encoding.UTF8.GetString(Encoding.UTF7.GetBytes(nonAsciiString)).Replace('/', ',').Replace('+', '&');
+            byte[] bytes = Utilities.UTF7.GetBytes(nonAsciiString);
+            return Encoding.UTF8.GetString(bytes, 0, bytes.Length).Replace('/', ',').Replace('+', '&');
         }
 
         private static bool IsPrintableAscii(char c)

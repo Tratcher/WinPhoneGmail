@@ -9,7 +9,7 @@ namespace WinPhone.Mail.Protocols
     public abstract class TextClient : IDisposable
     {
         protected ITransport _Connection;
-        protected Stream _Stream;
+        protected BufferedReadStream _Stream;
 
         public virtual string Host { get; private set; }
         public virtual int Port { get; set; }
@@ -23,11 +23,11 @@ namespace WinPhone.Mail.Protocols
 
         public TextClient()
         {
-            Encoding = System.Text.Encoding.GetEncoding(1252);
+            Encoding = Encoding.UTF8; // System.Text.Encoding.GetEncoding("Windows-1252");
         }
 
-        internal abstract void OnLogin(string username, string password);
-        internal abstract void OnLogout();
+        internal abstract Task OnLoginAsync(string username, string password);
+        internal abstract Task OnLogoutAsync();
         internal abstract void CheckResultOK(string result);
 
         protected virtual void RaiseWarning(MailMessage mailMessage, string message)
@@ -51,14 +51,14 @@ namespace WinPhone.Mail.Protocols
                 throw new Exception("You must connect first!");
             }
             IsAuthenticated = false;
-            OnLogin(username, password); // TODO: Async
+            await OnLoginAsync(username, password);
             IsAuthenticated = true;
         }
 
-        public virtual void Logout()
+        public virtual Task LogoutAsync()
         {
             IsAuthenticated = false;
-            OnLogout();
+            return OnLogoutAsync();
         }
         
         public virtual async Task ConnectAsync(string hostname, int port, bool ssl, bool validateCertificate)
@@ -69,10 +69,14 @@ namespace WinPhone.Mail.Protocols
                 Port = port;
                 Ssl = ssl;
 
+#if WINDOWS_PHONE
+                _Connection = new WindowsNetSockets(hostname, port, ssl);
+#else
                 _Connection = new SystemNetTransport(hostname, port, ssl, validateCertificate);
-                _Stream = await _Connection.ConnectAsync(); // TODO: Async required for phone.
+#endif
+                _Stream = new BufferedReadStream(await _Connection.ConnectAsync());
 
-                OnConnected(GetResponse());
+                OnConnected(await GetResponseAsync());
 
                 IsConnected = true;
             }
@@ -94,40 +98,33 @@ namespace WinPhone.Mail.Protocols
                 throw new Exception("You must authenticate first!");
         }
 
-        protected virtual void SendCommand(string command)
+        protected virtual Task SendCommandAsync(string command)
         {
-            var bytes = System.Text.Encoding.Default.GetBytes(command + "\r\n");
-            _Stream.Write(bytes, 0, bytes.Length);
+            var bytes = Utilities.ASCII.GetBytes(command + "\r\n");
+            return _Stream.WriteAsync(bytes, 0, bytes.Length);
         }
 
-        protected virtual string SendCommandGetResponse(string command)
+        protected virtual async Task<string> SendCommandGetResponseAsync(string command)
         {
-            SendCommand(command);
-            return GetResponse();
+            await SendCommandAsync(command);
+            return await GetResponseAsync();
         }
 
-        protected virtual string GetResponse()
-        {
-            int max = 0;
-            return _Stream.ReadLine(ref max, Encoding, null);
-        }
-        /* TODO:
         protected virtual Task<string> GetResponseAsync()
         {
-            int max = 0;
-            return _Stream.ReadLineAsync(ref max, Encoding, null);
-        }
-        */
-        protected virtual void SendCommandCheckOK(string command)
-        {
-            CheckResultOK(SendCommandGetResponse(command));
+            return _Stream.ReadLineAsync(0, Encoding, null);
         }
 
-        public virtual void Disconnect()
+        protected virtual async Task SendCommandCheckOKAsync(string command)
+        {
+            CheckResultOK(await SendCommandGetResponseAsync(command));
+        }
+
+        public virtual async Task DisconnectAsync()
         {
             if (IsAuthenticated)
             {
-                Logout();
+                await LogoutAsync();
             }
 
             Utilities.TryDispose(_Stream);
@@ -148,7 +145,7 @@ namespace WinPhone.Mail.Protocols
                     if (!IsDisposed && disposing)
                     {
                         IsDisposed = true;
-                        Disconnect();
+                        DisconnectAsync();
                         if (_Stream != null) _Stream.Dispose();
                         if (_Connection != null) _Connection.Dispose();
                     }

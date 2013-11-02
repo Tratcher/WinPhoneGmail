@@ -214,9 +214,9 @@ namespace WinPhone.Mail.Protocols
             }).Sum();
         }
 
-        public virtual void Save(System.IO.Stream stream, Encoding encoding = null)
+        public virtual void Save(Stream stream, Encoding encoding = null)
         {
-            using (var str = new System.IO.StreamWriter(stream, encoding ?? System.Text.Encoding.Default))
+            using (var str = new StreamWriter(stream, encoding ?? Utilities.ASCII))
                 Save(str);
         }
 

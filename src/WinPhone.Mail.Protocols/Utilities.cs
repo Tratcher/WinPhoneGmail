@@ -12,7 +12,9 @@ namespace WinPhone.Mail.Protocols
 {
     internal static class Utilities
     {
-        private static CultureInfo _enUsCulture = CultureInfo.GetCultureInfo("en-US");
+        private static CultureInfo _enUsCulture = CultureInfo.InvariantCulture;
+        public static Encoding ASCII = Encoding.GetEncoding("iso-8859-1"); // Encoding.UTF8; // TODO: ASCII is not available on winphone.
+        public static Encoding UTF7 = Encoding.GetEncoding("iso-8859-1"); //  Encoding.UTF8; // TODO: UTF7 is not available on winphone.
 
         internal static void CopyStream(Stream a, Stream b, int maxLength, int bufferSize = 8192)
         {
@@ -28,9 +30,9 @@ namespace WinPhone.Mail.Protocols
             }
         }
 
-        public static NameValueCollection ParseImapHeader(string data)
+        public static IDictionary<string, string> ParseImapHeader(string data)
         {
-            var values = new NameValueCollection();
+            var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             string name = null;
             int nump = 0;
             var temp = new StringBuilder();
@@ -76,17 +78,6 @@ namespace WinPhone.Mail.Protocols
             return values;
         }
 
-        internal static byte[] Read(this Stream stream, int len)
-        {
-            var data = new byte[len];
-            int read, pos = 0;
-            while (pos < len && (read = stream.Read(data, pos, len - pos)) > 0)
-            {
-                pos += read;
-            }
-            return data;
-        }
-
         internal static string ReadLine(this Stream stream, ref int maxLength, Encoding encoding, char? termChar)
         {
             if (stream.CanTimeout)
@@ -129,56 +120,11 @@ namespace WinPhone.Mail.Protocols
                 }
 
                 if (mem.Length == 0 && !read) return null;
-                return encoding.GetString(mem.ToArray());
+                byte[] bytes = mem.ToArray();
+                return encoding.GetString(bytes, 0, bytes.Length);
             }
         }
-        /* TODO:
-        internal static async Task<string> ReadLineAsync(this Stream stream, ref int maxLength, Encoding encoding, char? termChar)
-        {
-            if (stream.CanTimeout)
-                stream.ReadTimeout = 10000;
 
-            var maxLengthSpecified = maxLength > 0;
-            int i;
-            byte b = 0, b0;
-            var read = false;
-            using (var mem = new MemoryStream())
-            {
-                while (true)
-                {
-                    b0 = b;
-                    i = stream.ReadByte();
-                    if (i == -1) break;
-                    else read = true;
-
-                    b = (byte)i;
-                    if (maxLengthSpecified) maxLength--;
-
-                    if (maxLengthSpecified && mem.Length == 1 && b == termChar && b0 == termChar)
-                    {
-                        maxLength++;
-                        continue;
-                    }
-
-                    if (b == 10 || b == 13)
-                    {
-                        if (mem.Length == 0 && b == 10)
-                        {
-                            continue;
-                        }
-                        else break;
-                    }
-
-                    mem.WriteByte(b);
-                    if (maxLengthSpecified && maxLength == 0)
-                        break;
-                }
-
-                if (mem.Length == 0 && !read) return null;
-                return encoding.GetString(mem.ToArray());
-            }
-        }
-        */
         internal static string ReadToEnd(this Stream stream, int maxLength, Encoding encoding)
         {
             if (stream.CanTimeout)
@@ -196,7 +142,8 @@ namespace WinPhone.Mail.Protocols
                     if (maxLength > 0 && mem.Length == maxLength) break;
                 } while (read > 0);
 
-                return encoding.GetString(mem.ToArray());
+                byte[] bytes = mem.ToArray();
+                return encoding.GetString(bytes, 0, bytes.Length);
             }
         }
 
@@ -330,13 +277,13 @@ namespace WinPhone.Mail.Protocols
         {
             if (encoding == null)
             {
-                encoding = System.Text.Encoding.Default;
+                encoding = Encoding.UTF8;
             }
 
             if (value.IndexOf('_') > -1 && value.IndexOf(' ') == -1)
                 value = value.Replace('_', ' ');
 
-            var data = System.Text.Encoding.ASCII.GetBytes(value);
+            var data = Utilities.ASCII.GetBytes(value);
             var eq = Convert.ToByte('=');
             var n = 0;
 
@@ -388,7 +335,7 @@ namespace WinPhone.Mail.Protocols
                 return data;
             }
             var bytes = Convert.FromBase64String(data);
-            return (encoding ?? System.Text.Encoding.Default).GetString(bytes);
+            return (encoding ?? Encoding.UTF8).GetString(bytes, 0, bytes.Length);
         }
 
         #region OpenPOP.NET
@@ -474,8 +421,17 @@ namespace WinPhone.Mail.Protocols
         public static Encoding ParseCharsetToEncoding(string characterSet, Encoding @default)
         {
             if (string.IsNullOrEmpty(characterSet))
-                return @default ?? Encoding.Default;
+                return @default ?? Encoding.UTF8;
 
+            try
+            {
+                return Encoding.GetEncoding(characterSet) ?? @default;
+            }
+            catch (Exception)
+            {
+                return @default;
+            }
+            /*
             string charSetUpper = characterSet.ToUpperInvariant();
             if (charSetUpper.Contains("WINDOWS") || charSetUpper.Contains("CP"))
             {
@@ -488,12 +444,12 @@ namespace WinPhone.Mail.Protocols
                 int codepageNumber = int.Parse(charSetUpper, System.Globalization.CultureInfo.InvariantCulture);
 
                 return Encoding.GetEncodings().Where(x => x.CodePage == codepageNumber)
-                    .Select(x => x.GetEncoding()).FirstOrDefault() ?? @default ?? Encoding.Default;
+                    .Select(x => x.GetEncoding()).FirstOrDefault() ?? @default ?? Encoding.UTF8;
             }
 
             // It seems there is no codepage value in the characterSet. It must be a named encoding
             return Encoding.GetEncodings().Where(x => x.Name.Is(characterSet))
-                .Select(x => x.GetEncoding()).FirstOrDefault() ?? @default ?? System.Text.Encoding.Default;
+                .Select(x => x.GetEncoding()).FirstOrDefault() ?? @default ?? Encoding.UTF8;*/
         }
         #endregion
 

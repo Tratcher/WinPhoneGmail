@@ -48,9 +48,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\WinPhone.Mail.Protocols\WinPhone.Mail.Protocols.csproj">
+    <ProjectReference Include="..\..\src\WinPhone.Mail.Protocols\WinPhone.Mail.Protocols.Desktop.csproj">
       <Project>{68e9cf8c-ab54-4cc7-a34f-c7f469e4efe0}</Project>
-      <Name>WinPhone.Mail.Protocols</Name>
+      <Name>WinPhone.Mail.Protocols.Desktop</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

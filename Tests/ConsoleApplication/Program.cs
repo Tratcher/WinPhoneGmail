@@ -20,7 +20,7 @@ namespace ConsoleApplication1
             using (var imap = new ImapClient(ImapClient.AuthMethods.Login))
             {
                 imap.ConnectAsync(host, username, password, port, useSsl).Wait();
-                MailMessage[] messages = imap.GetMessages(0, 15, true, false);
+                MailMessage[] messages = imap.GetMessagesAsync(0, 15, true, false).Result;
                 foreach (var message in messages)
                 {
                     Console.WriteLine(message.Subject);

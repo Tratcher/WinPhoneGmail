@@ -23,7 +23,6 @@ namespace WinPhone.Mail.Protocols
 
         private string _FetchHeaders = null;
 
-        public ImapClient() { }
         public ImapClient(AuthMethods method = AuthMethods.Login)
         {
             AuthMethod = method;
@@ -50,9 +49,9 @@ namespace WinPhone.Mail.Protocols
             return string.Format("xm{0:000} ", _tag);
         }
 
-        public virtual bool Supports(string command)
+        public virtual async Task<bool> SupportsAsync(string command)
         {
-            return (_Capability ?? Capability()).Contains(command, StringComparer.OrdinalIgnoreCase);
+            return (_Capability ?? await CapabilityAsync()).Contains(command, StringComparer.OrdinalIgnoreCase);
         }
 
         private EventHandler<MessageEventArgs> _NewMessage;
@@ -61,13 +60,13 @@ namespace WinPhone.Mail.Protocols
             add
             {
                 _NewMessage += value;
-                IdleStart();
+                IdleStartAsync();
             }
             remove
             {
                 _NewMessage -= value;
                 if (!HasEvents)
-                    IdleStop();
+                    IdleStopAsync();
             }
         }
 
@@ -77,49 +76,49 @@ namespace WinPhone.Mail.Protocols
             add
             {
                 _MessageDeleted += value;
-                IdleStart();
+                IdleStartAsync();
             }
             remove
             {
                 _MessageDeleted -= value;
                 if (!HasEvents)
-                    IdleStop();
+                    IdleStopAsync();
             }
         }
 
-        protected virtual void IdleStart()
+        protected virtual async Task IdleStartAsync()
         {
             if (string.IsNullOrEmpty(_SelectedMailbox))
             {
-                SelectMailbox("Inbox");
+                await SelectMailboxAsync("Inbox");
             }
             _Idling = true;
-            if (!Supports("IDLE"))
+            if (!await SupportsAsync("IDLE"))
             {
                 throw new InvalidOperationException("This IMAP server does not support the IDLE command");
             }
-            CheckMailboxSelected();
-            IdleResume();
+            await CheckMailboxSelectedAsync();
+            await IdleResumeAsync();
         }
 
-        protected virtual void IdlePause()
+        protected virtual async Task IdlePauseAsync()
         {
             if (_IdleEvents == null || !_Idling)
                 return;
 
             CheckConnectionStatus();
-            SendCommand("DONE");
+            await SendCommandAsync("DONE");
             if (!_IdleEvents.Join(2000))
                 _IdleEvents.Abort();
             _IdleEvents = null;
         }
 
-        protected virtual void IdleResume()
+        protected virtual async Task IdleResumeAsync()
         {
             if (!_Idling)
                 return;
 
-            IdleResumeCommand();
+            await IdleResumeCommandAsync();
 
             if (_IdleEvents == null)
             {
@@ -130,9 +129,9 @@ namespace WinPhone.Mail.Protocols
             }
         }
 
-        private void IdleResumeCommand()
+        private async Task IdleResumeCommandAsync()
         {
-            SendCommandGetResponse(GetTag() + "IDLE");
+            await SendCommandGetResponseAsync(GetTag() + "IDLE");
             if (_IdleARE != null) _IdleARE.Set();
         }
 
@@ -144,10 +143,10 @@ namespace WinPhone.Mail.Protocols
             }
         }
 
-        protected virtual void IdleStop()
+        protected virtual async Task IdleStopAsync()
         {
             _Idling = false;
-            IdlePause();
+            await IdlePauseAsync();
             if (_IdleEvents != null)
             {
                 _IdleARE.Close();
@@ -159,12 +158,12 @@ namespace WinPhone.Mail.Protocols
 
         public virtual bool TryGetResponse(out string response, int millisecondsTimeout)
         {
-            using (var mre = new System.Threading.ManualResetEventSlim(false))
+            using (var mre = new ManualResetEventSlim(false))
             {
                 string resp = response = null;
-                ThreadPool.QueueUserWorkItem(_ =>
+                Task.Run(async () =>
                 {
-                    resp = GetResponse();
+                    resp = await GetResponseAsync();
                     mre.Set();
                 });
 
@@ -190,7 +189,7 @@ namespace WinPhone.Mail.Protocols
                 {
                     if (!TryGetResponse(out resp, idleTimeout))
                     {   //send NOOP every 20 minutes
-                        Noop(false);        //call noop without aborting this Idle thread
+                        NoopAsync(false);        //call noop without aborting this Idle thread
                         continue;
                     }
 
@@ -234,9 +233,9 @@ namespace WinPhone.Mail.Protocols
             _IdleARE = null;
         }
 
-        public virtual void AppendMail(MailMessage email, string mailbox = null)
+        public virtual async Task AppendMailAsync(MailMessage email, string mailbox = null)
         {
-            IdlePause();
+            await IdlePauseAsync();
 
             mailbox = ModifiedUtf7Encoding.Encode(mailbox);
             string flags = String.Empty;
@@ -251,59 +250,59 @@ namespace WinPhone.Mail.Protocols
             }
 
             if (mailbox == null)
-                CheckMailboxSelected();
+                await CheckMailboxSelectedAsync();
             mailbox = mailbox ?? _SelectedMailbox;
 
             string command = GetTag() + "APPEND " + (mailbox ?? _SelectedMailbox).QuoteString() + flags + " {" + size + "}";
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
             if (response.StartsWith("+"))
             {
-                response = SendCommandGetResponse(body.ToString());
+                response = await SendCommandGetResponseAsync(body.ToString());
             }
-            IdleResume();
+            await IdleResumeAsync();
         }
 
-        public virtual void Noop()
+        public virtual Task NoopAsync()
         {
-            Noop(true);
+            return NoopAsync(true);
         }
-        private void Noop(bool pauseIdle)
+        private async Task NoopAsync(bool pauseIdle)
         {
             if (pauseIdle)
-                IdlePause();
+                await IdlePauseAsync();
             else
-                SendCommandGetResponse("DONE");
+                await SendCommandGetResponseAsync("DONE");
 
             var tag = GetTag();
-            var response = SendCommandGetResponse(tag + "NOOP");
+            var response = await SendCommandGetResponseAsync(tag + "NOOP");
             while (!response.StartsWith(tag))
             {
-                response = GetResponse();
+                response = await GetResponseAsync();
             }
 
             if (pauseIdle)
-                IdleResume();
+                await IdleResumeAsync();
             else
-                IdleResumeCommand();
+                await IdleResumeCommandAsync();
         }
 
-        public virtual string[] Capability()
+        public virtual async Task<string[]> CapabilityAsync()
         {
-            IdlePause();
+            await IdlePauseAsync();
             string command = GetTag() + "CAPABILITY";
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
             if (response.StartsWith("* CAPABILITY "))
                 response = response.Substring(13);
             _Capability = response.Trim().Split(' ');
-            GetResponse();
-            IdleResume();
+            await GetResponseAsync();
+            await IdleResumeAsync();
             return _Capability;
         }
 
-        public virtual void Copy(string messageset, string destination)
+        public virtual async Task CopyAsync(string messageset, string destination)
         {
-            CheckMailboxSelected();
-            IdlePause();
+            await CheckMailboxSelectedAsync();
+            await IdlePauseAsync();
             string prefix = null;
             if (messageset.StartsWith("UID ", StringComparison.OrdinalIgnoreCase))
             {
@@ -311,34 +310,34 @@ namespace WinPhone.Mail.Protocols
                 prefix = "UID ";
             }
             string command = string.Concat(GetTag(), prefix, "COPY ", messageset, " " + destination.QuoteString());
-            SendCommandCheckOK(command);
-            IdleResume();
+            await SendCommandCheckOKAsync(command);
+            await IdleResumeAsync();
         }
 
-        public virtual void CreateMailbox(string mailbox)
+        public virtual async Task CreateMailboxAsync(string mailbox)
         {
-            IdlePause();
+            await IdlePauseAsync();
             string command = GetTag() + "CREATE " + ModifiedUtf7Encoding.Encode(mailbox).QuoteString();
-            SendCommandCheckOK(command);
-            IdleResume();
+            await SendCommandCheckOKAsync(command);
+            await IdleResumeAsync();
         }
 
-        public virtual void DeleteMailbox(string mailbox)
+        public virtual async Task DeleteMailboxAsync(string mailbox)
         {
-            IdlePause();
+            await IdlePauseAsync();
             string command = GetTag() + "DELETE " + ModifiedUtf7Encoding.Encode(mailbox).QuoteString();
-            SendCommandCheckOK(command);
-            IdleResume();
+            await SendCommandCheckOKAsync(command);
+            await IdleResumeAsync();
         }
 
-        public virtual Mailbox Examine(string mailbox)
+        public virtual async Task<Mailbox> ExamineAsync(string mailbox)
         {
-            IdlePause();
+            await IdlePauseAsync();
 
             Mailbox x = null;
             string tag = GetTag();
             string command = tag + "EXAMINE " + ModifiedUtf7Encoding.Encode(mailbox).QuoteString();
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
             if (response.StartsWith("*"))
             {
                 x = new Mailbox(mailbox);
@@ -366,106 +365,109 @@ namespace WinPhone.Mail.Protocols
                     if (m.Groups.Count > 1)
                         x.SetFlags(m.Groups[1].ToString());
 
-                    response = GetResponse();
+                    response = await GetResponseAsync();
                 }
                 _SelectedMailbox = mailbox;
             }
-            IdleResume();
+            await IdleResumeAsync();
             return x;
         }
 
-        public virtual void Expunge()
+        public virtual async Task ExpungeAsync()
         {
-            CheckMailboxSelected();
-            IdlePause();
+            await CheckMailboxSelectedAsync();
+            await IdlePauseAsync();
 
             string tag = GetTag();
             string command = tag + "EXPUNGE";
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
             while (response.StartsWith("*"))
             {
-                response = GetResponse();
+                response = await GetResponseAsync();
             }
-            IdleResume();
+            await IdleResumeAsync();
         }
 
-        public virtual void DeleteMessage(WinPhone.Mail.Protocols.MailMessage msg)
+        public virtual Task DeleteMessageAsync(MailMessage msg)
         {
-            DeleteMessage(msg.Uid);
+            return DeleteMessageAsync(msg.Uid);
         }
 
-        public virtual void DeleteMessage(string uid)
+        public virtual async Task DeleteMessageAsync(string uid)
         {
-            CheckMailboxSelected();
-            Store("UID " + uid, true, "\\Seen \\Deleted");
+            await CheckMailboxSelectedAsync();
+            await StoreAsync("UID " + uid, true, "\\Seen \\Deleted");
         }
 
-        public virtual void MoveMessage(string uid, string folderName)
+        public virtual async Task MoveMessageAsync(string uid, string folderName)
         {
-            CheckMailboxSelected();
-            Copy("UID " + uid, folderName);
-            DeleteMessage(uid);
+            await CheckMailboxSelectedAsync();
+            await CopyAsync("UID " + uid, folderName);
+            await DeleteMessageAsync(uid);
         }
 
-        protected virtual void CheckMailboxSelected()
+        protected virtual Task CheckMailboxSelectedAsync()
         {
             if (string.IsNullOrEmpty(_SelectedMailbox))
-                SelectMailbox("INBOX");
+            {
+                return SelectMailboxAsync("INBOX");
+            }
+            return Task.FromResult(0);
         }
 
-        public virtual MailMessage GetMessage(string uid, bool headersonly = false)
+        public virtual Task<MailMessage> GetMessageAsync(string uid, bool headersonly = false)
         {
-            return GetMessage(uid, headersonly, true);
+            return GetMessageAsync(uid, headersonly, true);
         }
 
-        public virtual MailMessage GetMessage(int index, bool headersonly = false)
+        public virtual Task<MailMessage> GetMessageAsync(int index, bool headersonly = false)
         {
-            return GetMessage(index, headersonly, true);
+            return GetMessageAsync(index, headersonly, true);
         }
 
-        public virtual MailMessage GetMessage(int index, bool headersonly, bool setseen)
+        public virtual async Task<MailMessage> GetMessageAsync(int index, bool headersonly, bool setseen)
         {
-            return GetMessages(index, index, headersonly, setseen).FirstOrDefault();
+            return (await GetMessagesAsync(index, index, headersonly, setseen)).FirstOrDefault();
         }
 
-        public virtual MailMessage GetMessage(string uid, bool headersonly, bool setseen)
+        public virtual async Task<MailMessage> GetMessageAsync(string uid, bool headersonly, bool setseen)
         {
-            return GetMessages(uid, uid, headersonly, setseen).FirstOrDefault();
+            return (await GetMessagesAsync(uid, uid, headersonly, setseen)).FirstOrDefault();
         }
 
-        public virtual MailMessage[] GetMessages(string startUID, string endUID, bool headersonly = true, bool setseen = false)
+        public virtual Task<MailMessage[]> GetMessagesAsync(string startUID, string endUID, bool headersonly = true, bool setseen = false)
         {
-            return GetMessages(startUID, endUID, true, headersonly, setseen);
+            return GetMessagesAsync(startUID, endUID, true, headersonly, setseen);
         }
 
-        public virtual MailMessage[] GetMessages(int startIndex, int endIndex, bool headersonly = true, bool setseen = false)
+        public virtual Task<MailMessage[]> GetMessagesAsync(int startIndex, int endIndex, bool headersonly = true, bool setseen = false)
         {
-            return GetMessages((startIndex + 1).ToString(), (endIndex + 1).ToString(), false, headersonly, setseen);
+            return GetMessagesAsync((startIndex + 1).ToString(), (endIndex + 1).ToString(), false, headersonly, setseen);
         }
 
-        public virtual void DownloadMessage(System.IO.Stream stream, int index, bool setseen)
+        public virtual Task DownloadMessageAsync(Stream stream, int index, bool setseen)
         {
-            GetMessages((index + 1).ToString(), (index + 1).ToString(), false, false, setseen, (message, size, headers) =>
+            return GetMessagesAsync((index + 1).ToString(), (index + 1).ToString(), false, false, setseen, (message, size, headers) =>
             {
                 Utilities.CopyStream(message, stream, size);
                 return null;
             });
         }
 
-        public virtual void DownloadMessage(System.IO.Stream stream, string uid, bool setseen)
+        public virtual Task DownloadMessageAsync(Stream stream, string uid, bool setseen)
         {
-            GetMessages(uid, uid, true, false, setseen, (message, size, headers) =>
+            return GetMessagesAsync(uid, uid, true, false, setseen, (message, size, headers) =>
             {
                 Utilities.CopyStream(message, stream, size);
                 return null;
             });
         }
 
-        public virtual MailMessage[] GetMessages(string start, string end, bool uid, bool headersonly, bool setseen)
+        public virtual async Task<MailMessage[]> GetMessagesAsync(string start, string end, bool uid, bool headersonly, bool setseen)
         {
             var x = new List<MailMessage>();
 
-            GetMessages(start, end, uid, headersonly, setseen,
+            await GetMessagesAsync(start, end, uid, headersonly, setseen,
                 (stream, size, imapHeaders) =>
                 {
                     var mail = new MailMessage { Encoding = Encoding };
@@ -479,7 +481,7 @@ namespace WinPhone.Mail.Protocols
 
                     mail.Load(_Stream, headersonly, mail.Size);
 
-                    foreach (var key in imapHeaders.AllKeys.Except(new[] { "UID", "Flags", "BODY[]", "BODY[HEADER]" }, StringComparer.OrdinalIgnoreCase))
+                    foreach (var key in imapHeaders.Keys.Except(new[] { "UID", "Flags", "BODY[]", "BODY[HEADER]" }, StringComparer.OrdinalIgnoreCase))
                         mail.Headers.Add(key, new HeaderValue(imapHeaders[key]));
 
                     x.Add(mail);
@@ -491,10 +493,10 @@ namespace WinPhone.Mail.Protocols
             return x.ToArray();
         }
 
-        public virtual void GetMessages(string start, string end, bool uid, bool headersonly, bool setseen, Func<Stream, int, NameValueCollection, MailMessage> action)
+        public virtual async Task GetMessagesAsync(string start, string end, bool uid, bool headersonly, bool setseen, Func<Stream, int, IDictionary<string, string>, MailMessage> action)
         {
-            CheckMailboxSelected();
-            IdlePause();
+            await CheckMailboxSelectedAsync();
+            await IdlePauseAsync();
 
             string tag = GetTag();
             string command =
@@ -507,10 +509,10 @@ namespace WinPhone.Mail.Protocols
 
             string response;
 
-            SendCommand(command);
+            await SendCommandAsync(command);
             while (true)
             {
-                response = GetResponse();
+                response = await GetResponseAsync();
                 if (string.IsNullOrEmpty(response) || response.Contains(tag + "OK"))
                     break;
 
@@ -521,7 +523,7 @@ namespace WinPhone.Mail.Protocols
                 var size = (imapHeaders["BODY[HEADER]"] ?? imapHeaders["BODY[]"]).Trim('{', '}').ToInt();
                 var msg = action(_Stream, size, imapHeaders);
 
-                response = GetResponse();
+                response = await GetResponseAsync();
                 var n = response.Trim().LastOrDefault();
                 if (n != ')')
                 {
@@ -530,18 +532,18 @@ namespace WinPhone.Mail.Protocols
                 }
             }
 
-            IdleResume();
+            await IdleResumeAsync();
         }
 
-        public virtual Quota GetQuota(string mailbox)
+        public virtual async Task<Quota> GetQuotaAsync(string mailbox)
         {
-            if (!Supports("NAMESPACE"))
+            if (!(await SupportsAsync("NAMESPACE")))
                 throw new Exception("This command is not supported by the server!");
-            IdlePause();
+            await IdlePauseAsync();
 
             Quota quota = null;
             string command = GetTag() + "GETQUOTAROOT " + ModifiedUtf7Encoding.Encode(mailbox).QuoteString();
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
             string reg = "\\* QUOTA (.*?) \\((.*?) (.*?) (.*?)\\)";
             while (response.StartsWith("*"))
             {
@@ -555,89 +557,90 @@ namespace WinPhone.Mail.Protocols
                             );
                     break;
                 }
-                response = GetResponse();
+                response = await GetResponseAsync();
             }
 
-            IdleResume();
+            await IdleResumeAsync();
             return quota;
         }
 
-        public virtual Mailbox[] ListMailboxes(string reference, string pattern)
+        public virtual async Task<Mailbox[]> ListMailboxesAsync(string reference, string pattern)
         {
-            IdlePause();
+            await IdlePauseAsync();
 
             var x = new List<Mailbox>();
             string command = GetTag() + "LIST " + reference.QuoteString() + " " + pattern.QuoteString();
             const string reg = "\\* LIST \\(([^\\)]*)\\) \\\"([^\\\"]+)\\\" \\\"?([^\\\"]+)\\\"?";
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
             Match m = Regex.Match(response, reg);
             while (m.Groups.Count > 1)
             {
                 Mailbox mailbox = new Mailbox(m.Groups[3].ToString());
                 mailbox.SetFlags(m.Groups[1].ToString());
                 x.Add(mailbox);
-                response = GetResponse();
+                response = await GetResponseAsync();
                 m = Regex.Match(response, reg);
             }
-            IdleResume();
+            await IdleResumeAsync();
             return x.ToArray();
         }
 
-        public virtual Mailbox[] ListSuscribesMailboxes(string reference, string pattern)
+        public virtual async Task<Mailbox[]> ListSuscribesMailboxesAsync(string reference, string pattern)
         {
-            IdlePause();
+            await IdlePauseAsync();
 
             var x = new List<Mailbox>();
             string command = GetTag() + "LSUB " + reference.QuoteString() + " " + pattern.QuoteString();
             string reg = "\\* LSUB \\(([^\\)]*)\\) \\\"([^\\\"]+)\\\" \\\"([^\\\"]+)\\\"";
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
             Match m = Regex.Match(response, reg);
             while (m.Groups.Count > 1)
             {
                 Mailbox mailbox = new Mailbox(m.Groups[3].ToString());
                 x.Add(mailbox);
-                response = GetResponse();
+                response = await GetResponseAsync();
                 m = Regex.Match(response, reg);
             }
-            IdleResume();
+            await IdleResumeAsync();
             return x.ToArray();
         }
 
-        internal override void OnLogin(string login, string password)
+        internal override async Task OnLoginAsync(string login, string password)
         {
             string command = String.Empty;
             string result = String.Empty;
             string tag = GetTag();
-            string key;
 
             switch (AuthMethod)
             {
+                /*
                 case AuthMethods.CRAMMD5:
+                    string key;
                     command = tag + "AUTHENTICATE CRAM-MD5";
                     result = SendCommandGetResponse(command);
                     // retrieve server key
                     key = result.Replace("+ ", "");
-                    key = System.Text.Encoding.Default.GetString(Convert.FromBase64String(key));
-                    // calcul hash
-                    using (var kMd5 = new HMACMD5(System.Text.Encoding.ASCII.GetBytes(password)))
+                    key = System.Text.Encoding.ASCII.GetString(Convert.FromBase64String(key));
+                    // calculate hash
+                    using (var kMd5 = new HMACMD5(Utilities.ASCII.GetBytes(password)))
                     {
-                        byte[] hash1 = kMd5.ComputeHash(System.Text.Encoding.ASCII.GetBytes(key));
+                        byte[] hash1 = kMd5.ComputeHash(Utilities.ASCII.GetBytes(key));
                         key = BitConverter.ToString(hash1).ToLower().Replace("-", "");
-                        result = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes(login + " " + key));
+                        result = Convert.ToBase64String(Utilities.ASCII.GetBytes(login + " " + key));
                         result = SendCommandGetResponse(result);
                     }
                     break;
-
+                */
                 case AuthMethods.Login:
                     command = tag + "LOGIN " + login.QuoteString() + " " + password.QuoteString();
-                    result = SendCommandGetResponse(command);
+                    result = await SendCommandGetResponseAsync(command);
                     break;
 
                 case AuthMethods.SaslOAuth:
                     string sasl = "user=" + login + "\x01" + "auth=Bearer " + password + "\x01" + "\x01";
                     string base64 = Convert.ToBase64String(Encoding.GetBytes(sasl));
                     command = tag + "AUTHENTICATE XOAUTH2 " + base64;
-                    result = SendCommandGetResponse(command);
+                    result = await SendCommandGetResponseAsync(command);
                     break;
 
                 default:
@@ -647,14 +650,14 @@ namespace WinPhone.Mail.Protocols
             if (result.StartsWith("* CAPABILITY "))
             {
                 _Capability = result.Substring(13).Trim().Split(' ');
-                result = GetResponse();
+                result = await GetResponseAsync();
             }
 
             if (!result.StartsWith(tag + "OK"))
             {
                 if (result.StartsWith("+ ") && result.EndsWith("=="))
                 {
-                    string jsonErr = Utilities.DecodeBase64(result.Substring(2), System.Text.Encoding.UTF7);
+                    string jsonErr = Utilities.DecodeBase64(result.Substring(2), Utilities.UTF7);
                     throw new Exception(jsonErr);
                 }
                 else
@@ -668,30 +671,32 @@ namespace WinPhone.Mail.Protocols
             // // _Stream = new System.IO.Compression.DeflateStream(_Stream0, System.IO.Compression.CompressionMode.Compress, true);
             //}
 
-            if (Supports("X-GM-EXT-1"))
+            if (await SupportsAsync("X-GM-EXT-1"))
             {
                 _FetchHeaders = "X-GM-MSGID X-GM-THRID X-GM-LABELS ";
             }
         }
 
-        internal override void OnLogout()
+        internal override Task OnLogoutAsync()
         {
             if (IsConnected)
-                SendCommand(GetTag() + "LOGOUT");
+                return SendCommandAsync(GetTag() + "LOGOUT");
+
+            return Task.FromResult(0);
         }
 
-        public virtual Namespaces Namespace()
+        public virtual async Task<Namespaces> Namespace()
         {
-            if (!Supports("NAMESPACE"))
+            if (!await SupportsAsync("NAMESPACE"))
                 throw new NotSupportedException("This command is not supported by the server!");
-            IdlePause();
+            await IdlePauseAsync();
 
             string command = GetTag() + "NAMESPACE";
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
 
             if (!response.StartsWith("* NAMESPACE"))
             {
-                throw new Exception("Unknow server response !");
+                throw new Exception("Unknown server response !");
             }
 
             response = response.Substring(12);
@@ -720,22 +725,22 @@ namespace WinPhone.Mail.Protocols
                 n.SharedNamespace.Add(new Namespace(m2.Groups[1].Value, m2.Groups[2].Value));
                 m2 = m2.NextMatch();
             }
-            GetResponse();
-            IdleResume();
+            await GetResponseAsync();
+            await IdleResumeAsync();
             return n;
         }
 
-        public virtual int GetMessageCount()
+        public virtual async Task<int> GetMessageCountAsync()
         {
-            CheckMailboxSelected();
-            return GetMessageCount(null);
+            await CheckMailboxSelectedAsync();
+            return await GetMessageCountAsync(null);
         }
-        public virtual int GetMessageCount(string mailbox)
+        public virtual async Task<int> GetMessageCountAsync(string mailbox)
         {
-            IdlePause();
+            await IdlePauseAsync();
 
             string command = GetTag() + "STATUS " + Utilities.QuoteString(ModifiedUtf7Encoding.Encode(mailbox) ?? _SelectedMailbox) + " (MESSAGES)";
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
             string reg = @"\* STATUS.*MESSAGES (\d+)";
             int result = 0;
             while (response.StartsWith("*"))
@@ -743,35 +748,35 @@ namespace WinPhone.Mail.Protocols
                 Match m = Regex.Match(response, reg);
                 if (m.Groups.Count > 1)
                     result = Convert.ToInt32(m.Groups[1].ToString());
-                response = GetResponse();
+                response = await GetResponseAsync();
                 m = Regex.Match(response, reg);
             }
-            IdleResume();
+            await IdleResumeAsync();
             return result;
         }
 
-        public virtual void RenameMailbox(string frommailbox, string tomailbox)
+        public virtual async Task RenameMailboxAsync(string frommailbox, string tomailbox)
         {
-            IdlePause();
+            await IdlePauseAsync();
 
             string command = GetTag() + "RENAME " + frommailbox.QuoteString() + " " + tomailbox.QuoteString();
-            SendCommandCheckOK(command);
-            IdleResume();
+            await SendCommandCheckOKAsync(command);
+            await IdleResumeAsync();
         }
 
-        public virtual string[] Search(SearchCondition criteria, bool uid = true)
+        public virtual Task<string[]> SearchAsync(SearchCondition criteria, bool uid = true)
         {
-            return Search(criteria.ToString(), uid);
+            return SearchAsync(criteria.ToString(), uid);
         }
 
-        public virtual string[] Search(string criteria, bool uid = true)
+        public virtual async Task<string[]> SearchAsync(string criteria, bool uid = true)
         {
-            CheckMailboxSelected();
+            await CheckMailboxSelectedAsync();
 
             string isuid = uid ? "UID " : "";
             string tag = GetTag();
             string command = tag + isuid + "SEARCH " + criteria;
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
 
             if (!response.StartsWith("* SEARCH", StringComparison.InvariantCultureIgnoreCase) && !IsResultOK(response))
             {
@@ -779,7 +784,7 @@ namespace WinPhone.Mail.Protocols
             }
 
             string temp;
-            while (!(temp = GetResponse()).StartsWith(tag))
+            while (!(temp = await GetResponseAsync()).StartsWith(tag))
             {
                 response += Environment.NewLine + temp;
             }
@@ -787,24 +792,24 @@ namespace WinPhone.Mail.Protocols
             var m = Regex.Match(response, @"^\* SEARCH (.*)");
             return m.Groups[1].Value.Trim().Split(' ').Where(x => !string.IsNullOrEmpty(x)).ToArray();
         }
-
+        /*
         public virtual Lazy<MailMessage>[] SearchMessages(SearchCondition criteria, bool headersonly = false, bool setseen = false)
         {
             return Search(criteria, true)
                     .Select(x => new Lazy<MailMessage>(() => GetMessage(x, headersonly, setseen)))
                     .ToArray();
         }
-
-        public virtual Mailbox SelectMailbox(string mailboxName)
+        */
+        public virtual async Task<Mailbox> SelectMailboxAsync(string mailboxName)
         {
-            IdlePause();
+            await IdlePauseAsync();
 
             mailboxName = ModifiedUtf7Encoding.Encode(mailboxName);
             var tag = GetTag();
             var command = tag + "SELECT " + mailboxName.QuoteString();
-            var response = SendCommandGetResponse(command);
+            var response = await SendCommandGetResponseAsync(command);
             if (IsResultOK(response))
-                response = GetResponse();
+                response = await GetResponseAsync();
             var mailbox = new Mailbox(mailboxName);
             Match match;
 
@@ -822,25 +827,25 @@ namespace WinPhone.Mail.Protocols
                 else if ((match = Regex.Match(response, @"(?<=\sFLAGS\s+\().*?(?=\))")).Success)
                     mailbox.SetFlags(match.Value);
 
-                response = GetResponse();
+                response = await GetResponseAsync();
             }
 
             CheckResultOK(response);
             mailbox.IsWritable = Regex.IsMatch(response, "READ.WRITE", RegexOptions.IgnoreCase);
             _SelectedMailbox = mailboxName;
 
-            IdleResume();
+            await IdleResumeAsync();
             return mailbox;
         }
 
-        public virtual void SetFlags(Flags flags, params MailMessage[] msgs)
+        public virtual Task SetFlagsAsync(Flags flags, params MailMessage[] msgs)
         {
-            SetFlags(FlagsToFlagString(flags), msgs);
+            return SetFlagsAsync(FlagsToFlagString(flags), msgs);
         }
 
-        public virtual void SetFlags(string flags, params MailMessage[] msgs)
+        public virtual async Task SetFlagsAsync(string flags, params MailMessage[] msgs)
         {
-            Store("UID " + string.Join(" ", msgs.Select(x => x.Uid)), true, flags);
+            await StoreAsync("UID " + string.Join(" ", msgs.Select(x => x.Uid)), true, flags);
             foreach (var msg in msgs)
             {
                 msg.SetFlags(flags);
@@ -853,24 +858,24 @@ namespace WinPhone.Mail.Protocols
         }
 
 
-        public virtual void AddFlags(Flags flags, params MailMessage[] msgs)
+        public virtual Task AddFlagsAsync(Flags flags, params MailMessage[] msgs)
         {
-            AddFlags(FlagsToFlagString(flags), msgs);
+            return AddFlagsAsync(FlagsToFlagString(flags), msgs);
         }
 
-        public virtual void AddFlags(string flags, params MailMessage[] msgs)
+        public virtual async Task AddFlagsAsync(string flags, params MailMessage[] msgs)
         {
-            Store("UID " + string.Join(" ", msgs.Select(x => x.Uid)), false, flags);
+            await StoreAsync("UID " + string.Join(" ", msgs.Select(x => x.Uid)), false, flags);
             foreach (var msg in msgs)
             {
                 msg.SetFlags(FlagsToFlagString(msg.Flags) + " " + flags);
             }
         }
 
-        public virtual void Store(string messageset, bool replace, string flags)
+        public virtual async Task StoreAsync(string messageset, bool replace, string flags)
         {
-            CheckMailboxSelected();
-            IdlePause();
+            await CheckMailboxSelectedAsync();
+            await IdlePauseAsync();
             string prefix = null;
             if (messageset.StartsWith("UID ", StringComparison.OrdinalIgnoreCase))
             {
@@ -879,31 +884,31 @@ namespace WinPhone.Mail.Protocols
             }
 
             string command = string.Concat(GetTag(), prefix, "STORE ", messageset, " ", replace ? "" : "+", "FLAGS.SILENT (" + flags + ")");
-            string response = SendCommandGetResponse(command);
+            string response = await SendCommandGetResponseAsync(command);
             while (response.StartsWith("*"))
             {
-                response = GetResponse();
+                response = await GetResponseAsync();
             }
             CheckResultOK(response);
-            IdleResume();
+            await IdleResumeAsync();
         }
 
-        public virtual void SuscribeMailbox(string mailbox)
+        public virtual async Task SuscribeMailboxAsync(string mailbox)
         {
-            IdlePause();
+            await IdlePauseAsync();
 
             string command = GetTag() + "SUBSCRIBE " + ModifiedUtf7Encoding.Encode(mailbox).QuoteString();
-            SendCommandCheckOK(command);
-            IdleResume();
+            await SendCommandCheckOKAsync(command);
+            await IdleResumeAsync();
         }
 
-        public virtual void UnSuscribeMailbox(string mailbox)
+        public virtual async Task UnSuscribeMailboxAsync(string mailbox)
         {
-            IdlePause();
+            await IdlePauseAsync();
 
             string command = GetTag() + "UNSUBSCRIBE " + ModifiedUtf7Encoding.Encode(mailbox).QuoteString();
-            SendCommandCheckOK(command);
-            IdleResume();
+            await SendCommandCheckOKAsync(command);
+            await IdleResumeAsync();
         }
 
         internal override void CheckResultOK(string response)

@@ -16,18 +16,19 @@ namespace WinPhone.Mail.Protocols
             await LoginAsync(username, password);
         }
 
-        internal override void OnLogin(string username, string password)
+        internal override async Task OnLoginAsync(string username, string password)
         {
-            SendCommandCheckOK("USER " + username);
-            SendCommandCheckOK("PASS " + password);
+            await SendCommandCheckOKAsync("USER " + username);
+            await SendCommandCheckOKAsync("PASS " + password);
         }
 
-        internal override void OnLogout()
+        internal override Task OnLogoutAsync()
         {
             if (_Stream != null)
             {
-                SendCommand("QUIT");
+                return SendCommandAsync("QUIT");
             }
+            return Task.FromResult(0);
         }
 
         internal override void CheckResultOK(string result)
@@ -38,34 +39,34 @@ namespace WinPhone.Mail.Protocols
             }
         }
 
-        public virtual int GetMessageCount()
+        public virtual async Task<int> GetMessageCountAsync()
         {
             CheckConnectionStatus();
-            var result = SendCommandGetResponse("STAT");
+            var result = await SendCommandGetResponseAsync("STAT");
             CheckResultOK(result);
             return int.Parse(result.Split(' ')[1]);
         }
 
-        public virtual MailMessage GetMessage(int index, bool headersOnly = false)
+        public virtual Task<MailMessage> GetMessageAsync(int index, bool headersOnly = false)
         {
-            return GetMessage((index + 1).ToString(), headersOnly);
+            return GetMessageAsync((index + 1).ToString(), headersOnly);
         }
 
         private static Regex rxOctets = new Regex(@"(\d+)\s+octets", RegexOptions.IgnoreCase);
 
-        public virtual MailMessage GetMessage(string uid, bool headersOnly = false)
+        public virtual async Task<MailMessage> GetMessageAsync(string uid, bool headersOnly = false)
         {
             CheckConnectionStatus();
-            var line = SendCommandGetResponse(string.Format(headersOnly ? "TOP {0} 0" : "RETR {0}", uid));
+            var line = await SendCommandGetResponseAsync(string.Format(headersOnly ? "TOP {0} 0" : "RETR {0}", uid));
             var size = rxOctets.Match(line).Groups[1].Value.ToInt();
             CheckResultOK(line);
             var msg = new MailMessage();
             msg.Load(_Stream, headersOnly, size, '.');
 
             msg.Uid = uid;
-            var last = GetResponse();
+            var last = await GetResponseAsync();
             if (string.IsNullOrEmpty(last))
-                last = GetResponse();
+                last = await GetResponseAsync();
 
             if (last != ".")
             {
@@ -76,20 +77,19 @@ namespace WinPhone.Mail.Protocols
             return msg;
         }
 
-        public virtual void DeleteMessage(string uid)
+        public virtual Task DeleteMessageAsync(string uid)
         {
-            SendCommandCheckOK("DELE " + uid);
-
+            return SendCommandCheckOKAsync("DELE " + uid);
         }
 
-        public virtual void DeleteMessage(int index)
+        public virtual Task DeleteMessageAsync(int index)
         {
-            DeleteMessage((index + 1).ToString());
+            return DeleteMessageAsync((index + 1).ToString());
         }
 
-        public virtual void DeleteMessage(WinPhone.Mail.Protocols.MailMessage msg)
+        public virtual Task DeleteMessageAsync(MailMessage msg)
         {
-            DeleteMessage(msg.Uid);
+            return DeleteMessageAsync(msg.Uid);
         }
     }
 }

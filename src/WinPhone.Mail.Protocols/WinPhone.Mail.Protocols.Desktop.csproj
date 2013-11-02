@@ -59,6 +59,7 @@
   <ItemGroup>
     <Compile Include="AlternateViewCollection.cs" />
     <Compile Include="Attachment.cs" />
+    <Compile Include="Gmail\GmailImapClient.cs" />
     <Compile Include="Imap\ImapClient.cs" />
     <Compile Include="Imap\ModifiedUtf7Encoding.cs" />
     <Compile Include="Imap\SearchCondition.cs" />
@@ -66,6 +67,7 @@
     <Compile Include="HeaderObject.cs" />
     <Compile Include="Imap\MessageEventArgs.cs" />
     <Compile Include="MailAddress.cs" />
+    <Compile Include="Transport\BufferedReadStream.cs" />
     <Compile Include="Transport\ITransport.cs" />
     <Compile Include="Transport\SystemNetTransport.cs" />
     <Compile Include="Utilities.cs" />
