@@ -21,7 +21,7 @@ namespace WinPhone.Mail.Protocols
         public virtual string ContentTransferEncoding
         {
             get { return Headers["Content-Transfer-Encoding"].Value ?? string.Empty; }
-            internal set
+            set
             {
                 Headers.Set("Content-Transfer-Encoding", new HeaderValue(value));
             }

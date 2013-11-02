@@ -47,7 +47,9 @@
   <ItemGroup>
     <Compile Include="HeaderDictionary.cs" />
     <Compile Include="ModifiedUtf7EncodingTest.cs" />
+    <Compile Include="Parsing.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Shouldly.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\WinPhone.Mail.Protocols\WinPhone.Mail.Protocols.Desktop.csproj">

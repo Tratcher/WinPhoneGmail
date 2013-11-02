@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace WinPhone.Mail.Protocols
 {
-    internal static class Utilities
+    public static class Utilities
     {
         private static CultureInfo _enUsCulture = CultureInfo.InvariantCulture;
         public static Encoding ASCII = Encoding.GetEncoding("iso-8859-1"); // Encoding.UTF8; // TODO: ASCII is not available on winphone.
@@ -218,12 +218,12 @@ namespace WinPhone.Mail.Protocols
             return value;
         }
 
-        internal static string GetRFC2060Date(this DateTime date)
+        public static string GetRFC2060Date(this DateTime date)
         {
             return date.ToString("dd-MMM-yyyy hh:mm:ss zz", _enUsCulture);
         }
 
-        internal static string QuoteString(this string value)
+        public static string QuoteString(this string value)
         {
             return "\"" + value
                                             .Replace("\\", "\\\\")
@@ -232,7 +232,7 @@ namespace WinPhone.Mail.Protocols
                                             .Replace("\"", "\\\"") + "\"";
         }
 
-        internal static bool StartsWithWhiteSpace(this string line)
+        public static bool StartsWithWhiteSpace(this string line)
         {
             if (string.IsNullOrEmpty(line))
                 return false;
@@ -240,7 +240,7 @@ namespace WinPhone.Mail.Protocols
             return IsWhiteSpace(chr);
         }
 
-        internal static bool EndsWithWhiteSpace(this string line)
+        public static bool EndsWithWhiteSpace(this string line)
         {
             if (string.IsNullOrEmpty(line))
                 return false;
@@ -248,12 +248,12 @@ namespace WinPhone.Mail.Protocols
             return IsWhiteSpace(chr);
         }
 
-        internal static bool IsWhiteSpace(this char chr)
+        public static bool IsWhiteSpace(this char chr)
         {
             return chr == ' ' || chr == '\t' || chr == '\n' || chr == '\r';
         }
 
-        internal static string TrimStartOnce(this string line)
+        public static string TrimStartOnce(this string line)
         {
             var result = line;
 
@@ -263,7 +263,7 @@ namespace WinPhone.Mail.Protocols
             return result;
         }
 
-        internal static string TrimEndOnce(this string line)
+        public static string TrimEndOnce(this string line)
         {
             var result = line;
 
@@ -328,7 +328,7 @@ namespace WinPhone.Mail.Protocols
             return value;
         }
 
-        internal static string DecodeBase64(string data, Encoding encoding = null)
+        public static string DecodeBase64(string data, Encoding encoding = null)
         {
             if (!IsValidBase64String(ref data))
             {
@@ -339,7 +339,7 @@ namespace WinPhone.Mail.Protocols
         }
 
         #region OpenPOP.NET
-        internal static string DecodeWords(string encodedWords, Encoding @default = null)
+        public static string DecodeWords(string encodedWords, Encoding @default = null)
         {
             if (string.IsNullOrEmpty(encodedWords))
                 return string.Empty;

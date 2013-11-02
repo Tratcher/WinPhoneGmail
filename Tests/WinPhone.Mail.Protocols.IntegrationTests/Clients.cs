@@ -1,254 +1,303 @@
-﻿using WinPhone.Mail.Protocols;
-using Shouldly;
+﻿using Shouldly;
 using System;
+using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using WinPhone.Mail.Protocols;
 using Xunit;
 
-namespace Tests {
+namespace Tests
+{
+    public class Clients
+    {
+        /*
+        [Fact]
+        public async Task IDLE()
+        {
+            var mre1 = new System.Threading.ManualResetEventSlim(false);
+            var mre2 = new System.Threading.ManualResetEventSlim(false);
+            using (var imap = await GetClientAsync<ImapClient>())
+            {
+                bool fired = false;
+                imap.MessageDeleted += (sender, e) =>
+                {
+                    fired = true;
+                    mre2.Set();
+                };
 
-	public class Clients {
+                var count = await imap.GetMessageCountAsync();
+                count.ShouldBeInRange(1, int.MaxValue); // interrupt the idle thread
 
-		[Fact]
-		public void IDLE() {
-			var mre1 = new System.Threading.ManualResetEventSlim(false);
-			var mre2 = new System.Threading.ManualResetEventSlim(false);
-			using (var imap = GetClient<ImapClient>()) {
-				bool fired = false;
-				imap.MessageDeleted += (sender, e) => {
-					fired = true;
-					mre2.Set();
-				};
+                ThreadPool.QueueUserWorkItem(_ =>
+                {
+                    Delete_Message();
+                    mre1.Set();
+                });
 
-				var count = imap.GetMessageCount();
-				count.ShouldBeInRange(1, int.MaxValue); // interrupt the idle thread
+                mre1.Wait();
+                mre2.Wait(TimeSpan.FromSeconds(15));//give the other thread a moment
+                fired.ShouldBe();
+            }
+        }
+        */
+        /*
+        [Fact]
+        public async Task Message_With_Attachments()
+        {
+            using (var imap = GetClient<ImapClient>())
+            {
+                var msg = await imap.SearchMessagesAsync(SearchCondition.Larger(100 * 1000)).FirstOrDefault().Value;
 
-				System.Threading.ThreadPool.QueueUserWorkItem(_ => {
-					Delete_Message();
-					mre1.Set();
-				});
+                msg.Attachments.Count.ShouldBeInRange(1, int.MaxValue);
+            }
+        }
+        */
+        [Fact]
+        public async Task Select_Folder()
+        {
+            using (var imap = await GetClientAsync<ImapClient>())
+            {
+                await imap.SelectMailboxAsync("Notes");
+                (await imap.ExamineAsync("Notes")).UIDValidity.ShouldBeGreaterThan(0);
+                (await imap.GetMessageCountAsync()).ShouldBeInRange(1, int.MaxValue);
+            }
+        }
+        /*
+        [Fact]
+        public void Polish_Characters()
+        {
+            using (var imap = GetClient<ImapClient>())
+            {
+                var msg = imap.SearchMessages(SearchCondition.Subject("POLISH LANGUAGE TEST")).FirstOrDefault();
+                msg.Value.ShouldBe();
 
-				mre1.Wait();
-				mre2.Wait(TimeSpan.FromSeconds(15));//give the other thread a moment
-				fired.ShouldBe();
-			}
-		}
+                msg.Value.Body.ShouldContain("Cię e-mailem, kiedy Kupują");
 
-		[Fact]
-		public void Message_With_Attachments() {
-			using (var imap = GetClient<ImapClient>()) {
-				var msg = imap.SearchMessages(SearchCondition.Larger(100 * 1000)).FirstOrDefault().Value;
+            }
+        }
+        */
+        [Fact]
+        public async Task POP()
+        {
+            using (var client = await GetClientAsync<Pop3Client>("gmail", "pop3"))
+            {
+                var msg = await client.GetMessageAsync(0);
+                Console.WriteLine(msg.Body);
+            }
+        }
 
-				msg.Attachments.Count.ShouldBeInRange(1, int.MaxValue);
+        [Fact]
+        public async Task Connections()
+        {
+            var accountsToTest = System.IO.Path.Combine(Environment.CurrentDirectory.Split(new[] { "\\aenetmail\\" }, StringSplitOptions.RemoveEmptyEntries).First(), "ae.net.mail.usernames.txt");
+            var lines = System.IO.File.ReadAllLines(accountsToTest)
+                    .Select(x => x.Split(','))
+                    .Where(x => x.Length == 6)
+                    .ToArray();
 
-			}
-		}
+            lines.Any(x => x[0] == "imap").ShouldBe();
+            lines.Any(x => x[0] == "pop3").ShouldBe();
 
-		[Fact]
-		public void Select_Folder() {
-			using (var imap = GetClient<ImapClient>()) {
-				imap.SelectMailbox("Notes");
-				imap.Examine("Notes").UIDValidity.ShouldBeGreaterThan(0);
-				imap.GetMessageCount().ShouldBeInRange(1, int.MaxValue);
-			}
-		}
+            foreach (var line in lines)
+                using (var mail = await GetClientAsync(line[0], line[1], int.Parse(line[2]), bool.Parse(line[3]), line[4], line[5]))
+                {
+                    (await mail.GetMessageCountAsync()).ShouldBeInRange(1, int.MaxValue);
 
-		[Fact]
-		public void Polish_Characters() {
-			using (var imap = GetClient<ImapClient>()) {
-				var msg = imap.SearchMessages(SearchCondition.Subject("POLISH LANGUAGE TEST")).FirstOrDefault();
-				msg.Value.ShouldBe();
+                    var msg = await mail.GetMessageAsync(0, true);
+                    msg.Subject.ShouldNotBeNullOrEmpty();
+                    msg = await mail.GetMessageAsync(0, false);
+                    msg.Body.ShouldNotBeNullOrEmpty();
 
-				msg.Value.Body.ShouldContain("Cię e-mailem, kiedy Kupują");
+                    await mail.DisconnectAsync();
+                    await mail.DisconnectAsync();
+                }
+        }
 
-			}
-		}
+        [Fact]
+        public void Search_Conditions()
+        {
+            var deleted = SearchCondition.Deleted();
+            var seen = SearchCondition.Seen();
+            var text = SearchCondition.Text("andy");
 
-		[Fact]
-		public void POP() {
-			using (var client = GetClient<Pop3Client>("gmail", "pop3")) {
-				var msg = client.GetMessage(0);
-				Console.WriteLine(msg.Body);
-			}
-		}
+            deleted.ToString().ShouldBe("DELETED");
+            deleted.Or(seen).ToString().ShouldBe("OR (DELETED) (SEEN)");
+            seen.And(text).ToString().ShouldBe("(SEEN) (TEXT \"andy\")");
 
-		[Fact]
-		public void Connections() {
-			var accountsToTest = System.IO.Path.Combine(Environment.CurrentDirectory.Split(new[] { "\\aenetmail\\" }, StringSplitOptions.RemoveEmptyEntries).First(), "ae.net.mail.usernames.txt");
-			var lines = System.IO.File.ReadAllLines(accountsToTest)
-					.Select(x => x.Split(','))
-					.Where(x => x.Length == 6)
-					.ToArray();
+            var since = new DateTime(2000, 1, 1);
+            SearchCondition.Undeleted().And(
+                                    SearchCondition.From("david"),
+                                    SearchCondition.SentSince(since)
+                            ).Or(SearchCondition.To("andy"))
+                    .ToString()
+                    .ShouldBe("OR ((UNDELETED) (FROM \"david\") (SENTSINCE \"" + Utilities.GetRFC2060Date(since) + "\")) (TO \"andy\")");
+        }
+        /*
+        [Fact]
+        public void Search()
+        {
+            using (var imap = await GetClientAsync<ImapClient>())
+            {
+                var result = imap.SearchMessages(
+                    //"OR ((UNDELETED) (FROM \"david\") (SENTSINCE \"01-Jan-2000 00:00:00\")) (TO \"andy\")"
+                        SearchCondition.Undeleted().And(SearchCondition.From("david"), SearchCondition.SentSince(new DateTime(2000, 1, 1))).Or(SearchCondition.To("andy"))
+                        );
+                result.Length.ShouldBeInRange(1, int.MaxValue);
+                result.First().Value.Subject.ShouldNotBeNullOrEmpty();
 
-			lines.Any(x => x[0] == "imap").ShouldBe();
-			lines.Any(x => x[0] == "pop3").ShouldBe();
+                result = imap.SearchMessages(new SearchCondition { Field = SearchCondition.Fields.Text, Value = "asdflkjhdlki2uhiluha829hgas" });
+                result.Length.ShouldBe(0);
+            }
+        }
+        */
+        /*
+        [Fact]
+        public void Issue_49()
+        {
+            using (var client = async GetClientAsyncGetClient<ImapClient>())
+            {
+                var msg = client.SearchMessages(SearchCondition.Subject("aenetmail").And(SearchCondition.Subject("#49"))).Select(x => x.Value).FirstOrDefault();
+                msg.ShouldBe();
+                msg.AlternateViews.FirstOrDefault(x => x.ContentType.Contains("html")).Body.ShouldBe();
+            }
+        }
+        */
+        [Fact]
+        public async Task Append_Mail()
+        {
+            using (var client = await GetClientAsync<ImapClient>())
+            {
+                var msg = new MailMessage
+                {
+                    Subject = "TEST",
+                    Body = "Appended!"
+                };
+                msg.Date = DateTime.Now;
 
-			foreach (var line in lines)
-				using (var mail = GetClient(line[0], line[1], int.Parse(line[2]), bool.Parse(line[3]), line[4], line[5])) {
-					mail.GetMessageCount().ShouldBeInRange(1, int.MaxValue);
+                await client.AppendMailAsync(msg, "Inbox");
+            }
+        }
 
-					var msg = mail.GetMessage(0, true);
-					msg.Subject.ShouldNotBeNullOrEmpty();
-					msg = mail.GetMessage(0, false);
-					msg.Body.ShouldNotBeNullOrEmpty();
+        [Fact]
+        public void Parse_Imap_Header()
+        {
+            var header = @"X-GM-THRID 1320777376118077475 X-GM-MSGID 1320777376118077475 X-GM-LABELS () UID 8286 RFC822.SIZE 9369 FLAGS (\Seen) BODY[] {9369}";
 
-					mail.Disconnect();
-					mail.Disconnect();
-				}
-		}
+            var values = Utilities.ParseImapHeader(header);
+            values["FLAGS"].ShouldBe(@"\Seen");
+            values["UID"].ShouldBe("8286");
+            values["X-GM-MSGID"].ShouldBe("1320777376118077475");
+            values["X-GM-LABELS"].ShouldBeNullOrEmpty();
+            values["RFC822.SIZE"].ShouldBe("9369");
+        }
 
-		[Fact]
-		public void Search_Conditions() {
-			var deleted = SearchCondition.Deleted();
-			var seen = SearchCondition.Seen();
-			var text = SearchCondition.Text("andy");
+        [Fact]
+        public async Task Get_Several_Messages()
+        {
+            int numMessages = 10;
+            using (var imap = await GetClientAsync<ImapClient>())
+            {
+                var msgs = await imap.GetMessagesAsync(0, numMessages - 1, false);
+                msgs.Length.ShouldBe(numMessages);
 
-			deleted.ToString().ShouldBe("DELETED");
-			deleted.Or(seen).ToString().ShouldBe("OR (DELETED) (SEEN)");
-			seen.And(text).ToString().ShouldBe("(SEEN) (TEXT \"andy\")");
+                for (var i = 0; i < 1000; i++)
+                {
+                    var msg = await imap.GetMessageAsync(i);
+                    msg.Subject.ShouldNotBeNullOrEmpty();
+                    msg.Body.ShouldNotBeNullOrEmpty();
+                    msg.ContentType.ShouldStartWith("text/");
+                }
 
-			var since = new DateTime(2000, 1, 1);
-			SearchCondition.Undeleted().And(
-									SearchCondition.From("david"),
-									SearchCondition.SentSince(since)
-							).Or(SearchCondition.To("andy"))
-					.ToString()
-					.ShouldBe("OR ((UNDELETED) (FROM \"david\") (SENTSINCE \"" + Utilities.GetRFC2060Date(since) + "\")) (TO \"andy\")");
-		}
+                msgs = await imap.GetMessagesAsync(0, numMessages - 1, true);
+                msgs.Length.ShouldBe(numMessages);
+                msgs.Count(x => string.IsNullOrEmpty(x.Subject)).ShouldBe(0);
+            }
+        }
 
-		[Fact]
-		public void Search() {
-			using (var imap = GetClient<ImapClient>()) {
-				var result = imap.SearchMessages(
-					//"OR ((UNDELETED) (FROM \"david\") (SENTSINCE \"01-Jan-2000 00:00:00\")) (TO \"andy\")"
-						SearchCondition.Undeleted().And(SearchCondition.From("david"), SearchCondition.SentSince(new DateTime(2000, 1, 1))).Or(SearchCondition.To("andy"))
-						);
-				result.Length.ShouldBeInRange(1, int.MaxValue);
-				result.First().Value.Subject.ShouldNotBeNullOrEmpty();
+        [Fact]
+        public async Task Download_Message()
+        {
+            var filename = System.IO.Path.GetTempFileName();
 
-				result = imap.SearchMessages(new SearchCondition { Field = SearchCondition.Fields.Text, Value = "asdflkjhdlki2uhiluha829hgas" });
-				result.Length.ShouldBe(0);
-			}
-		}
+            try
+            {
+                using (var imap = await GetClientAsync<ImapClient>())
+                using (var file = new System.IO.FileStream(filename, System.IO.FileMode.Create))
+                {
+                    await imap.DownloadMessageAsync(file, 0, false);
+                }
 
-		[Fact]
-		public void Issue_49() {
-			using (var client = GetClient<ImapClient>()) {
-				var msg = client.SearchMessages(SearchCondition.Subject("aenetmail").And(SearchCondition.Subject("#49"))).Select(x => x.Value).FirstOrDefault();
-				msg.ShouldBe();
-				msg.AlternateViews.FirstOrDefault(x => x.ContentType.Contains("html")).Body.ShouldBe();
-			}
-		}
+                using (var file = new System.IO.FileStream(filename, System.IO.FileMode.Open))
+                {
+                    var msg = new WinPhone.Mail.Protocols.MailMessage();
+                    msg.Load(file);
+                    msg.Subject.ShouldNotBeNullOrEmpty();
+                }
 
-		[Fact]
-		public void Append_Mail() {
-			using (var client = GetClient<ImapClient>()) {
-				var msg = new MailMessage {
-					Subject = "TEST",
-					Body = "Appended!"
-				};
-				msg.Date = DateTime.Now;
+            }
+            finally
+            {
+                File.Delete(filename);
+            }
+        }
+        /*
+        [Fact]
+        public async Task Delete_Message()
+        {
+            using (var client = GetClient<ImapClient>())
+            {
+                var lazymsg = client.SearchMessages(SearchCondition.From("DRAGONEXT")).FirstOrDefault();
+                var msg = lazymsg == null ? null : lazymsg.Value;
+                msg.ShouldBe();
 
-				client.AppendMail(msg, "Inbox");
-			}
-		}
+                var uid = msg.Uid;
+                await client.DeleteMessageAsync(msg);
 
-		[Fact]
-		public void Parse_Imap_Header() {
-			var header = @"X-GM-THRID 1320777376118077475 X-GM-MSGID 1320777376118077475 X-GM-LABELS () UID 8286 RFC822.SIZE 9369 FLAGS (\Seen) BODY[] {9369}";
+                msg = await client.GetMessageAsync(uid);
+                Console.WriteLine(msg);
+            }
+        }
+        */
+        private string GetSolutionDirectory()
+        {
+            var dir = new System.IO.DirectoryInfo(Environment.CurrentDirectory);
+            while (dir.GetFiles("*.sln").Length == 0)
+            {
+                dir = dir.Parent;
+            }
+            return dir.FullName;
+        }
 
-			var values = Utilities.ParseImapHeader(header);
-			values["FLAGS"].ShouldBe(@"\Seen");
-			values["UID"].ShouldBe("8286");
-			values["X-GM-MSGID"].ShouldBe("1320777376118077475");
-			values["X-GM-LABELS"].ShouldBeNullOrEmpty();
-			values["RFC822.SIZE"].ShouldBe("9369");
-		}
+        private async Task<T> GetClientAsync<T>(string host = "gmail", string type = "imap") where T : class, IMailClient
+        {
+            var accountsToTest = System.IO.Path.Combine(GetSolutionDirectory(), "..\\ae.net.mail.usernames.txt");
+            var lines = System.IO.File.ReadAllLines(accountsToTest)
+                    .Select(x => x.Split(','))
+                    .Where(x => x.Length == 6)
+                    .ToArray();
 
-		[Fact]
-		public void Get_Several_Messages() {
-			int numMessages = 10;
-			using (var imap = GetClient<ImapClient>()) {
-				var msgs = imap.GetMessages(0, numMessages - 1, false);
-				msgs.Length.ShouldBe(numMessages);
+            var line = lines.Where(x => x[0].Equals(type) && (x.ElementAtOrDefault(1) ?? string.Empty).Contains(host)).FirstOrDefault();
+            return await GetClientAsync(line[0], line[1], int.Parse(line[2]), bool.Parse(line[3]), line[4], line[5]) as T;
+        }
 
-				for (var i = 0; i < 1000; i++) {
-					var msg = imap.GetMessage(i);
-					msg.Subject.ShouldNotBeNullOrEmpty();
-					msg.Body.ShouldNotBeNullOrEmpty();
-					msg.ContentType.ShouldStartWith("text/");
-				}
+        private async Task<IMailClient> GetClientAsync(string type, string host, int port, bool ssl, string username, string password)
+        {
+            if ("imap".Equals(type, StringComparison.OrdinalIgnoreCase))
+            {
+                ImapClient client = new ImapClient(ImapClient.AuthMethods.Login);
+                await client.ConnectAsync(host, username, password, port, ssl);
+                return client;
+            }
 
-				msgs = imap.GetMessages(0, numMessages - 1, true);
-				msgs.Length.ShouldBe(numMessages);
-				msgs.Count(x => string.IsNullOrEmpty(x.Subject)).ShouldBe(0);
-			}
-		}
+            if ("pop3".Equals(type, StringComparison.OrdinalIgnoreCase))
+            {
+                Pop3Client client = new Pop3Client();
+                await client.ConnectAsync(host, username, password, port, ssl);
+                return client;
+            }
 
-		[Fact]
-		public void Download_Message() {
-			var filename = System.IO.Path.GetTempFileName();
-
-			try {
-				using (var imap = GetClient<ImapClient>())
-				using (var file = new System.IO.FileStream(filename, System.IO.FileMode.Create)) {
-					imap.DownloadMessage(file, 0, false);
-				}
-
-				using (var file = new System.IO.FileStream(filename, System.IO.FileMode.Open)) {
-					var msg = new WinPhone.Mail.Protocols.MailMessage();
-					msg.Load(file);
-					msg.Subject.ShouldNotBeNullOrEmpty();
-				}
-
-			} finally {
-				System.IO.File.Delete(filename);
-			}
-		}
-
-		[Fact]
-		public void Delete_Message() {
-			using (var client = GetClient<ImapClient>()) {
-				var lazymsg = client.SearchMessages(SearchCondition.From("DRAGONEXT")).FirstOrDefault();
-				var msg = lazymsg == null ? null : lazymsg.Value;
-				msg.ShouldBe();
-
-				var uid = msg.Uid;
-				client.DeleteMessage(msg);
-
-				msg = client.GetMessage(uid);
-				Console.WriteLine(msg);
-			}
-		}
-
-		private string GetSolutionDirectory() {
-			var dir = new System.IO.DirectoryInfo(Environment.CurrentDirectory);
-			while (dir.GetFiles("*.sln").Length == 0) {
-				dir = dir.Parent;
-			}
-			return dir.FullName;
-		}
-
-		private T GetClient<T>(string host = "gmail", string type = "imap") where T : class, IMailClient {
-			var accountsToTest = System.IO.Path.Combine(GetSolutionDirectory(), "..\\ae.net.mail.usernames.txt");
-			var lines = System.IO.File.ReadAllLines(accountsToTest)
-					.Select(x => x.Split(','))
-					.Where(x => x.Length == 6)
-					.ToArray();
-
-			var line = lines.Where(x => x[0].Equals(type) && (x.ElementAtOrDefault(1) ?? string.Empty).Contains(host)).FirstOrDefault();
-			return GetClient(line[0], line[1], int.Parse(line[2]), bool.Parse(line[3]), line[4], line[5]) as T;
-		}
-
-		private IMailClient GetClient(string type, string host, int port, bool ssl, string username, string password) {
-			if ("imap".Equals(type, StringComparison.OrdinalIgnoreCase)) {
-				return new WinPhone.Mail.Protocols.ImapClient(host, username, password, WinPhone.Mail.Protocols.ImapClient.AuthMethods.Login, port, ssl);
-			}
-
-			if ("pop3".Equals(type, StringComparison.OrdinalIgnoreCase)) {
-				return new WinPhone.Mail.Protocols.Pop3Client(host, username, password, port, ssl);
-			}
-
-			throw new NotImplementedException(type + " is not implemented");
-		}
-	}
+            throw new NotImplementedException(type + " is not implemented");
+        }
+    }
 }
