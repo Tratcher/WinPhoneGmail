@@ -54,17 +54,34 @@ namespace WinPhone.Mail
 
             try
             {
+                /*
                 using (var gmail = new GmailImapClient())
                 {
+                    WriteLine("Connecting");
                     await gmail.ConnectAsync(username, password);
+                    WriteLine("Getting messages");
                     MailMessage[] messages = await gmail.Client.GetMessagesAsync(0, 15, true, false);
-                    foreach (var message in messages)
-                    {
-                        WriteLine(message.Subject);
-                    }
+                    messages = messages.Reverse().ToArray();
+                    WriteLine("Got " + messages.Length + " messages");
 
                     MailList.ItemsSource = messages;
-                }
+                }*/
+
+                MailMessage[] messages = new MailMessage[2];
+                messages[0] = new MailMessage()
+                {
+                    Date = DateTime.Now,
+                    Subject = "A medium length subject",
+                    From = new MailAddress("user@domain.com", "From User"),
+                };
+                messages[1] = new MailMessage()
+                {
+                    Date = DateTime.Now - TimeSpan.FromDays(3),
+                    Subject = "A looooooooooooooooooooooooooooooooooooong subject",
+                    From = new MailAddress("user@domain.com", "From User"),
+                };
+                
+                MailList.ItemsSource = messages;
             }
             catch (Exception ex)
             {

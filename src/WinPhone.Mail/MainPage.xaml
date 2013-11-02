@@ -6,13 +6,14 @@
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:WinPhone.Mail"
     mc:Ignorable="d"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
     SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
-
+        
     <!--LayoutRoot is the root grid where all page content is placed-->
     <Grid x:Name="LayoutRoot" Background="Transparent">
         <Grid.RowDefinitions>
@@ -40,14 +41,28 @@
          -->
 
         <!--TitlePanel contains the name of the application and page title-->
-        <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,17,0,28">
+        <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,10,0,15">
             <TextBlock Text="Inbox" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}" FontSize="20"/>
         </StackPanel>
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="0,0,0,0">
-            <ListBox x:Name="MailList" Height="444" VerticalAlignment="Top" />
-            <TextBox x:Name="Output" Height="254" VerticalAlignment="Bottom" />
+            <ListBox x:Name="MailList" Margin="0,0,0,259" >
+                <ListBox.Resources>
+                    <local:RelativeDateTimeConverter x:Name="RelativeDateTimeConverter" />
+                    <local:NameOrAddressConverter x:Name="NameOrAddressConverter" />
+                </ListBox.Resources>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Height="60" Margin="5" >
+                            <TextBlock Text="{Binding Path=From, Converter={StaticResource NameOrAddressConverter}}" HorizontalAlignment="Left" FontSize="24" Margin="0" />
+                            <TextBlock Text="{Binding Path=Date, Converter={StaticResource RelativeDateTimeConverter}}" HorizontalAlignment="Right"/>
+                            <TextBlock Text="{Binding Path=Subject}" HorizontalAlignment="Left" Margin="5,20,0,0"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <TextBox x:Name="Output" Height="254" VerticalAlignment="Bottom" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" />
         </Grid>
 
         <!--Uncomment to see an alignment grid to help ensure your controls are

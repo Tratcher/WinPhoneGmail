@@ -18,7 +18,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail.Protocols.Tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail.Protocols.Phone", "src\WinPhone.Mail.Protocols\WinPhone.Mail.Protocols.Phone.csproj", "{A332811E-4832-4E87-8C7F-442C6F76D5E6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail", "WinPhone.Mail\WinPhone.Mail.csproj", "{769F9997-E075-4608-B30B-281205E10102}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail", "src\WinPhone.Mail\WinPhone.Mail.csproj", "{769F9997-E075-4608-B30B-281205E10102}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
