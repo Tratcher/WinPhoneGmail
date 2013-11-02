@@ -1,0 +1,1 @@
+﻿Honorable mention to https://github.com/andyedinborough/aenetmail, from which the initial IMAP implementation was derived.
