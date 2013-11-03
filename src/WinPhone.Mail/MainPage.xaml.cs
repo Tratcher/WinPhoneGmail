@@ -11,6 +11,7 @@ using WinPhone.Mail.Resources;
 using WinPhone.Mail.Protocols;
 using System.Threading.Tasks;
 using WinPhone.Mail.Protocols.Gmail;
+using WinPhone.Mail.Storage;
 
 namespace WinPhone.Mail
 {
@@ -21,72 +22,74 @@ namespace WinPhone.Mail
         {
             InitializeComponent();
 
-            // Sample code to localize the ApplicationBar
             BuildLocalizedApplicationBar();
         }
 
-        // Sample code for building a localized ApplicationBar
         private void BuildLocalizedApplicationBar()
         {
-            // Set the page's ApplicationBar to a new instance of ApplicationBar.
             ApplicationBar = new ApplicationBar();
 
-            // Create a new button and set the text value to the localized string from AppResources.
-            ApplicationBarIconButton syncButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/appbar.add.rest.png", UriKind.Relative));
-            syncButton.Text = AppResources.AppBarButtonText;
+            ApplicationBarIconButton syncButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/sync.png", UriKind.Relative));
+            syncButton.Text = AppResources.SyncButtonText;
             ApplicationBar.Buttons.Add(syncButton);
             syncButton.Click += Sync;
 
-            // Create a new button and set the text value to the localized string from AppResources.
-            ApplicationBarIconButton appBarButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/appbar.add.rest.png", UriKind.Relative));
-            appBarButton.Text = AppResources.AppBarButtonText;
-            ApplicationBar.Buttons.Add(appBarButton);
-
+            ApplicationBarIconButton accountsButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/feature.settings.png", UriKind.Relative));
+            accountsButton.Text = AppResources.AccountsButtonText;
+            ApplicationBar.Buttons.Add(accountsButton);
+            accountsButton.Click += Accounts;
+            /*
             // Create a new menu item with the localized string from AppResources.
             ApplicationBarMenuItem appBarMenuItem = new ApplicationBarMenuItem(AppResources.AppBarMenuItemText);
             ApplicationBar.MenuItems.Add(appBarMenuItem);
+            */
         }
 
         private async void Sync(object sender, EventArgs e)
         {
-            string username = "tracher@gmail.com";
-            string password = "";
-
             try
             {
-                /*
-                using (var gmail = new GmailImapClient())
+                var accounts = ((App)App.Current).Accounts;
+                if (accounts.Count > 0)
                 {
+                    Account account = accounts[0];
                     WriteLine("Connecting");
-                    await gmail.ConnectAsync(username, password);
+                    await account.ConnectAsync();
                     WriteLine("Getting messages");
-                    MailMessage[] messages = await gmail.Client.GetMessagesAsync(0, 15, true, false);
+                    MailMessage[] messages = await account.Imap.Client.GetMessagesAsync(0, 15, true, false);
                     messages = messages.Reverse().ToArray();
                     WriteLine("Got " + messages.Length + " messages");
+                    MailList.ItemsSource = messages;
+                }
+                else
+                {
+                    WriteLine("No Accounts, using test data.");
+                    MailMessage[] messages = new MailMessage[2];
+                    messages[0] = new MailMessage()
+                    {
+                        Date = DateTime.Now,
+                        Subject = "A medium length subject",
+                        From = new MailAddress("user@domain.com", "From User"),
+                    };
+                    messages[1] = new MailMessage()
+                    {
+                        Date = DateTime.Now - TimeSpan.FromDays(3),
+                        Subject = "A looooooooooooooooooooooooooooooooooooong subject",
+                        From = new MailAddress("user@domain.com", "From User"),
+                    };
 
                     MailList.ItemsSource = messages;
-                }*/
-
-                MailMessage[] messages = new MailMessage[2];
-                messages[0] = new MailMessage()
-                {
-                    Date = DateTime.Now,
-                    Subject = "A medium length subject",
-                    From = new MailAddress("user@domain.com", "From User"),
-                };
-                messages[1] = new MailMessage()
-                {
-                    Date = DateTime.Now - TimeSpan.FromDays(3),
-                    Subject = "A looooooooooooooooooooooooooooooooooooong subject",
-                    From = new MailAddress("user@domain.com", "From User"),
-                };
-                
-                MailList.ItemsSource = messages;
+                }
             }
             catch (Exception ex)
             {
                 WriteLine(ex.ToString());
             }
+        }
+
+        private void Accounts(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/AccountsPage.xaml", UriKind.Relative));
         }
 
         private void WriteLine(string value)

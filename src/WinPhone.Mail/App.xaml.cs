@@ -7,6 +7,9 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using WinPhone.Mail.Resources;
+using WinPhone.Mail.Storage;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace WinPhone.Mail
 {
@@ -136,6 +139,8 @@ namespace WinPhone.Mail
 
             // Remove this handler since it is no longer needed
             RootFrame.Navigated -= CompleteInitializePhoneApplication;
+
+            InitializeAccounts();
         }
 
         private void CheckForResetNavigation(object sender, NavigationEventArgs e)
@@ -219,5 +224,24 @@ namespace WinPhone.Mail
                 throw;
             }
         }
+
+        private void InitializeAccounts()
+        {
+            AccountInfo[] accounts = AppSettings.GetAccounts();
+            Accounts = new ObservableCollection<Account>();
+
+            if (accounts.Length == 0)
+            {
+                RootFrame.Navigate(new Uri("/AccountsPage.xaml", UriKind.Relative));
+                return;
+            }
+
+            for (int i = 0; i < accounts.Length; i++)
+            {
+                Accounts.Add(new Account(accounts[i]));
+            }
+        }
+
+        public ObservableCollection<Account> Accounts { get; private set; }
     }
 }
