@@ -263,6 +263,32 @@ namespace WinPhone.Mail.Protocols
             return result;
         }
 
+        public static List<string> SplitQuotedList(string headerValue, char seperator)
+        {
+            List<string> segments = new List<string>();
+            bool inQuotes = false;
+            int priorIndex = -1;
+            for (int i = 0; i < headerValue.Length; i++)
+            {
+                char chr = headerValue[i];
+                if (!inQuotes && chr == seperator)
+                {
+                    segments.Add(headerValue.Substring(priorIndex + 1, i - priorIndex - 1));
+                    priorIndex = i;
+                }
+                else if (i == headerValue.Length - 1)
+                {
+                    segments.Add(headerValue.Substring(priorIndex + 1));
+                }
+                else if (chr == '"')
+                {
+                    inQuotes = !inQuotes;
+                }
+            }
+
+            return segments;
+        }
+
         public static string TrimEndOnce(this string line)
         {
             var result = line;

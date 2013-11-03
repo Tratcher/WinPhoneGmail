@@ -48,16 +48,25 @@
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="0,0,0,0">
             <ListBox x:Name="MailList" Margin="0,0,0,259" >
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
                 <ListBox.Resources>
-                    <local:RelativeDateTimeConverter x:Name="RelativeDateTimeConverter" />
-                    <local:NameOrAddressConverter x:Name="NameOrAddressConverter" />
+                    <local:RelativeDateTimeConverter x:Name="RelativeDateTime" />
+                    <local:NameOrAddressConverter x:Name="NameOrAddress" />
+                    <local:LabelsConverter x:Name="Labels" />
+                    <local:StarConverter x:Name="Star" />
                 </ListBox.Resources>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid Height="60" Margin="5" >
-                            <TextBlock Text="{Binding Path=From, Converter={StaticResource NameOrAddressConverter}}" HorizontalAlignment="Left" FontSize="24" Margin="0" />
-                            <TextBlock Text="{Binding Path=Date, Converter={StaticResource RelativeDateTimeConverter}}" HorizontalAlignment="Right"/>
-                            <TextBlock Text="{Binding Path=Subject}" HorizontalAlignment="Left" Margin="5,20,0,0"/>
+                        <Grid Height="83" Margin="5" >
+                            <TextBlock Text="{Binding Path=From, Converter={StaticResource NameOrAddress}}" HorizontalAlignment="Left" FontSize="24" Margin="0" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding Path=Date, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                            <TextBlock Text="{Binding Path=Subject}" HorizontalAlignment="Left" Margin="0,25,0,0" TextTrimming="WordEllipsis" VerticalAlignment="Top" />
+                            <Polygon Fill="{Binding Path=Headers, Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,30,10,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
+                            <TextBlock Text="{Binding Path=Headers, Converter={StaticResource Labels}}" HorizontalAlignment="Right" Margin="0,55,0,0" VerticalAlignment="Top" />
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

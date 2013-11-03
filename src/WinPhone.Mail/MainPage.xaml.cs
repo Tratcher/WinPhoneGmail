@@ -70,12 +70,20 @@ namespace WinPhone.Mail
                         Date = DateTime.Now,
                         Subject = "A medium length subject",
                         From = new MailAddress("user@domain.com", "From User"),
+                        Headers = new HeaderDictionary()
+                        {
+                            { "X-GM-LABELS", new HeaderValue("\"\\\\Sent\" Family \"\\\\Important\" Geeky \"\\\\Starred\"") },
+                        }
                     };
                     messages[1] = new MailMessage()
                     {
                         Date = DateTime.Now - TimeSpan.FromDays(3),
-                        Subject = "A looooooooooooooooooooooooooooooooooooong subject",
+                        Subject = "A very long subject with lots of random short words that just keeps going and going and going and going and going",
                         From = new MailAddress("user@domain.com", "From User"),
+                        Headers = new HeaderDictionary()
+                        {
+                            { "X-GM-LABELS", new HeaderValue("Geeky") },
+                        }
                     };
 
                     MailList.ItemsSource = messages;

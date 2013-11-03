@@ -32,7 +32,7 @@ namespace Tests
             Assert.Equal(0, mailAddresses.Length);
         }
 
-        [Fact]
+        [Fact(Skip = "Semicolons are not expected on server normalized data. Provide a different parser for the user input.")]
         public void GetAddresses_OnlyOneSemicolon_ReturnsNoEmailAddresses()
         {
             var headerDictionary = new HeaderDictionary

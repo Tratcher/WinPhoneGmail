@@ -12,7 +12,7 @@ namespace WinPhone.Mail.Protocols
             {
                 return _Headers ?? (_Headers = HeaderDictionary.Parse(RawHeaders, _DefaultEncoding));
             }
-            internal set
+            set
             {
                 _Headers = value;
             }

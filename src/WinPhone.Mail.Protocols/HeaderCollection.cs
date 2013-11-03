@@ -148,10 +148,8 @@ namespace WinPhone.Mail.Protocols
             var headerValue = this[header].RawValue.Trim();
 
             // TODO: possible null header value?
-            // TODO: Add real e-mail address parsing here, we can't rely on System.Net.Mail.
-            // Doesn't have to be fancy, just enough to separate a list, and maybe the display name.
 
-            List<string> addresses = SplitQuotedList(headerValue);
+            List<string> addresses = Utilities.SplitQuotedList(headerValue, ',');
 
             for (int i = 0; i < addresses.Count; i++)
             {
@@ -180,33 +178,6 @@ namespace WinPhone.Mail.Protocols
             }
 
             return mailAddresses.ToArray();
-        }
-
-        private List<string> SplitQuotedList(string headerValue)
-        {
-            List<string> segments = new List<string>();
-            bool inQuotes = false;
-            int priorIndex = -1;
-            for (int i = 0; i < headerValue.Length; i++)
-            {
-                char chr = headerValue[i];
-                if (chr == '"')
-                {
-                    inQuotes = !inQuotes;
-                }
-                else if (!inQuotes &&
-                    (chr == ',' || chr == ';'))
-                {
-                    segments.Add(headerValue.Substring(priorIndex + 1, i - priorIndex - 1));
-                    priorIndex = i;
-                }
-                else if (i == headerValue.Length - 1)
-                {
-                    segments.Add(headerValue.Substring(priorIndex + 1));
-                }
-            }
-
-            return segments;
         }
 
         public static HeaderDictionary Parse(string headers, Encoding encoding)
