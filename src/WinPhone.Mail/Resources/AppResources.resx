@@ -149,4 +149,7 @@
   <data name="SyncButtonText" xml:space="preserve">
     <value>sync</value>
   </data>
+  <data name="LabelsButtonText" xml:space="preserve">
+    <value>labels</value>
+  </data>
 </root>

@@ -15,7 +15,11 @@ namespace WinPhone.Mail
             DateTime now = DateTime.Now;
             TimeSpan elapsed = now - orrigin;
 
-            if (elapsed.TotalDays > 7)
+            if (elapsed.TotalDays > 365)
+            {
+                return orrigin.ToString("d MMM yyyy", culture); // 9 Oct 2012
+            }
+            else if (elapsed.TotalDays > 7)
             {
                 return orrigin.ToString("d MMM", culture); // 9 Oct
             }

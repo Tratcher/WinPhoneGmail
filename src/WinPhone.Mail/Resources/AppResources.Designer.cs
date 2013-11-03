@@ -97,6 +97,15 @@ namespace WinPhone.Mail.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to labels.
+        /// </summary>
+        public static string LabelsButtonText {
+            get {
+                return ResourceManager.GetString("LabelsButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to new.
         /// </summary>
         public static string NewButtonText {

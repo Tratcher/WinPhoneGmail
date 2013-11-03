@@ -243,5 +243,20 @@ namespace WinPhone.Mail
         }
 
         public ObservableCollection<Account> Accounts { get; private set; }
+
+        public static Account GetCurrentAccount()
+        {
+            var accounts = ((App)App.Current).Accounts;
+            if (accounts.Count == 0)
+            {
+#if DEBUG
+                // TODO: Make sure to test with null;
+                return DebugAccount.Current;
+#else
+                return null;
+#endif
+            }
+            return accounts[0]; // TODO: Select other accounts
+        }
     }
 }

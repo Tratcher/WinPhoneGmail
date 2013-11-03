@@ -34,6 +34,11 @@ namespace WinPhone.Mail
             ApplicationBar.Buttons.Add(syncButton);
             syncButton.Click += Sync;
 
+            ApplicationBarIconButton labelsButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/folder.png", UriKind.Relative));
+            labelsButton.Text = AppResources.LabelsButtonText;
+            ApplicationBar.Buttons.Add(labelsButton);
+            labelsButton.Click += SelectLabel;
+
             ApplicationBarIconButton accountsButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/feature.settings.png", UriKind.Relative));
             accountsButton.Text = AppResources.AccountsButtonText;
             ApplicationBar.Buttons.Add(accountsButton);
@@ -45,62 +50,43 @@ namespace WinPhone.Mail
             */
         }
 
-        private async void Sync(object sender, EventArgs e)
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            GetMessagesAsync();
+        }
+
+        private void Sync(object sender, EventArgs e)
+        {
+            // TODO: Force refresh
+            GetMessagesAsync();
+        }
+
+        private async void GetMessagesAsync()
         {
             try
             {
-                var accounts = ((App)App.Current).Accounts;
-                if (accounts.Count > 0)
+                var account = App.GetCurrentAccount();
+                if (account != null)
                 {
-                    Account account = accounts[0];
-                    WriteLine("Connecting");
-                    await account.ConnectAsync();
                     WriteLine("Getting messages");
-                    MailMessage[] messages = await account.Imap.Client.GetMessagesAsync(0, 15, true, false);
-                    messages = messages.Reverse().ToArray();
+                    MailMessage[] messages = await account.GetMessagesAsync();
                     WriteLine("Got " + messages.Length + " messages");
                     MailList.ItemsSource = messages;
                 }
                 else
                 {
-                    WriteLine("No Accounts, using test data.");
-                    MailMessage[] messages = new MailMessage[3];
-                    messages[0] = new MailMessage()
-                    {
-                        Date = DateTime.Now,
-                        Subject = "A medium length subject",
-                        From = new MailAddress("user@domain.com", "From User"),
-                        Headers = new HeaderDictionary()
-                        {
-                            { "X-GM-LABELS", new HeaderValue("\"\\\\Sent\" Family \"\\\\Important\" Geeky \"\\\\Starred\"") },
-                        }
-                    };
-                    messages[1] = new MailMessage()
-                    {
-                        Date = DateTime.Now - TimeSpan.FromDays(3),
-                        Subject = "A very long subject with lots of random short words that just keeps going and going and going and going and going",
-                        From = new MailAddress("user@domain.com", "From User"),
-                        Flags = Flags.Seen,
-                        Headers = new HeaderDictionary()
-                        {
-                            { "X-GM-LABELS", new HeaderValue("Geeky") },
-                        }
-                    };
-                    messages[2] = new MailMessage()
-                    {
-                        Date = DateTime.Now - TimeSpan.FromDays(10),
-                        Subject = "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a",
-                        From = new MailAddress("user@domain.com", "From User"),
-                        Flags = Flags.Seen,
-                    };
-
-                    MailList.ItemsSource = messages;
+                    MailList.ItemsSource = null;
                 }
             }
             catch (Exception ex)
             {
                 WriteLine(ex.ToString());
             }
+        }
+
+        private void SelectLabel(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/SelectLabelPage.xaml", UriKind.Relative));
         }
 
         private void Accounts(object sender, EventArgs e)
