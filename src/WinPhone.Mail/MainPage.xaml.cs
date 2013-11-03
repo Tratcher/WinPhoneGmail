@@ -64,7 +64,7 @@ namespace WinPhone.Mail
                 else
                 {
                     WriteLine("No Accounts, using test data.");
-                    MailMessage[] messages = new MailMessage[2];
+                    MailMessage[] messages = new MailMessage[3];
                     messages[0] = new MailMessage()
                     {
                         Date = DateTime.Now,
@@ -80,10 +80,18 @@ namespace WinPhone.Mail
                         Date = DateTime.Now - TimeSpan.FromDays(3),
                         Subject = "A very long subject with lots of random short words that just keeps going and going and going and going and going",
                         From = new MailAddress("user@domain.com", "From User"),
+                        Flags = Flags.Seen,
                         Headers = new HeaderDictionary()
                         {
                             { "X-GM-LABELS", new HeaderValue("Geeky") },
                         }
+                    };
+                    messages[2] = new MailMessage()
+                    {
+                        Date = DateTime.Now - TimeSpan.FromDays(10),
+                        Subject = "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a",
+                        From = new MailAddress("user@domain.com", "From User"),
+                        Flags = Flags.Seen,
                     };
 
                     MailList.ItemsSource = messages;
