@@ -131,11 +131,8 @@
   <data name="NewButtonText" xml:space="preserve">
     <value>new</value>
   </data>
-  <data name="AppBarMenuItemText" xml:space="preserve">
-    <value>Menu Item</value>
-  </data>
-  <data name="AccountsButtonText" xml:space="preserve">
-    <value>accounts</value>
+  <data name="SettingsButtonText" xml:space="preserve">
+    <value>settings</value>
   </data>
   <data name="DoneButtonText" xml:space="preserve">
     <value>done</value>

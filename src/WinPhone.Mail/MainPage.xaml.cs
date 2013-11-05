@@ -39,10 +39,10 @@ namespace WinPhone.Mail
             ApplicationBar.Buttons.Add(labelsButton);
             labelsButton.Click += SelectLabel;
 
-            ApplicationBarIconButton accountsButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/feature.settings.png", UriKind.Relative));
-            accountsButton.Text = AppResources.AccountsButtonText;
-            ApplicationBar.Buttons.Add(accountsButton);
-            accountsButton.Click += Accounts;
+            ApplicationBarIconButton settingsButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/feature.settings.png", UriKind.Relative));
+            settingsButton.Text = AppResources.SettingsButtonText;
+            ApplicationBar.Buttons.Add(settingsButton);
+            settingsButton.Click += SettingsClick;
             /*
             // Create a new menu item with the localized string from AppResources.
             ApplicationBarMenuItem appBarMenuItem = new ApplicationBarMenuItem(AppResources.AppBarMenuItemText);
@@ -89,9 +89,9 @@ namespace WinPhone.Mail
             NavigationService.Navigate(new Uri("/SelectLabelPage.xaml", UriKind.Relative));
         }
 
-        private void Accounts(object sender, EventArgs e)
+        private void SettingsClick(object sender, EventArgs e)
         {
-            NavigationService.Navigate(new Uri("/AccountsPage.xaml", UriKind.Relative));
+            NavigationService.Navigate(new Uri("/SettingsPage.xaml", UriKind.Relative));
         }
 
         private void WriteLine(string value)

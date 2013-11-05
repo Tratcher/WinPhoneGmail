@@ -115,6 +115,9 @@
     <Compile Include="SelectLabelPage.xaml.cs">
       <DependentUpon>SelectLabelPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="SettingsPage.xaml.cs">
+      <DependentUpon>SettingsPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="StarConverter.cs" />
     <Compile Include="Storage\AccountInfo.cs" />
     <Compile Include="Storage\AppSettings.cs" />
@@ -135,6 +138,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="SelectLabelPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SettingsPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -61,24 +61,6 @@ namespace WinPhone.Mail.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to accounts.
-        /// </summary>
-        public static string AccountsButtonText {
-            get {
-                return ResourceManager.GetString("AccountsButtonText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Menu Item.
-        /// </summary>
-        public static string AppBarMenuItemText {
-            get {
-                return ResourceManager.GetString("AppBarMenuItemText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to MY APPLICATION.
         /// </summary>
         public static string ApplicationTitle {
@@ -147,6 +129,15 @@ namespace WinPhone.Mail.Resources {
         public static string SaveButtonText {
             get {
                 return ResourceManager.GetString("SaveButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to settings.
+        /// </summary>
+        public static string SettingsButtonText {
+            get {
+                return ResourceManager.GetString("SettingsButtonText", resourceCulture);
             }
         }
         

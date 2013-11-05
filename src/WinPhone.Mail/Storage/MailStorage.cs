@@ -100,5 +100,28 @@ namespace WinPhone.Mail.Storage
 
             return Task.FromResult(0);
         }
+
+        public static void ClearAll()
+        {
+            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
+            if (storage.DirectoryExists(AccountDir))
+            {
+                DeleteDirectory(storage, AccountDir);
+            }
+        }
+
+        // Can't delete unless empty. Must recursively delete files and folders
+        private static void DeleteDirectory(IsolatedStorageFile storage, string dir)
+        {
+            foreach (var file in storage.GetFileNames(Path.Combine(dir, "*")))
+            {
+                storage.DeleteFile(Path.Combine(dir, file));
+            }
+            foreach (var subDir in storage.GetDirectoryNames(Path.Combine(dir, "*")))
+            {
+                DeleteDirectory(storage, Path.Combine(dir, subDir));
+            }
+            storage.DeleteDirectory(dir);
+        }
     }
 }

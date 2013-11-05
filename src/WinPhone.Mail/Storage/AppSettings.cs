@@ -32,5 +32,11 @@ namespace WinPhone.Mail.Storage
             IsolatedStorageSettings.ApplicationSettings[AccountsKey] = accounts;
             IsolatedStorageSettings.ApplicationSettings.Save();
         }
+
+        public static void ClearAll()
+        {
+            IsolatedStorageSettings.ApplicationSettings.Clear();
+            IsolatedStorageSettings.ApplicationSettings.Save();
+        }
     }
 }
