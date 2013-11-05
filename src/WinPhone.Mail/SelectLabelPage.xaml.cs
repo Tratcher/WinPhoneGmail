@@ -9,6 +9,8 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using WinPhone.Mail.Protocols;
 using WinPhone.Mail.Protocols.Imap;
+using WinPhone.Mail.Storage;
+using WinPhone.Mail.Resources;
 
 namespace WinPhone.Mail
 {
@@ -17,6 +19,33 @@ namespace WinPhone.Mail
         public SelectLabelPage()
         {
             InitializeComponent();
+
+            BuildLocalizedApplicationBar();
+        }
+
+        private void BuildLocalizedApplicationBar()
+        {
+            ApplicationBar = new ApplicationBar();
+
+            ApplicationBarIconButton syncButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/sync.png", UriKind.Relative));
+            syncButton.Text = AppResources.SyncButtonText;
+            ApplicationBar.Buttons.Add(syncButton);
+            syncButton.Click += ForceSync;
+        }
+
+        private async void ForceSync(object sender, EventArgs e)
+        {
+            // TODO: Progress, or at least a busy animation
+            var account = App.GetCurrentAccount();
+            if (account != null)
+            {
+                List<LabelInfo> labels = await account.GetLabelsAsync(forceSync: true);
+                LabelList.ItemsSource = labels;
+            }
+            else
+            {
+                LabelList.ItemsSource = null;
+            }
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -26,7 +55,7 @@ namespace WinPhone.Mail
             var account = App.GetCurrentAccount();
             if (account != null)
             {
-                Mailbox[] labels = await account.GetLabelsAsync();
+                List<LabelInfo> labels = await account.GetLabelsAsync();
                 LabelList.ItemsSource = labels;
             }
             else
@@ -40,8 +69,11 @@ namespace WinPhone.Mail
             var account = App.GetCurrentAccount();
             if (account != null)
             {
-                Mailbox mailbox = LabelList.SelectedItem as Mailbox;
-                await account.SelectLabelAsync(mailbox);
+                LabelInfo label = LabelList.SelectedItem as LabelInfo;
+                if (label != null)
+                {
+                    await account.SelectLabelAsync(label.Name);
+                }
             }
             NavigationService.Navigate(new Uri("/MainPage.xaml", UriKind.Relative));
         }

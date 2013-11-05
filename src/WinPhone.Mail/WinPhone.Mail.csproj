@@ -118,6 +118,8 @@
     <Compile Include="StarConverter.cs" />
     <Compile Include="Storage\AccountInfo.cs" />
     <Compile Include="Storage\AppSettings.cs" />
+    <Compile Include="Storage\LabelInfo.cs" />
+    <Compile Include="Storage\MailStorage.cs" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">

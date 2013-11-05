@@ -589,6 +589,15 @@ namespace WinPhone.Mail.Protocols
             return string.Equals(input, other, StringComparison.OrdinalIgnoreCase);
         }
 
+        public static string RemoveQuotes(string input)
+        {
+            if (input.Length > 1 && input[0] == '"' && input[input.Length - 1] == '"')
+            {
+                input = input.Substring(1, input.Length - 2);
+            }
+            return input;
+        }
+
         /*
         private static Dictionary<string, string> _TimeZoneAbbreviations = @"
 ACDT +10:30

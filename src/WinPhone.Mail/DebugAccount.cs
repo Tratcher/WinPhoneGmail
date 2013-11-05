@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using WinPhone.Mail.Protocols;
 using WinPhone.Mail.Protocols.Imap;
+using WinPhone.Mail.Storage;
 
 namespace WinPhone.Mail
 {
@@ -14,12 +16,12 @@ namespace WinPhone.Mail
         {
         }
 
-        public override Task<Mailbox[]> GetLabelsAsync()
+        public override Task<List<LabelInfo>> GetLabelsAsync(bool forceSync)
         {
-            Mailbox[] labels = new Mailbox[3];
-            labels[0] = new Mailbox("Inbox");
-            labels[1] = new Mailbox("Custom");
-            labels[2] = new Mailbox("Label with spaces");
+            List<LabelInfo> labels = new List<LabelInfo>();
+            labels.Add(new LabelInfo() { Name = "Inbox" });
+            labels.Add(new LabelInfo() { Name = "Custom" });
+            labels.Add(new LabelInfo() { Name = "Label with spaces" });
             return Task.FromResult(labels);
         }
 
@@ -58,7 +60,7 @@ namespace WinPhone.Mail
             return Task.FromResult(messages);
         }
 
-        internal override Task SelectLabelAsync(Mailbox mailbox)
+        public override Task SelectLabelAsync(string label)
         {
             return Task.FromResult(0);
         }
