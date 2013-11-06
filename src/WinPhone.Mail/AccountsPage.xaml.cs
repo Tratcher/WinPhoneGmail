@@ -83,7 +83,7 @@ namespace WinPhone.Mail
 
                 AppSettings.SaveAccounts(accounts.Select(ac => ac.Info).ToArray());
 
-                // TODO: Storage cleanup
+                MailStorage.DeleteAccount(account.Info.Address);
             }
             AccountAddressBox.Text = "@gmail.com";
             AccountPasswordBox.Password = string.Empty;

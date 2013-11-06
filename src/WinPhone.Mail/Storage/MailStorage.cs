@@ -101,6 +101,16 @@ namespace WinPhone.Mail.Storage
             return Task.FromResult(0);
         }
 
+        public static void DeleteAccount(string address)
+        {
+            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
+            string dir = Path.Combine(AccountDir, address);
+            if (storage.DirectoryExists(dir))
+            {
+                DeleteDirectory(storage, dir);
+            }
+        }
+
         public static void ClearAll()
         {
             IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
