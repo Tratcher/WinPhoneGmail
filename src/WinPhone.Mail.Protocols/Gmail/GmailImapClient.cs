@@ -32,7 +32,7 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
         }
 
-        public async Task<MailMessage[]> GetMessagesAsync()
+        public async Task<List<ConversationThread>> GetConversationsAsync()
         {
             if (!Client.IsConnected)
             {
@@ -40,7 +40,15 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
 
             // TODO: currently limited to 15 messages, headers only
-            return await Client.GetMessagesAsync(0, 15, headersonly: true, setseen: false);
+            MailMessage[] messages = await Client.GetMessagesAsync(0, 30, headersonly: true, setseen: false);
+
+            List<ConversationThread> conversations = new List<ConversationThread>();
+            // Group by thread ID
+            foreach (IGrouping<string, MailMessage> group in messages.GroupBy(message => message.GetThreadId()))
+            {
+                conversations.Add(new ConversationThread(group.OrderByDescending(message => message.Date).ToList()));
+            }
+            return conversations;
         }
 
         public async Task<Mailbox[]> GetLabelsAsync()

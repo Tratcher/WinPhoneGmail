@@ -11,9 +11,7 @@ namespace WinPhone.Mail
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            HeaderDictionary headers = (HeaderDictionary)value;
-            string rawLabels = headers["X-GM-LABELS"].Value;
-            List<string> labels = Utilities.SplitQuotedList(rawLabels, ' ');
+            List<string> labels = (List<string>)value;
             // Includes normal labels and special ones too.  Filter out known special labels
             // "\\Sent" Family "\\Important" "\\Starred" Geeky
             // TODO: Label color

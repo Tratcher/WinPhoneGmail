@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WinPhone.Mail.Protocols;
+using WinPhone.Mail.Protocols.Gmail;
 using WinPhone.Mail.Protocols.Imap;
 using WinPhone.Mail.Storage;
 
@@ -25,39 +26,68 @@ namespace WinPhone.Mail
             return Task.FromResult(labels);
         }
 
-        public override Task<MailMessage[]> GetMessagesAsync()
+        public override Task<List<ConversationThread>> GetConversationsAsync(bool forceSync)
         {
-            MailMessage[] messages = new MailMessage[3];
-            messages[0] = new MailMessage()
+            List<ConversationThread> conversations = new List<ConversationThread>();
+
+            List<MailMessage> messages = new List<MailMessage>();
+            messages.Add(new MailMessage()
             {
                 Date = DateTime.Now,
                 Subject = "A medium length subject",
-                From = new MailAddress("user@domain.com", "From User"),
+                From = new MailAddress("user1@domain.com", "From1 User"),
                 Headers = new HeaderDictionary()
                         {
                             { "X-GM-LABELS", new HeaderValue("\"\\\\Sent\" Family \"\\\\Important\" Geeky \"\\\\Starred\"") },
                         }
-            };
-            messages[1] = new MailMessage()
+            });
+            messages.Add(new MailMessage()
             {
                 Date = DateTime.Now - TimeSpan.FromDays(3),
-                Subject = "A very long subject with lots of random short words that just keeps going and going and going and going and going",
-                From = new MailAddress("user@domain.com", "From User"),
+                Subject = "RE: A medium length subject",
+                From = new MailAddress("user2@domain.com", "From2 User"),
                 Flags = Flags.Seen,
                 Headers = new HeaderDictionary()
                         {
                             { "X-GM-LABELS", new HeaderValue("Geeky") },
                         }
-            };
-            messages[2] = new MailMessage()
+            });
+            messages.Add(new MailMessage()
+            {
+                Date = DateTime.Now - TimeSpan.FromDays(10),
+                Subject = "RE: RE: A medium length subject",
+                From = new MailAddress("user3@domain.com", "From3 User"),
+                Flags = Flags.Seen,
+            });
+
+            conversations.Add(new ConversationThread(messages));
+            
+            messages = new List<MailMessage>();
+            messages.Add(new MailMessage()
+            {
+                Date = DateTime.Now - TimeSpan.FromDays(3),
+                Subject = "A very long subject with lots of random short words that just keeps going and going and going and going and going",
+                From = new MailAddress("user@domain.com", "From User"),
+                Headers = new HeaderDictionary()
+                        {
+                            { "X-GM-LABELS", new HeaderValue("Geeky") },
+                        }
+            });
+            
+            conversations.Add(new ConversationThread(messages));
+            
+            messages = new List<MailMessage>();
+            messages.Add(new MailMessage()
             {
                 Date = DateTime.Now - TimeSpan.FromDays(10),
                 Subject = "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a",
                 From = new MailAddress("user@domain.com", "From User"),
                 Flags = Flags.Seen,
-            };
+            });
 
-            return Task.FromResult(messages);
+            conversations.Add(new ConversationThread(messages));
+
+            return Task.FromResult(conversations);
         }
 
         public override Task SelectLabelAsync(string label)

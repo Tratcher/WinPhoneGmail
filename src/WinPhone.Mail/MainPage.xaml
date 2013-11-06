@@ -42,12 +42,12 @@
 
         <!--TitlePanel contains the name of the application and page title-->
         <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,10,0,15">
-            <TextBlock Text="Inbox" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}" FontSize="20"/>
+            <TextBlock x:Name="CurrentLabel" Text="inbox" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}" FontSize="20"/>
         </StackPanel>
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="0,0,0,0">
-            <ListBox x:Name="MailList" Margin="0,0,0,259" >
+            <ListBox x:Name="MailList" Margin="0,0,0,179" >
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
@@ -55,24 +55,26 @@
                 </ListBox.ItemContainerStyle>
                 <ListBox.Resources>
                     <local:RelativeDateTimeConverter x:Name="RelativeDateTime" />
-                    <local:NameOrAddressConverter x:Name="NameOrAddress" />
+                    <local:ShortNameConverter x:Name="ShortNames" />
                     <local:LabelsConverter x:Name="Labels" />
                     <local:StarConverter x:Name="Star" />
-                    <local:ReadStatusConverter x:Name="IsRead" />
+                    <local:ReadStatusConverter x:Name="HasUnread" />
                 </ListBox.Resources>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid Height="90" Margin="0" Background="{Binding Path=Flags, Converter={StaticResource IsRead}}" >
-                            <TextBlock Text="{Binding Path=From, Converter={StaticResource NameOrAddress}}" HorizontalAlignment="Left" FontSize="24" Margin="5,5,0,0" VerticalAlignment="Top" />
-                            <TextBlock Text="{Binding Path=Date, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,0"/>
+                        <!-- This is bound to a ConversationThread item -->
+                        <Grid Height="90" Margin="0" Background="{Binding Path=HasUnread, Converter={StaticResource HasUnread}}" >
+                            <TextBlock Text="{Binding Path=Messages, Converter={StaticResource ShortNames}}" HorizontalAlignment="Left" FontSize="24" Margin="5,5,0,0" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding Path=LatestDate, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,0"/>
                             <TextBlock Text="{Binding Path=Subject}" HorizontalAlignment="Left" Margin="5,30,30,0" TextTrimming="WordEllipsis" VerticalAlignment="Top" />
-                            <Polygon Fill="{Binding Path=Headers, Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,35,15,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
-                            <TextBlock Text="{Binding Path=Headers, Converter={StaticResource Labels}}" HorizontalAlignment="Right" Margin="0,60,5,0" VerticalAlignment="Top" />
+                            <Polygon Fill="{Binding Path=Labels, Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,35,15,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
+                            <TextBlock Text="{Binding Path=Labels, Converter={StaticResource Labels}}" HorizontalAlignment="Right" Margin="0,60,5,0" VerticalAlignment="Top" />
+                            <!-- TODO: Add an expandable list-box to show the individual sub-messages -->
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <TextBox x:Name="Output" Height="254" VerticalAlignment="Bottom" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" />
+            <TextBox x:Name="Output" Height="179" VerticalAlignment="Bottom" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" />
         </Grid>
 
         <!--Uncomment to see an alignment grid to help ensure your controls are

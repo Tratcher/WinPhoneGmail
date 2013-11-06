@@ -17,6 +17,7 @@ namespace WinPhone.Mail
         public Account(AccountInfo info)
         {
             Info = info;
+            ActiveLabel = "Inbox";
             GmailImap = new GmailImapClient(Info.Address, Info.Password);
         }
 
@@ -26,11 +27,14 @@ namespace WinPhone.Mail
 
         public List<LabelInfo> Labels { get; private set; }
 
-        public virtual async Task<MailMessage[]> GetMessagesAsync()
+        public string ActiveLabel { get; private set; }
+
+        public virtual async Task<List<ConversationThread>> GetConversationsAsync(bool forceSync = false)
         {
-            // TODO: Get from storage instead
-            MailMessage[] messages = await GmailImap.GetMessagesAsync();
-            return messages.Reverse().ToArray();
+            // TODO: Force sync vs Get from storage instead
+            List<ConversationThread> conversations = await GmailImap.GetConversationsAsync();
+            conversations.Reverse(); // TODO: Is this reversal happening in GmailImap?
+            return conversations;
         }
 
         public virtual async Task<List<LabelInfo>> GetLabelsAsync(bool forceSync = false)
@@ -125,6 +129,8 @@ namespace WinPhone.Mail
 
         public virtual Task SelectLabelAsync(string label)
         {
+            ActiveLabel = label;
+
             // TODO: Get from storage instead
             return GmailImap.SelectLabelAsync(label);
         }

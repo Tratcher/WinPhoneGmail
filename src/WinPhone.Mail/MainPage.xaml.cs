@@ -52,29 +52,30 @@ namespace WinPhone.Mail
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            GetMessagesAsync();
+            GetConversations();
         }
 
         private void Sync(object sender, EventArgs e)
         {
-            // TODO: Force refresh
-            GetMessagesAsync();
+            GetConversations(forceSync: true);
         }
 
-        private async void GetMessagesAsync()
+        private async void GetConversations(bool forceSync = false)
         {
             try
             {
                 var account = App.GetCurrentAccount();
                 if (account != null)
                 {
+                    CurrentLabel.Text = account.ActiveLabel;
                     WriteLine("Getting messages");
-                    MailMessage[] messages = await account.GetMessagesAsync();
-                    WriteLine("Got " + messages.Length + " messages");
-                    MailList.ItemsSource = messages;
+                    List<ConversationThread> conversations = await account.GetConversationsAsync(forceSync);
+                    WriteLine("Got " + conversations.Count + " conversations");
+                    MailList.ItemsSource = conversations;
                 }
                 else
                 {
+                    CurrentLabel.Text = string.Empty;
                     MailList.ItemsSource = null;
                 }
             }

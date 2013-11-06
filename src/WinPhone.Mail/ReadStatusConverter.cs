@@ -15,9 +15,8 @@ namespace WinPhone.Mail
 
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            Flags flags = (Flags)value;
-            bool read = (flags & Flags.Seen) == Flags.Seen;
-            return read ? Gray : null;
+            bool hasUnread = (bool)value;
+            return hasUnread ? null : Gray;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
