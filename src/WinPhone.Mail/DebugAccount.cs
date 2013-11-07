@@ -39,7 +39,8 @@ namespace WinPhone.Mail
                 Headers = new HeaderDictionary()
                         {
                             { "X-GM-LABELS", new HeaderValue("\"\\\\Sent\" Family \"\\\\Important\" Geeky \"\\\\Starred\"") },
-                        }
+                        },
+                Body = "Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, "
             });
             messages.Add(new MailMessage()
             {
@@ -50,7 +51,8 @@ namespace WinPhone.Mail
                 Headers = new HeaderDictionary()
                         {
                             { "X-GM-LABELS", new HeaderValue("Geeky") },
-                        }
+                        },
+                Body = "Hello World \r\n Hello World \r\nHello World \r\nHello World \r\nHello World \r\nHello World \r\nHello World \r\nHello World \r\nHello World \r\n"
             });
             messages.Add(new MailMessage()
             {
@@ -58,6 +60,7 @@ namespace WinPhone.Mail
                 Subject = "RE: RE: A medium length subject",
                 From = new MailAddress("user3@domain.com", "From3 User"),
                 Flags = Flags.Seen,
+                Body = "Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World "
             });
 
             conversations.Add(new ConversationThread(messages));
@@ -71,7 +74,8 @@ namespace WinPhone.Mail
                 Headers = new HeaderDictionary()
                         {
                             { "X-GM-LABELS", new HeaderValue("Geeky") },
-                        }
+                        },
+                Body = "Hello World"
             });
             
             conversations.Add(new ConversationThread(messages));
@@ -83,6 +87,7 @@ namespace WinPhone.Mail
                 Subject = "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a",
                 From = new MailAddress("user@domain.com", "From User"),
                 Flags = Flags.Seen,
+                Body = "Hello World"
             });
 
             conversations.Add(new ConversationThread(messages));

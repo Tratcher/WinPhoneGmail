@@ -27,7 +27,9 @@ namespace WinPhone.Mail
 
         public List<LabelInfo> Labels { get; private set; }
 
-        public string ActiveLabel { get; private set; }
+        public string ActiveLabel { get; private set; } // TODO: LabelInfo or a full Label object with Label info and associated messages.
+
+        public ConversationThread ActiveConversation { get; private set; }
 
         public virtual async Task<List<ConversationThread>> GetConversationsAsync(bool forceSync = false)
         {
@@ -133,6 +135,13 @@ namespace WinPhone.Mail
 
             // TODO: Get from storage instead
             return GmailImap.SelectLabelAsync(label);
+        }
+
+        public virtual Task SelectConversationAsync(ConversationThread conversation)
+        {
+            // TODO: Sync full conversation body, from disk or network.
+            ActiveConversation = conversation;
+            return Task.FromResult(0);
         }
     }
 }

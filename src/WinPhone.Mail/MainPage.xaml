@@ -47,7 +47,7 @@
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="0,0,0,0">
-            <ListBox x:Name="MailList" Margin="0,0,0,179" >
+            <ListBox x:Name="MailList" Margin="0,0,0,179" SelectionChanged="MailList_SelectionChanged" >
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>

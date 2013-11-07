@@ -12,7 +12,14 @@ namespace WinPhone.Mail.Protocols.Gmail
         public static List<string> GetLabels(this MailMessage message)
         {
             // Space separated list with special items in quotes.
-            string rawLabels = message.Headers["X-GM-LABELS"].Value;
+            return message.Headers.GetLabels();
+        }
+
+        // Returns message labels, including special labels
+        public static List<string> GetLabels(this HeaderDictionary headers)
+        {
+            // Space separated list with special items in quotes.
+            string rawLabels = headers["X-GM-LABELS"].Value;
             return Utilities.SplitQuotedList(rawLabels, ' ');
         }
 

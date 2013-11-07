@@ -99,5 +99,19 @@ namespace WinPhone.Mail
         {
             Output.Text += value + "\r\n";
         }
+
+        private async void MailList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ConversationThread conversation = (ConversationThread)MailList.SelectedItem;
+            if (conversation != null)
+            {
+                Account account = App.GetCurrentAccount();
+                if (account != null)
+                {
+                    await account.SelectConversationAsync(conversation);
+                    NavigationService.Navigate(new Uri("/ConversationPage.xaml", UriKind.Relative));
+                }
+            }
+        }
     }
 }

@@ -30,9 +30,9 @@ namespace WinPhone.Mail.Protocols
             }
         }
 
-        public static IDictionary<string, string> ParseImapHeader(string data)
+        public static SafeDictionary<string, string> ParseImapHeader(string data)
         {
-            var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var values = new SafeDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             string name = null;
             int nump = 0;
             var temp = new StringBuilder();

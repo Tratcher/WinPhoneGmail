@@ -40,7 +40,7 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
 
             // TODO: currently limited to 15 messages, headers only
-            MailMessage[] messages = await Client.GetMessagesAsync(0, 30, headersonly: true, setseen: false);
+            MailMessage[] messages = await Client.GetMessagesAsync(0, 30, headersonly: false, setseen: false);
 
             List<ConversationThread> conversations = new List<ConversationThread>();
             // Group by thread ID
