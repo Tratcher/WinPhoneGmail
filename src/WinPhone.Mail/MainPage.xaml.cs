@@ -64,7 +64,7 @@ namespace WinPhone.Mail
         {
             try
             {
-                // todo: Progress bar
+                ProgressIndicator.IsIndeterminate = true;
                 var account = App.GetCurrentAccount();
                 if (account != null)
                 {
@@ -82,8 +82,9 @@ namespace WinPhone.Mail
             }
             catch (Exception ex)
             {
-                WriteLine(ex.ToString());
+                MessageBox.Show(ex.ToString());
             }
+            ProgressIndicator.IsIndeterminate = false;
         }
 
         private void SelectLabel(object sender, EventArgs e)
@@ -94,11 +95,6 @@ namespace WinPhone.Mail
         private void SettingsClick(object sender, EventArgs e)
         {
             NavigationService.Navigate(new Uri("/SettingsPage.xaml", UriKind.Relative));
-        }
-
-        private void WriteLine(string value)
-        {
-            Output.Text += value + "\r\n";
         }
 
         private async void MailList_SelectionChanged(object sender, SelectionChangedEventArgs e)

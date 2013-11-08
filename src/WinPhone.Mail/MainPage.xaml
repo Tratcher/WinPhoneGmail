@@ -41,13 +41,14 @@
          -->
 
         <!--TitlePanel contains the name of the application and page title-->
-        <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,10,0,15">
-            <TextBlock x:Name="CurrentLabel" Text="inbox" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}" FontSize="20"/>
+        <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,0,0,10">
+            <TextBlock x:Name="CurrentLabel" Text="inbox" Margin="9,0,0,0" Style="{StaticResource PhoneTextTitle1Style}" FontSize="20"/>
+            <ProgressBar x:Name="ProgressIndicator" Height="5" Foreground="{StaticResource PhoneInverseBackgroundBrush}" Background="{StaticResource PhoneBackgroundBrush}" />
         </StackPanel>
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="0,0,0,0">
-            <ListBox x:Name="MailList" Margin="0,0,0,179" SelectionChanged="MailList_SelectionChanged" >
+            <ListBox x:Name="MailList" SelectionChanged="MailList_SelectionChanged" >
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
@@ -74,7 +75,6 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <TextBox x:Name="Output" Height="179" VerticalAlignment="Bottom" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" />
         </Grid>
 
         <!--Uncomment to see an alignment grid to help ensure your controls are

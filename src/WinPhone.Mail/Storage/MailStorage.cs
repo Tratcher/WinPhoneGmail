@@ -211,6 +211,8 @@ namespace WinPhone.Mail.Storage
                 messages.Add(message);
             }
 
+            messages = messages.OrderByDescending(message => message.Date).ToList();
+
             return new ConversationThread(messages);
         }
 

@@ -21,8 +21,9 @@
         </Grid.RowDefinitions>
 
         <!--TitlePanel contains the name of the application and page title-->
-        <StackPanel Grid.Row="0" Margin="12,17,0,20">
-            <TextBlock Text="Labels" Style="{StaticResource PhoneTextNormalStyle}"/>            
+        <StackPanel Grid.Row="0" Margin="12,0,0,10">
+            <TextBlock Text="Labels" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <ProgressBar x:Name="ProgressIndicator" Height="5" Foreground="{StaticResource PhoneInverseBackgroundBrush}" Background="{StaticResource PhoneBackgroundBrush}" />
         </StackPanel>
 
         <!--ContentPanel - place additional content here-->

@@ -33,48 +33,61 @@ namespace WinPhone.Mail
             syncButton.Click += ForceSync;
         }
 
-        private async void ForceSync(object sender, EventArgs e)
-        {
-            // TODO: Progress, or at least a busy animation
-            var account = App.GetCurrentAccount();
-            if (account != null)
-            {
-                List<LabelInfo> labels = await account.GetLabelsAsync(forceSync: true);
-                LabelList.ItemsSource = labels;
-            }
-            else
-            {
-                LabelList.ItemsSource = null;
-            }
-        }
-
-        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
-            var account = App.GetCurrentAccount();
-            if (account != null)
+            GetLabelsAsync();
+        }
+
+        private void ForceSync(object sender, EventArgs e)
+        {
+            GetLabelsAsync(forceSync: true);
+        }
+
+        private async void GetLabelsAsync(bool forceSync = false)
+        {
+            try
             {
-                List<LabelInfo> labels = await account.GetLabelsAsync();
-                LabelList.ItemsSource = labels;
+                ProgressIndicator.IsIndeterminate = true;
+                var account = App.GetCurrentAccount();
+                if (account != null)
+                {
+                    List<LabelInfo> labels = await account.GetLabelsAsync(forceSync);
+                    LabelList.ItemsSource = labels;
+                }
+                else
+                {
+                    LabelList.ItemsSource = null;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                LabelList.ItemsSource = null;                
+                MessageBox.Show(ex.ToString());
             }
+            ProgressIndicator.IsIndeterminate = false;
         }
 
         private async void LabelList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var account = App.GetCurrentAccount();
-            if (account != null)
+            try
             {
-                LabelInfo label = LabelList.SelectedItem as LabelInfo;
-                if (label != null)
+                ProgressIndicator.IsIndeterminate = true;
+                var account = App.GetCurrentAccount();
+                if (account != null)
                 {
-                    await account.SelectLabelAsync(label);
+                    LabelInfo label = LabelList.SelectedItem as LabelInfo;
+                    if (label != null)
+                    {
+                        await account.SelectLabelAsync(label);
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+            ProgressIndicator.IsIndeterminate = false;
             NavigationService.Navigate(new Uri("/MainPage.xaml", UriKind.Relative));
         }
     }
