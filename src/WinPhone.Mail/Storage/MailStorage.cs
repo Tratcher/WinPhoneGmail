@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WinPhone.Mail.Protocols;
+using WinPhone.Mail.Protocols.Gmail;
 
 namespace WinPhone.Mail.Storage
 {
@@ -15,7 +16,10 @@ namespace WinPhone.Mail.Storage
     {
         private const string AccountDir = "Accounts";
         private const string LabelsFile = "Labels.csv";
+        private const string LabelsDir = "Labels";
+        private const string ConversationsDir = "Conversations";
 
+        // Gets the list of labels and their settings.
         public static async Task<List<LabelInfo>> GetLabelsAsync(string accountName)
         {
             if (string.IsNullOrWhiteSpace(accountName))
@@ -57,6 +61,7 @@ namespace WinPhone.Mail.Storage
             return labels;
         }
 
+        // Stores the list of labels and their settings.
         public static async Task SaveLabelsAsync(string accountName, List<LabelInfo> labels)
         {
             if (string.IsNullOrWhiteSpace(accountName))
@@ -90,6 +95,150 @@ namespace WinPhone.Mail.Storage
             }
         }
 
+        // Stores a list of all the conversation IDs associated with this label.
+        // One id per line.
+        public static async Task StoreLabelConversationListAsync(string accountName, string labelName, List<ConversationThread> conversations)
+        {
+            string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
+            string labelsFilePath = Path.Combine(labelsDir, labelName + ".csv");
+
+            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
+
+            if (!storage.DirectoryExists(labelsDir))
+            {
+                storage.CreateDirectory(labelsDir);
+            }
+
+            using (var writer = new StreamWriter(storage.CreateFile(labelsFilePath)))
+            {
+                foreach (var conversation in conversations)
+                {
+                    await writer.WriteLineAsync(conversation.ID);
+                }
+            }
+        }
+
+        // Gets a list of all the conversation IDs associated with this label.
+        // One id per line.
+        private static async Task<List<string>> GetLabelConversationListAsync(string accountName, string labelName)
+        {
+            string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
+            string labelsFilePath = Path.Combine(labelsDir, labelName + ".csv");
+
+            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
+
+            if (!storage.DirectoryExists(labelsDir) || !storage.FileExists(labelsFilePath))
+            {
+                return null;
+            }
+
+            List<string> conversationIds = new List<string>();
+
+            using (var reader = new StreamReader(storage.OpenFile(labelsFilePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
+            {
+                string line = await reader.ReadLineAsync();
+                while (line != null)
+                {
+                    conversationIds.Add(line);
+                    line = await reader.ReadLineAsync();
+                }
+            }
+
+            return conversationIds;
+        }
+
+        // Stores all the given conversations
+        public static async Task StoreConverationsAsync(string accountName, List<ConversationThread> conversations)
+        {
+            string conversationsDir = Path.Combine(AccountDir, accountName, ConversationsDir);
+
+            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
+
+            foreach (var conversation in conversations)
+            {
+                string conversationDir = Path.Combine(conversationsDir, conversation.ID);
+                if (!storage.DirectoryExists(conversationDir))
+                {
+                    storage.CreateDirectory(conversationDir);
+                }
+
+                foreach (var message in conversation.Messages)
+                {
+                    await StoreMessageAsync(storage, conversationDir, message);
+                }
+            }
+        }
+
+        // Get all the conversations listed under the given label
+        public static async Task<List<ConversationThread>> GetConversationsAsync(string accountName, string labelName)
+        {
+            List<string> converationIds = await GetLabelConversationListAsync(accountName, labelName);
+            if (converationIds == null)
+            {
+                return null;
+            }
+
+            List<ConversationThread> conversations = new List<ConversationThread>();
+
+            foreach (var converationId in converationIds)
+            {
+                ConversationThread conversation = await GetConversationAsync(accountName, converationId);
+                if (conversation != null)
+                {
+                    conversations.Add(conversation);
+                }
+            }
+
+            return conversations;
+        }
+
+        private static async Task<ConversationThread> GetConversationAsync(string accountName, string converationId)
+        {
+            string conversationDir = Path.Combine(AccountDir, accountName, ConversationsDir, converationId);
+
+            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
+
+            if (!storage.DirectoryExists(conversationDir))
+            {
+                return null;
+            }
+
+            List<MailMessage> messages = new List<MailMessage>();
+
+            foreach (string messageFile in storage.GetFileNames(conversationDir + @"\*.msg"))
+            {
+                MailMessage message = await GetMessageAsync(storage, Path.Combine(conversationDir, messageFile));
+                messages.Add(message);
+            }
+
+            return new ConversationThread(messages);
+        }
+
+        private static Task StoreMessageAsync(IsolatedStorageFile storage, string conversationDir, MailMessage message)
+        {
+            string messageFile = Path.Combine(conversationDir, message.Uid + ".msg");
+
+            using (Stream fileStream = storage.CreateFile(messageFile))
+            {
+                // TODO: Async
+                message.Save(fileStream);
+            }
+            return Task.FromResult(0);
+        }
+
+        private static Task<MailMessage> GetMessageAsync(IsolatedStorageFile storage, string messageFile)
+        {
+            using (Stream fileStream = storage.OpenFile(messageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                MailMessage message = new MailMessage();
+
+                // TODO: Async
+                message.Load(fileStream, headersOnly: false, maxLength: 1024 * 1024);
+
+                return Task.FromResult(message);
+            }
+        }
+
         public static Task DeleteLabelAsync(string labelName)
         {
             // TODO: Remove label index file.
@@ -101,10 +250,10 @@ namespace WinPhone.Mail.Storage
             return Task.FromResult(0);
         }
 
-        public static void DeleteAccount(string address)
+        public static void DeleteAccount(string accountName)
         {
             IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
-            string dir = Path.Combine(AccountDir, address);
+            string dir = Path.Combine(AccountDir, accountName);
             if (storage.DirectoryExists(dir))
             {
                 DeleteDirectory(storage, dir);

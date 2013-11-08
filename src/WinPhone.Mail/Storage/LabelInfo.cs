@@ -13,5 +13,10 @@ namespace WinPhone.Mail.Storage
         public bool Sync { get; set; }
 
         public string Color { get; set; }
+
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 }

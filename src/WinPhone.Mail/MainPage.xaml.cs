@@ -64,14 +64,15 @@ namespace WinPhone.Mail
         {
             try
             {
+                // todo: Progress bar
                 var account = App.GetCurrentAccount();
                 if (account != null)
                 {
-                    CurrentLabel.Text = account.ActiveLabel;
-                    WriteLine("Getting messages");
-                    List<ConversationThread> conversations = await account.GetConversationsAsync(forceSync);
-                    WriteLine("Got " + conversations.Count + " conversations");
-                    MailList.ItemsSource = conversations;
+                    Label label = await account.GetLabelAsync(forceSync);
+                    CurrentLabel.Text = label.Info.Name;
+
+                    DataContext = label; // TODO: Bind direct to this so we don't have to set things like CurrentLabel.Text ourselves
+                    MailList.ItemsSource = label.Conversations;
                 }
                 else
                 {

@@ -72,7 +72,7 @@ namespace WinPhone.Mail
                 LabelInfo label = LabelList.SelectedItem as LabelInfo;
                 if (label != null)
                 {
-                    await account.SelectLabelAsync(label.Name);
+                    await account.SelectLabelAsync(label);
                 }
             }
             NavigationService.Navigate(new Uri("/MainPage.xaml", UriKind.Relative));

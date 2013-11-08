@@ -13,6 +13,8 @@ namespace WinPhone.Mail
     {
         public static DebugAccount Current = new DebugAccount();
 
+        private LabelInfo activeLabel = new LabelInfo() { Name = "INBOX" };
+
         private DebugAccount()
         {
         }
@@ -20,15 +22,19 @@ namespace WinPhone.Mail
         public override Task<List<LabelInfo>> GetLabelsAsync(bool forceSync)
         {
             List<LabelInfo> labels = new List<LabelInfo>();
-            labels.Add(new LabelInfo() { Name = "Inbox" });
+            labels.Add(new LabelInfo() { Name = "INBOX" });
             labels.Add(new LabelInfo() { Name = "Custom" });
             labels.Add(new LabelInfo() { Name = "Label with spaces" });
             return Task.FromResult(labels);
         }
 
-        public override Task<List<ConversationThread>> GetConversationsAsync(bool forceSync)
+        public override Task<Label> GetLabelAsync(bool forceSync)
         {
+            Label label = new Label();
+            label.Info = activeLabel;
+
             List<ConversationThread> conversations = new List<ConversationThread>();
+            label.Conversations = conversations;
 
             List<MailMessage> messages = new List<MailMessage>();
             messages.Add(new MailMessage()
@@ -92,11 +98,12 @@ namespace WinPhone.Mail
 
             conversations.Add(new ConversationThread(messages));
 
-            return Task.FromResult(conversations);
+            return Task.FromResult(label);
         }
 
-        public override Task SelectLabelAsync(string label)
+        public override Task SelectLabelAsync(LabelInfo label)
         {
+            activeLabel = label;
             return Task.FromResult(0);
         }
     }

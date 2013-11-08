@@ -100,6 +100,7 @@
     <Compile Include="ConversationPage.xaml.cs">
       <DependentUpon>ConversationPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Label.cs" />
     <Compile Include="StarFromHeadersConverter.cs" />
     <Compile Include="DebugAccount.cs" />
     <Compile Include="LabelsConverter.cs" />

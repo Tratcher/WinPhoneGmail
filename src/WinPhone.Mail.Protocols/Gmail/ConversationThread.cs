@@ -61,5 +61,13 @@ namespace WinPhone.Mail.Protocols.Gmail
                 return false;
             }
         }
+
+        public string ID
+        {
+            get
+            {
+                return Messages.First().GetThreadId();
+            }
+        }
     }
 }

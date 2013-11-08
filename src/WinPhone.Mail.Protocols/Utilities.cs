@@ -13,7 +13,9 @@ namespace WinPhone.Mail.Protocols
     public static class Utilities
     {
         private static CultureInfo _enUsCulture = CultureInfo.InvariantCulture;
-        public static Encoding ASCII = Encoding.GetEncoding("iso-8859-1"); // Encoding.UTF8; // TODO: ASCII is not available on winphone.
+        public static Encoding ASCII = Encoding.UTF8;
+            // Encoding.GetEncoding("iso-8859-1"); causes an ArgumentException - "Recursive fallback not allowed for character \uFFFD. ThrowLastCharRecursive"
+            // TODO: ASCII is not available on winphone.
         public static Encoding UTF7 = Encoding.GetEncoding("iso-8859-1"); //  Encoding.UTF8; // TODO: UTF7 is not available on winphone.
 
         internal static void CopyStream(Stream a, Stream b, int maxLength, int bufferSize = 8192)

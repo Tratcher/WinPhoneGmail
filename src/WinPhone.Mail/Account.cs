@@ -17,7 +17,7 @@ namespace WinPhone.Mail
         public Account(AccountInfo info)
         {
             Info = info;
-            ActiveLabel = "Inbox";
+            ActiveLabel = null;
             GmailImap = new GmailImapClient(Info.Address, Info.Password);
         }
 
@@ -27,16 +27,50 @@ namespace WinPhone.Mail
 
         public List<LabelInfo> Labels { get; private set; }
 
-        public string ActiveLabel { get; private set; } // TODO: LabelInfo or a full Label object with Label info and associated messages.
+        public Label ActiveLabel { get; private set; }
 
         public ConversationThread ActiveConversation { get; private set; }
 
-        public virtual async Task<List<ConversationThread>> GetConversationsAsync(bool forceSync = false)
+        public virtual async Task<Label> GetLabelAsync(bool forceSync = false)
         {
-            // TODO: Force sync vs Get from storage instead
+            // From memory
+            if (!forceSync && ActiveLabel != null && ActiveLabel.Conversations != null)
+            {
+                return ActiveLabel;
+            }
+
+            if (ActiveLabel == null)
+            {
+                List<LabelInfo> labels = await GetLabelsAsync();
+                ActiveLabel = new Label()
+                {
+                    Info = labels.Where(info => info.Name.Equals("INBOX")).First()
+                };
+            }
+
+            if (ActiveLabel.Conversations == null)
+            {
+                // From disk
+                ActiveLabel.Conversations = await MailStorage.GetConversationsAsync(Info.Address, ActiveLabel.Info.Name);
+            }
+
+            if (!forceSync && ActiveLabel.Conversations != null)
+            {
+                return ActiveLabel;
+            }
+
             List<ConversationThread> conversations = await GmailImap.GetConversationsAsync();
-            conversations.Reverse(); // TODO: Is this reversal happening in GmailImap?
-            return conversations;
+            conversations.Reverse();
+
+            // TODO: Reconcile vs stored, remove no longer referenced conversations.
+            ActiveLabel.Conversations = conversations;
+
+            // Write back to storage.
+            await MailStorage.StoreLabelConversationListAsync(Info.Address, ActiveLabel.Info.Name, ActiveLabel.Conversations);
+            // TODO: Only store conversations that have changed.
+            await MailStorage.StoreConverationsAsync(Info.Address, ActiveLabel.Conversations);
+
+            return ActiveLabel;
         }
 
         public virtual async Task<List<LabelInfo>> GetLabelsAsync(bool forceSync = false)
@@ -129,12 +163,11 @@ namespace WinPhone.Mail
             }
         }
 
-        public virtual Task SelectLabelAsync(string label)
+        public virtual Task SelectLabelAsync(LabelInfo label)
         {
-            ActiveLabel = label;
+            ActiveLabel = new Label() { Info = label };
 
-            // TODO: Get from storage instead
-            return GmailImap.SelectLabelAsync(label);
+            return GmailImap.SelectLabelAsync(label.Name);
         }
 
         public virtual Task SelectConversationAsync(ConversationThread conversation)
