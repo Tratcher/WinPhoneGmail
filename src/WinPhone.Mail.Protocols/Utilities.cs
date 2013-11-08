@@ -13,8 +13,9 @@ namespace WinPhone.Mail.Protocols
     public static class Utilities
     {
         private static CultureInfo _enUsCulture = CultureInfo.InvariantCulture;
-        public static Encoding ASCII = Encoding.UTF8;
-            // Encoding.GetEncoding("iso-8859-1"); causes an ArgumentException - "Recursive fallback not allowed for character \uFFFD. ThrowLastCharRecursive"
+        public static Encoding ASCII =
+            Encoding.UTF8;
+            // Encoding.GetEncoding("iso-8859-1"); // causes an ArgumentException - "Recursive fallback not allowed for character \uFFFD. ThrowLastCharRecursive"
             // TODO: ASCII is not available on winphone.
         public static Encoding UTF7 = Encoding.GetEncoding("iso-8859-1"); //  Encoding.UTF8; // TODO: UTF7 is not available on winphone.
 
@@ -123,8 +124,19 @@ namespace WinPhone.Mail.Protocols
 
                 if (mem.Length == 0 && !read) return null;
                 byte[] bytes = mem.ToArray();
-                return encoding.GetString(bytes, 0, bytes.Length);
+                int offset = 0;
+                if (HasBOM(bytes))
+                {
+                    offset = 3;
+                }
+                return encoding.GetString(bytes, offset, bytes.Length - offset);
             }
+        }
+
+        // TODO: Temp workaround while we're forced to use UTF8 in our stored files.
+        private static bool HasBOM(byte[] bytes)
+        {
+            return (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF);
         }
 
         internal static string ReadToEnd(this Stream stream, int maxLength, Encoding encoding)
@@ -449,7 +461,7 @@ namespace WinPhone.Mail.Protocols
         public static Encoding ParseCharsetToEncoding(string characterSet, Encoding @default)
         {
             if (string.IsNullOrEmpty(characterSet))
-                return @default ?? Encoding.UTF8;
+                return @default ?? Utilities.ASCII; // Encoding.UTF8;
 
             try
             {

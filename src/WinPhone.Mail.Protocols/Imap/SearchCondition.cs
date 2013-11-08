@@ -8,6 +8,7 @@ namespace WinPhone.Mail.Protocols
         public static SearchCondition Text(string text) { return new SearchCondition { Field = Fields.Text, Value = text }; }
         public static SearchCondition BCC(string text) { return new SearchCondition { Field = Fields.BCC, Value = text }; }
         public static SearchCondition Before(DateTime date) { return new SearchCondition { Field = Fields.Before, Value = date }; }
+        public static SearchCondition Since(DateTime date) { return new SearchCondition { Field = Fields.Since, Value = date }; }
         public static SearchCondition Body(string text) { return new SearchCondition { Field = Fields.Body, Value = text }; }
         public static SearchCondition Cc(string text) { return new SearchCondition { Field = Fields.Cc, Value = text }; }
         public static SearchCondition From(string text) { return new SearchCondition { Field = Fields.From, Value = text }; }

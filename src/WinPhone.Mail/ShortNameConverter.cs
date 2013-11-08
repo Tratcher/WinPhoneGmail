@@ -16,6 +16,10 @@ namespace WinPhone.Mail
             var names = messages.Select(message =>
                 {
                     MailAddress address = message.From;
+                    if (address == null)
+                    {
+                        return string.Empty;
+                    }
                     if (string.IsNullOrWhiteSpace(address.DisplayName))
                     {
                         return address.Address.Split('@').First();

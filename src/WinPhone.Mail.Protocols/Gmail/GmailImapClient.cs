@@ -39,8 +39,17 @@ namespace WinPhone.Mail.Protocols.Gmail
                 await ConnectAsync();
             }
 
-            // TODO: currently limited to 15 messages, headers only
-            MailMessage[] messages = await Client.GetMessagesAsync(0, 30, headersonly: false, setseen: false);
+            // TODO: Configurable
+            SearchCondition condition = SearchCondition.Since(DateTime.Now - TimeSpan.FromDays(30));
+            string[] uids = await Client.SearchAsync(condition, uid: true);
+
+            List<MailMessage> messages = new List<MailMessage>();
+
+            foreach (string uid in uids)
+            {
+                MailMessage message = await Client.GetMessageAsync(uid, headersonly: false, setseen: false);
+                messages.Add(message);
+            }
 
             List<ConversationThread> conversations = new List<ConversationThread>();
             // Group by thread ID
