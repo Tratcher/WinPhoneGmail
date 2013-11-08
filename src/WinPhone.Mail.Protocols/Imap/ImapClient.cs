@@ -840,7 +840,7 @@ namespace WinPhone.Mail.Protocols
 
         public virtual Task SetFlagsAsync(Flags flags, params MailMessage[] msgs)
         {
-            return SetFlagsAsync(FlagsToFlagString(flags), msgs);
+            return SetFlagsAsync(Utilities.FlagsToFlagString(flags), msgs);
         }
 
         public virtual async Task SetFlagsAsync(string flags, params MailMessage[] msgs)
@@ -852,15 +852,9 @@ namespace WinPhone.Mail.Protocols
             }
         }
 
-        private string FlagsToFlagString(Flags flags)
-        {
-            return string.Join(" ", flags.ToString().Split(',').Select(x => "\\" + x.Trim()));
-        }
-
-
         public virtual Task AddFlagsAsync(Flags flags, params MailMessage[] msgs)
         {
-            return AddFlagsAsync(FlagsToFlagString(flags), msgs);
+            return AddFlagsAsync(Utilities.FlagsToFlagString(flags), msgs);
         }
 
         public virtual async Task AddFlagsAsync(string flags, params MailMessage[] msgs)
@@ -868,7 +862,7 @@ namespace WinPhone.Mail.Protocols
             await StoreAsync("UID " + string.Join(" ", msgs.Select(x => x.Uid)), false, flags);
             foreach (var msg in msgs)
             {
-                msg.SetFlags(FlagsToFlagString(msg.Flags) + " " + flags);
+                msg.SetFlags(Utilities.FlagsToFlagString(msg.Flags) + " " + flags);
             }
         }
 

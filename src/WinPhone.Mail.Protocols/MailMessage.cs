@@ -136,6 +136,11 @@ namespace WinPhone.Mail.Protocols
 
             Importance = Headers.GetEnum<MailPriority>("Importance");
             Subject = Headers["Subject"].RawValue;
+            string flags = Headers["Flags"].RawValue;
+            if (!string.IsNullOrEmpty(flags))
+            {
+                SetFlags(flags);
+            }
         }
 
         private static string ParseMime(Stream reader, string boundary, ref int maxLength, ICollection<Attachment> attachments, Encoding encoding, char? termChar)
@@ -220,7 +225,7 @@ namespace WinPhone.Mail.Protocols
                 Save(str);
         }
 
-        private static readonly string[] SpecialHeaders = "Date,To,Cc,Reply-To,Bcc,Sender,From,Message-ID,Importance,Subject".Split(',');
+        private static readonly string[] SpecialHeaders = "Date,To,Cc,Reply-To,Bcc,Sender,From,Message-ID,Importance,Subject,Flags".Split(',');
         public virtual void Save(TextWriter txt)
         {
             txt.WriteLine("Date: {0}", Date.GetRFC2060Date());
@@ -243,6 +248,11 @@ namespace WinPhone.Mail.Protocols
             if (Importance != MailPriority.Normal)
                 txt.WriteLine("Importance: {0}", (int)Importance);
             txt.WriteLine("Subject: {0}", Subject);
+            if (Flags != Protocols.Flags.None)
+            {
+                txt.WriteLine("Flags: {0}", Utilities.FlagsToFlagString(Flags));
+            }
+            // TODO: Uid?
 
             string boundary = null;
             if (this.Attachments.Any())

@@ -481,6 +481,10 @@ namespace WinPhone.Mail.Protocols
         }
         #endregion
 
+        public static string FlagsToFlagString(Flags flags)
+        {
+            return string.Join(" ", flags.ToString().Split(',').Select(x => "\\" + x.Trim()));
+        }
 
         #region IsValidBase64
         //stolen from http://stackoverflow.com/questions/3355407/validate-string-is-base64-format-using-regex
