@@ -28,7 +28,20 @@
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
-            <ListBox x:Name="LabelList" SelectionChanged="LabelList_SelectionChanged">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <ListBox x:Name="AccountList" Grid.Row="0" SelectionChanged="AccountList_SelectionChanged" BorderBrush="{StaticResource PhoneAccentBrush}" BorderThickness="0,0,0,5">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Path=Info.Address}" HorizontalAlignment="Left" FontSize="24" Margin="5,0,0,5" VerticalAlignment="Top" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <ListBox x:Name="LabelList" Grid.Row="1" SelectionChanged="LabelList_SelectionChanged">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>

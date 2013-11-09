@@ -242,11 +242,18 @@ namespace WinPhone.Mail
             }
         }
 
-        public ObservableCollection<Account> Accounts { get; private set; }
+        public static App GetApp()
+        {
+            return (App)App.Current;
+        }
+
+        private ObservableCollection<Account> Accounts { get; set; }
+        private int AccountIndex { get; set; }
 
         public static Account GetCurrentAccount()
         {
-            var accounts = ((App)App.Current).Accounts;
+            var accounts = App.GetApp().Accounts;
+            int accountIndex = App.GetApp().AccountIndex;
             if (accounts.Count == 0)
             {
 #if DEBUG
@@ -256,7 +263,25 @@ namespace WinPhone.Mail
                 return null;
 #endif
             }
-            return accounts[0]; // TODO: Select other accounts
+            return accounts[accountIndex];
+        }
+
+        public static ObservableCollection<Account> GetAccounts()
+        {
+            return App.GetApp().Accounts;
+        }
+
+        internal static void SetCurrentAccount(Account account)
+        {
+            if (account == null)
+            {
+                App.GetApp().AccountIndex = 0;
+            }
+            else
+            {
+                var accounts = App.GetApp().Accounts;
+                App.GetApp().AccountIndex = accounts.IndexOf(account);
+            }
         }
     }
 }

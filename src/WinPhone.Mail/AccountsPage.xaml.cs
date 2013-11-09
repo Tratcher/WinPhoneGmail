@@ -50,7 +50,7 @@ namespace WinPhone.Mail
         {
             base.OnNavigatedTo(e);
 
-            AccountsList.ItemsSource = ((App)App.Current).Accounts;
+            AccountsList.ItemsSource = App.GetAccounts();
         }
 
         private void AccountsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -76,8 +76,9 @@ namespace WinPhone.Mail
             Account account = AccountsList.SelectedItem as Account;
             if (account != null)
             {
-                var accounts = ((App)App.Current).Accounts;
+                var accounts = App.GetAccounts();
                 accounts.Remove(account);
+                App.SetCurrentAccount(accounts.FirstOrDefault());
 
                 AccountsList.SelectedItem = null;
 
@@ -94,18 +95,24 @@ namespace WinPhone.Mail
             Account account = AccountsList.SelectedItem as Account;
             if (account != null)
             {
-                var accounts = ((App)App.Current).Accounts;
+                var accounts = App.GetAccounts();
 
+                string oldAddress = account.Info.Address;
                 account.Info.Address = AccountAddressBox.Text;
                 account.Info.Password = AccountPasswordBox.Password;
 
                 AppSettings.SaveAccounts(accounts.Select(ac => ac.Info).ToArray());
 
-                // TODO: Storage cleanup
+                // Storage cleanup if the address changed
+                if (!string.Equals(account.Info.Address, AccountAddressBox.Text, StringComparison.OrdinalIgnoreCase))
+                {
+                    MailStorage.DeleteAccount(oldAddress);
+                    // TODO: Clear out in-memory data from the modified Account.
+                }
             }
             else
             {
-                var accounts = ((App)App.Current).Accounts;
+                var accounts = App.GetAccounts();
                 accounts.Add(new Account(new AccountInfo()
                 {
                     Address = AccountAddressBox.Text,

@@ -1,16 +1,12 @@
-﻿using System;
+﻿using Microsoft.Phone.Controls;
+using Microsoft.Phone.Shell;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
-using Microsoft.Phone.Controls;
-using Microsoft.Phone.Shell;
-using WinPhone.Mail.Protocols;
-using WinPhone.Mail.Protocols.Imap;
-using WinPhone.Mail.Storage;
 using WinPhone.Mail.Resources;
+using WinPhone.Mail.Storage;
 
 namespace WinPhone.Mail
 {
@@ -37,12 +33,27 @@ namespace WinPhone.Mail
         {
             base.OnNavigatedTo(e);
 
+            GetAccounts();
             GetLabelsAsync();
         }
 
         private void ForceSync(object sender, EventArgs e)
         {
             GetLabelsAsync(forceSync: true);
+        }
+
+        private void GetAccounts()
+        {
+            var accounts = App.GetAccounts();
+            if (accounts.Count < 2)
+            {
+               AccountList.Visibility = System.Windows.Visibility.Collapsed;
+            }
+            else
+            {
+                AccountList.ItemsSource = accounts;
+                AccountList.SelectedItem = App.GetCurrentAccount();
+            }
         }
 
         private async void GetLabelsAsync(bool forceSync = false)
@@ -66,6 +77,12 @@ namespace WinPhone.Mail
                 MessageBox.Show(ex.ToString());
             }
             ProgressIndicator.IsIndeterminate = false;
+        }
+
+        private void AccountList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            App.SetCurrentAccount((Account)AccountList.SelectedItem);
+            GetLabelsAsync();
         }
 
         private async void LabelList_SelectionChanged(object sender, SelectionChangedEventArgs e)
