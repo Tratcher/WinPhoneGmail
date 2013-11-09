@@ -32,32 +32,45 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
         }
 
-        public async Task<List<ConversationThread>> GetConversationsAsync()
+        public async Task<List<ConversationThread>> GetConversationsAsync(bool headersOnly)
         {
             if (!Client.IsConnected)
             {
                 await ConnectAsync();
             }
 
-            // TODO: Configurable
+            // TODO: Configurable range
             SearchCondition condition = SearchCondition.Since(DateTime.Now - TimeSpan.FromDays(30));
             string[] uids = await Client.SearchAsync(condition, uid: true);
 
-            List<MailMessage> messages = new List<MailMessage>();
-
-            foreach (string uid in uids)
+            List<ConversationThread> conversations = new List<ConversationThread>();
+            MailMessage[] messages;
+            if (uids.Length == 0)
             {
-                MailMessage message = await Client.GetMessageAsync(uid, headersonly: false, setseen: false);
-                messages.Add(message);
+                messages = new MailMessage[0];
+            }
+            else if (uids.Length == 1)
+            {
+                MailMessage message = await Client.GetMessageAsync(uids[0], headersOnly, setseen: false);
+                messages = new MailMessage[] { message };
+            }
+            else
+            {
+                messages = await Client.GetMessagesAsync(uids[0], uids[uids.Length - 1], headersOnly, setseen: false);
             }
 
-            List<ConversationThread> conversations = new List<ConversationThread>();
             // Group by thread ID
             foreach (IGrouping<string, MailMessage> group in messages.GroupBy(message => message.GetThreadId()))
             {
                 conversations.Add(new ConversationThread(group.OrderByDescending(message => message.Date).ToList()));
             }
             return conversations;
+        }
+
+        // TODO: Starting with a message that's headers only, download and populate the body
+        public Task<MailMessage> DownloadMessageAsync(string uid)
+        {
+            return Client.GetMessageAsync(uid, headersonly: false);
         }
 
         public async Task<Mailbox[]> GetLabelsAsync()

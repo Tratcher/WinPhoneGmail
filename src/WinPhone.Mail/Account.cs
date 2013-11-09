@@ -31,6 +31,41 @@ namespace WinPhone.Mail
 
         public ConversationThread ActiveConversation { get; private set; }
 
+        public virtual async Task<List<LabelInfo>> GetLabelsAsync(bool forceSync = false)
+        {
+            // From memory
+            if (!forceSync && Labels != null && Labels.Count != 0)
+            {
+                return Labels;
+            }
+
+            // From disk
+            Labels = await MailStorage.GetLabelsAsync(Info.Address) ?? new List<LabelInfo>();
+
+            if (!forceSync && Labels.Count != 0)
+            {
+                return Labels;
+            }
+
+            // Sync with server
+            List<LabelInfo> final = new List<LabelInfo>();
+            Mailbox[] serverMailboxes = await GmailImap.GetLabelsAsync();
+            IEnumerable<LabelInfo> serverLabels = serverMailboxes.Select(box => new LabelInfo() { Name = box.Name });
+
+            await CompareListsAsync<LabelInfo>(serverLabels, Labels,
+                label => label.Name, // Select key
+                async (serverLabel, clientLabel) => final.Add(clientLabel), // Match, client wins, it has client side settings.
+                async (serverLabel) => final.Add(serverLabel), // Server only, add.
+                (clientLabel) => MailStorage.DeleteLabelAsync(clientLabel.Name)); // Client side only, garbage collect.
+
+            Labels = final;
+
+            // Save back to storage
+            await MailStorage.SaveLabelsAsync(Info.Address, Labels);
+
+            return Labels;
+        }
+
         public virtual async Task<Label> GetLabelAsync(bool forceSync = false)
         {
             // From memory
@@ -59,11 +94,10 @@ namespace WinPhone.Mail
                 return ActiveLabel;
             }
 
-            List<ConversationThread> conversations = await GmailImap.GetConversationsAsync();
-            conversations.Reverse();
+            bool headersOnly = (ActiveLabel.Conversations != null && ActiveLabel.Conversations.Count != 0); // Optimize for the first download.
+            List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(headersOnly);
 
-            // TODO: Reconcile vs stored, remove no longer referenced conversations.
-            ActiveLabel.Conversations = conversations;
+            ActiveLabel.Conversations = await ReconcileConversationsAsync(serverConversations, ActiveLabel.Conversations ?? new List<ConversationThread>());
 
             // Write back to storage.
             await MailStorage.StoreLabelConversationListAsync(Info.Address, ActiveLabel.Info.Name, ActiveLabel.Conversations);
@@ -73,48 +107,95 @@ namespace WinPhone.Mail
             return ActiveLabel;
         }
 
-        public virtual async Task<List<LabelInfo>> GetLabelsAsync(bool forceSync = false)
+        private async Task<List<ConversationThread>> ReconcileConversationsAsync(List<ConversationThread> serverConversations, List<ConversationThread> clientConversations)
         {
-            // From memory
-            if (!forceSync && Labels != null && Labels.Count != 0)
-            {
-                return Labels;
-            }
+            // TODO: Reconcile vs stored, remove no longer referenced conversations.
+            List<ConversationThread> reconciledConversations = new List<ConversationThread>();
+            await CompareListsAsync(serverConversations, clientConversations,
+                thread => thread.ID, // Selector
+                async (serverThread, clientThread) => // Match
+                {
+                    ConversationThread newThread = await ReconcileMessagesAsync(serverThread, clientThread);
+                    reconciledConversations.Add(newThread);
+                },
+                async (serverThread) => // Server side only
+                {
+                    List<MailMessage> messages = new List<MailMessage>();
 
-            // From disk
-            Labels = await MailStorage.GetLabelsAsync(Info.Address) ?? new List<LabelInfo>();
+                    // Download the body
+                    foreach (var message in serverThread.Messages)
+                    {
+                        if (message.HeadersOnly)
+                        {
+                            // TODO: PERF: Figure out how to just download the body, we already have the headers.
+                            messages.Add(await GmailImap.DownloadMessageAsync(message.Uid));
+                        }
+                        else
+                        {
+                            messages.Add(message);
+                        }
+                    }
 
-            if (!forceSync && Labels.Count != 0)
-            {
-                return Labels;
-            }
+                    serverThread = new ConversationThread(messages.OrderByDescending(message => message.Date).ToList());
+                    reconciledConversations.Add(serverThread);
+                },
+                async (clientThread) => // Client only, purge
+                {
+                    // TODO: Garbage collection. What if this thread is still referenced from another label?
+                });
 
-            // Sync with server
-            List<LabelInfo> final = new List<LabelInfo>();
-            Mailbox[] serverMailboxes = await GmailImap.GetLabelsAsync();
-            IEnumerable<LabelInfo> serverLabels = serverMailboxes.Select(box => new LabelInfo() { Name = box.Name });
-            IOrderedEnumerable<LabelInfo> serverEnumerator = serverLabels.OrderBy(label => label.Name);
-            IOrderedEnumerable<LabelInfo> clientEnumerator = Labels.OrderBy(label => label.Name);
-
-            await CompareListsAsync<LabelInfo>(serverEnumerator, clientEnumerator,
-                (serverLabel, clientLabel) => serverLabel.Name.CompareTo(clientLabel.Name),
-                (serverLabel, clientLabel) => final.Add(clientLabel), // Match, client wins, it has client side settings.
-                (serverLabel) => final.Add(serverLabel), // Server only, add.
-                (clientLabel) => MailStorage.DeleteLabelAsync(clientLabel.Name)); // Client side only, garbage collect.
-
-            Labels = final;
-
-            // Save back to storage
-            await MailStorage.SaveLabelsAsync(Info.Address, Labels);
-
-            return Labels;
+            return reconciledConversations.OrderByDescending(thread => thread.LatestDate).ToList();
         }
 
-        public static async Task CompareListsAsync<T>(IOrderedEnumerable<T> list1, IOrderedEnumerable<T> list2,
-            Func<T, T, int> comparison, Action<T, T> match, Action<T> firstOnly, Func<T, Task> secondOnly)
+        // TODO: What about new messages in an old conversation?  We might have to reconcile individual messages at this stage.
+        private async Task<ConversationThread> ReconcileMessagesAsync(ConversationThread serverThread, ConversationThread clientThread)
         {
-            IEnumerator<T> list1Enumerator = list1.GetEnumerator();
-            IEnumerator<T> list2Enumerator = list2.GetEnumerator();
+            List<MailMessage> reconciledMessages = new List<MailMessage>();
+            await CompareListsAsync(serverThread.Messages, clientThread.Messages,
+                message => message.GetMessageId(), // Selector
+                async (serverMessage, clientMessage) => // Match
+                {
+                    if (serverMessage.HeadersOnly)
+                    {
+                        // Overwrite the local headers that may have been update on the server.
+                        // Flags and labels are the primary things we expect to change.
+                        clientMessage.Flags = serverMessage.Flags;
+                        clientMessage.Headers["X-GM-LABELS"] = serverMessage.Headers["X-GM-LABELS"];
+                        reconciledMessages.Add(clientMessage);
+                    }
+                    else
+                    {
+                        reconciledMessages.Add(serverMessage);
+                    }
+                },
+                async (serverMessage) => // Server side only
+                {
+                    if (serverMessage.HeadersOnly)
+                    {
+                        // TODO: Figure out how to just download the body, we already have the headers.
+                        reconciledMessages.Add(await GmailImap.DownloadMessageAsync(serverMessage.Uid));
+                    }
+                    else
+                    {
+                        reconciledMessages.Add(serverMessage);
+                    }
+                },
+                async (clientMessage) => // Client only, purge
+                {
+                    // TODO: Garbage collection. What if this thread is still referenced from another label?
+                });
+
+            return new ConversationThread(reconciledMessages.OrderByDescending(message => message.Date).ToList());
+        }
+
+        public static async Task CompareListsAsync<T>(IEnumerable<T> list1, IEnumerable<T> list2,
+            Func<T, string> selector, Func<T, T, Task> match, Func<T, Task> firstOnly, Func<T, Task> secondOnly)
+        {
+            IOrderedEnumerable<T> orderedList1 = list1.OrderBy(selector);
+            IOrderedEnumerable<T> orderedList2 = list2.OrderBy(selector);
+
+            IEnumerator<T> list1Enumerator = orderedList1.GetEnumerator();
+            IEnumerator<T> list2Enumerator = orderedList2.GetEnumerator();
 
             bool moreInList1 = list1Enumerator.MoveNext();
             bool moreInList2 = list2Enumerator.MoveNext();
@@ -123,10 +204,10 @@ namespace WinPhone.Mail
 
             while (moreInList1 && moreInList2)
             {
-                int rank = comparison(item1, item2);
+                int rank = selector(item1).CompareTo(selector(item2));
                 if (rank == 0)
                 {
-                    match(item1, item2);
+                    await match(item1, item2);
                     moreInList1 = list1Enumerator.MoveNext();
                     moreInList2 = list2Enumerator.MoveNext();
                     item1 = moreInList1 ? list1Enumerator.Current : default(T);
@@ -135,7 +216,7 @@ namespace WinPhone.Mail
                 else if (rank < 0)
                 {
                     // Found in the first but not in the second.
-                    firstOnly(item1);
+                    await firstOnly(item1);
                     moreInList1 = list1Enumerator.MoveNext();
                     item1 = moreInList1 ? list1Enumerator.Current : default(T);
                 }
@@ -150,7 +231,7 @@ namespace WinPhone.Mail
 
             while (moreInList1)
             {
-                firstOnly(item1);
+                await firstOnly(item1);
                 moreInList1 = list1Enumerator.MoveNext();
                 item1 = moreInList1 ? list1Enumerator.Current : default(T);
             }

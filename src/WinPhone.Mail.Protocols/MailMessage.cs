@@ -27,8 +27,6 @@ namespace WinPhone.Mail.Protocols
 
     public class MailMessage : ObjectWHeaders
     {
-        private bool _HeadersOnly; // set to true if only headers have been fetched. 
-
         public MailMessage()
         {
             RawFlags = new string[0];
@@ -57,6 +55,7 @@ namespace WinPhone.Mail.Protocols
         public virtual string MessageID { get; set; }
         public virtual string Uid { get; internal set; }
         public virtual MailPriority Importance { get; set; }
+        public virtual bool HeadersOnly { get; set; }
 
         public virtual void Load(string message, bool headersOnly = false)
         {
@@ -69,7 +68,7 @@ namespace WinPhone.Mail.Protocols
 
         public virtual void Load(Stream reader, bool headersOnly = false, int maxLength = 0, char? termChar = null)
         {
-            _HeadersOnly = headersOnly;
+            HeadersOnly = headersOnly;
             Headers = null;
             Body = null;
 
