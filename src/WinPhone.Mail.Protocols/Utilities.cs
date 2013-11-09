@@ -234,7 +234,7 @@ namespace WinPhone.Mail.Protocols
 
         public static string GetRFC2060Date(this DateTime date)
         {
-            return date.ToString("dd-MMM-yyyy hh:mm:ss zz", _enUsCulture);
+            return date.ToString("dd-MMM-yyyy HH:mm:ss zzz", _enUsCulture);
         }
 
         public static string QuoteString(this string value)
