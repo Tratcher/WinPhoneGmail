@@ -218,7 +218,7 @@ namespace WinPhone.Mail.Storage
 
         private static Task StoreMessageAsync(IsolatedStorageFile storage, string conversationDir, MailMessage message)
         {
-            string messageFile = Path.Combine(conversationDir, message.Uid + ".msg");
+            string messageFile = Path.Combine(conversationDir, message.GetMessageId() + ".msg");
 
             using (Stream fileStream = storage.CreateFile(messageFile))
             {

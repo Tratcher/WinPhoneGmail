@@ -27,5 +27,10 @@ namespace WinPhone.Mail.Protocols.Gmail
         {
             return message.Headers["X-GM-THRID"].Value;
         }
+
+        public static string GetMessageId(this MailMessage message)
+        {
+            return message.Headers["X-GM-MSGID"].Value;
+        }
     }
 }

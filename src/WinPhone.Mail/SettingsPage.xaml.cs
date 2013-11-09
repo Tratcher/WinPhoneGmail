@@ -23,9 +23,11 @@ namespace WinPhone.Mail
         {
             // TODO: Prompt for confirmation
             // TODO: Error handling/reporting?
-            AppSettings.ClearAll();
+            // AppSettings.ClearAll();
             MailStorage.ClearAll();
             // TODO: Prompt for success
+
+            // TODO: Clear in-memory caches for accounts, labels, etc.
         }
     }
 }
