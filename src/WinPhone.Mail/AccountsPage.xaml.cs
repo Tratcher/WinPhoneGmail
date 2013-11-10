@@ -127,7 +127,7 @@ namespace WinPhone.Mail
 
         private void DoneClick(object sender, EventArgs e)
         {
-            NavigationService.Navigate(new Uri("/MainPage.xaml", UriKind.Relative));
+            NavigationService.GoBack();
         }
     }
 }

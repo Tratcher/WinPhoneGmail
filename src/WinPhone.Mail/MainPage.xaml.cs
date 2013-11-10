@@ -72,7 +72,9 @@ namespace WinPhone.Mail
                     CurrentLabel.Text = label.Info.Name;
 
                     DataContext = label; // TODO: Bind direct to this so we don't have to set things like CurrentLabel.Text ourselves
+                    MailList.ItemsSource = null; // Force a binding refresh on back
                     MailList.ItemsSource = label.Conversations;
+                    MailList.SelectedIndex = -1;
                 }
                 else
                 {

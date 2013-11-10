@@ -79,7 +79,7 @@ namespace WinPhone.Mail
         {
             Account account = App.GetCurrentAccount();
             await account.SetReadStatusAsync(Conversation.Messages, read: false);
-            NavigationService.Navigate(new Uri("/MainPage.xaml", UriKind.Relative));
+            NavigationService.GoBack();
         }
 
         private void EditLabelsClick(object sender, EventArgs e)
@@ -90,16 +90,19 @@ namespace WinPhone.Mail
         private void ArchiveClick(object sender, EventArgs e)
         {
             // throw new NotImplementedException();
+            // NavigationService.GoBack();
         }
 
         private void DeleteClick(object sender, EventArgs e)
         {
             // throw new NotImplementedException();
+            // NavigationService.GoBack();
         }
 
         private void SpamClick(object sender, EventArgs e)
         {
             // throw new NotImplementedException();
+            // NavigationService.GoBack();
         }
     }
 }
