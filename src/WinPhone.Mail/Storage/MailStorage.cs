@@ -100,7 +100,7 @@ namespace WinPhone.Mail.Storage
         public static async Task StoreLabelConversationListAsync(string accountName, string labelName, List<ConversationThread> conversations)
         {
             string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
-            string labelsFilePath = Path.Combine(labelsDir, labelName + ".csv");
+            string labelsFilePath = Path.Combine(labelsDir, EscapeLabelName(labelName) + ".csv");
 
             IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
 
@@ -123,7 +123,7 @@ namespace WinPhone.Mail.Storage
         private static async Task<List<string>> GetLabelConversationListAsync(string accountName, string labelName)
         {
             string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
-            string labelsFilePath = Path.Combine(labelsDir, labelName + ".csv");
+            string labelsFilePath = Path.Combine(labelsDir, EscapeLabelName(labelName) + ".csv");
 
             IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
 
@@ -145,6 +145,13 @@ namespace WinPhone.Mail.Storage
             }
 
             return conversationIds;
+        }
+
+        // GMail system labels look like: [Gmail]/All Mail.  You can also make nested labels like Label/SubLabel.
+        // You can't make a file name with the forward slash, so escape it.
+        private static string EscapeLabelName(string labelName)
+        {
+            return labelName.Replace('/', '^');
         }
 
         // Stores all the given conversations
