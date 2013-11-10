@@ -56,6 +56,7 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
             else
             {
+                // TODO: Consider comma joined list of UIDs
                 messages = await Client.GetMessagesAsync(uids[0], uids[uids.Length - 1], headersOnly);
             }
 
@@ -83,6 +84,23 @@ namespace WinPhone.Mail.Protocols.Gmail
             Mailbox[] mailboxes = await Client.ListMailboxesAsync(string.Empty, "*");
             // Filter out the special [Gmail] dir that can't directly contain messages.
             return mailboxes.Where(box => !box.Flags.Contains("\\Noselect")).ToArray();
+        }
+
+        public async Task SetReadStatusAsync(List<MailMessage> messages, bool read)
+        {
+            if (!Client.IsConnected)
+            {
+                await ConnectAsync();
+            }
+
+            if (read)
+            {
+                await Client.AddFlagsAsync(Flags.Seen, messages);
+            }
+            else
+            {
+                await Client.RemoveFlagsAsync(Flags.Seen, messages);
+            }
         }
 
         public async Task SelectLabelAsync(string mailboxName)

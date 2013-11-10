@@ -61,11 +61,20 @@ namespace WinPhone.Mail.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MY APPLICATION.
+        ///   Looks up a localized string similar to archive.
         /// </summary>
-        public static string ApplicationTitle {
+        public static string ArchiveButtonText {
             get {
-                return ResourceManager.GetString("ApplicationTitle", resourceCulture);
+                return ResourceManager.GetString("ArchiveButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to delete.
+        /// </summary>
+        public static string DeleteButtonText {
+            get {
+                return ResourceManager.GetString("DeleteButtonText", resourceCulture);
             }
         }
         
@@ -84,6 +93,15 @@ namespace WinPhone.Mail.Resources {
         public static string LabelsButtonText {
             get {
                 return ResourceManager.GetString("LabelsButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to mark unread.
+        /// </summary>
+        public static string MarkUnreadText {
+            get {
+                return ResourceManager.GetString("MarkUnreadText", resourceCulture);
             }
         }
         
@@ -138,6 +156,15 @@ namespace WinPhone.Mail.Resources {
         public static string SettingsButtonText {
             get {
                 return ResourceManager.GetString("SettingsButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to spam.
+        /// </summary>
+        public static string SpamButtonText {
+            get {
+                return ResourceManager.GetString("SpamButtonText", resourceCulture);
             }
         }
         

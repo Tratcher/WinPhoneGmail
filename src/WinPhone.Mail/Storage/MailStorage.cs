@@ -97,7 +97,7 @@ namespace WinPhone.Mail.Storage
 
         // Stores a list of all the conversation IDs associated with this label.
         // One id per line.
-        public static async Task StoreLabelConversationListAsync(string accountName, string labelName, List<ConversationThread> conversations)
+        public static async Task StoreLabelMessageListAsync(string accountName, string labelName, List<ConversationThread> conversations)
         {
             string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
             string labelsFilePath = Path.Combine(labelsDir, EscapeLabelName(labelName) + ".csv");
@@ -113,14 +113,18 @@ namespace WinPhone.Mail.Storage
             {
                 foreach (var conversation in conversations)
                 {
-                    await writer.WriteLineAsync(conversation.ID);
+                    foreach (var message in conversation.Messages)
+                    {
+                        await writer.WriteLineAsync(string.Format(CultureInfo.InvariantCulture, 
+                            "{0},{1},{2}", message.Uid, message.GetMessageId(), message.GetThreadId()));
+                    }
                 }
             }
         }
 
         // Gets a list of all the conversation IDs associated with this label.
         // One id per line.
-        private static async Task<List<string>> GetLabelConversationListAsync(string accountName, string labelName)
+        private static async Task<List<string[]>> GetLabelMessageListAsync(string accountName, string labelName)
         {
             string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
             string labelsFilePath = Path.Combine(labelsDir, EscapeLabelName(labelName) + ".csv");
@@ -132,19 +136,19 @@ namespace WinPhone.Mail.Storage
                 return null;
             }
 
-            List<string> conversationIds = new List<string>();
+            List<string[]> messageIds = new List<string[]>();
 
             using (var reader = new StreamReader(storage.OpenFile(labelsFilePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
             {
                 string line = await reader.ReadLineAsync();
                 while (line != null)
                 {
-                    conversationIds.Add(line);
+                    messageIds.Add(line.Split(','));
                     line = await reader.ReadLineAsync();
                 }
             }
 
-            return conversationIds;
+            return messageIds;
         }
 
         // GMail system labels look like: [Gmail]/All Mail.  You can also make nested labels like Label/SubLabel.
@@ -179,48 +183,44 @@ namespace WinPhone.Mail.Storage
         // Get all the conversations listed under the given label
         public static async Task<List<ConversationThread>> GetConversationsAsync(string accountName, string labelName)
         {
-            List<string> converationIds = await GetLabelConversationListAsync(accountName, labelName);
-            if (converationIds == null)
+            List<string[]> messageIds = await GetLabelMessageListAsync(accountName, labelName);
+            if (messageIds == null)
             {
                 return null;
+            }
+
+            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
+            List<MailMessage> messages = new List<MailMessage>();
+
+            foreach (var messageId in messageIds)
+            {
+                string uid = messageId[0];
+                string googleUid = messageId[1];
+                string conversationId = messageId[2];
+                string conversationDir = Path.Combine(AccountDir, accountName, ConversationsDir, conversationId);
+
+                MailMessage message = await GetMessageAsync(storage, conversationDir, googleUid, uid);
+                if (message != null)
+                {
+                    messages.Add(message);
+                }
             }
 
             List<ConversationThread> conversations = new List<ConversationThread>();
 
-            foreach (var converationId in converationIds)
+            // Group by thread ID
+            foreach (IGrouping<string, MailMessage> group in messages.GroupBy(message => message.GetThreadId()))
             {
-                ConversationThread conversation = await GetConversationAsync(accountName, converationId);
-                if (conversation != null)
-                {
-                    conversations.Add(conversation);
-                }
+                conversations.Add(new ConversationThread(group.OrderByDescending(message => message.Date).ToList()));
             }
-
             return conversations;
         }
 
-        private static async Task<ConversationThread> GetConversationAsync(string accountName, string converationId)
+        public static Task StoreMessageAsync(string accountName, MailMessage message)
         {
-            string conversationDir = Path.Combine(AccountDir, accountName, ConversationsDir, converationId);
-
             IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
-
-            if (!storage.DirectoryExists(conversationDir))
-            {
-                return null;
-            }
-
-            List<MailMessage> messages = new List<MailMessage>();
-
-            foreach (string messageFile in storage.GetFileNames(conversationDir + @"\*.msg"))
-            {
-                MailMessage message = await GetMessageAsync(storage, Path.Combine(conversationDir, messageFile));
-                messages.Add(message);
-            }
-
-            messages = messages.OrderByDescending(message => message.Date).ToList();
-
-            return new ConversationThread(messages);
+            string conversationDir = Path.Combine(AccountDir, accountName, ConversationsDir, message.GetThreadId());
+            return StoreMessageAsync(storage, conversationDir, message);
         }
 
         private static Task StoreMessageAsync(IsolatedStorageFile storage, string conversationDir, MailMessage message)
@@ -235,14 +235,20 @@ namespace WinPhone.Mail.Storage
             return Task.FromResult(0);
         }
 
-        private static Task<MailMessage> GetMessageAsync(IsolatedStorageFile storage, string messageFile)
+        private static Task<MailMessage> GetMessageAsync(IsolatedStorageFile storage, string conversationDir, string googleUid, string labelUid)
         {
+            string messageFile = Path.Combine(conversationDir, googleUid + ".msg");
+            if (!storage.FileExists(messageFile))
+            {
+                return null;
+            }
             using (Stream fileStream = storage.OpenFile(messageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 MailMessage message = new MailMessage();
 
                 // TODO: Async
                 message.Load(fileStream, headersOnly: false, maxLength: 1024 * 1024);
+                message.Uid = labelUid;
 
                 return Task.FromResult(message);
             }

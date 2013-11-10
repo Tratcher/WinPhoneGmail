@@ -53,7 +53,7 @@ namespace WinPhone.Mail
                 Date = DateTime.Now - TimeSpan.FromDays(3),
                 Subject = "RE: A medium length subject",
                 From = new MailAddress("user2@domain.com", "From2 User"),
-                Flags = Flags.Seen,
+                Seen = true,
                 Headers = new HeaderDictionary()
                         {
                             { "X-GM-LABELS", new HeaderValue("Geeky") },
@@ -65,7 +65,7 @@ namespace WinPhone.Mail
                 Date = DateTime.Now - TimeSpan.FromDays(10),
                 Subject = "RE: RE: A medium length subject",
                 From = new MailAddress("user3@domain.com", "From3 User"),
-                Flags = Flags.Seen,
+                Seen = true,
                 Body = "Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World "
             });
 
@@ -92,7 +92,7 @@ namespace WinPhone.Mail
                 Date = DateTime.Now - TimeSpan.FromDays(10),
                 Subject = "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a",
                 From = new MailAddress("user@domain.com", "From User"),
-                Flags = Flags.Seen,
+                Seen = true,
                 Body = "Hello World"
             });
 

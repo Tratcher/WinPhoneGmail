@@ -52,8 +52,7 @@ namespace WinPhone.Mail.Protocols.Gmail
             {
                 foreach (var message in Messages)
                 {
-                    bool read = (message.Flags & Flags.Seen) == Flags.Seen;
-                    if (!read)
+                    if (!message.Seen)
                     {
                         return true;
                     }

@@ -35,6 +35,13 @@ namespace WinPhone.Mail.Protocols
             SaslOAuth
         }
 
+        public enum StoreMode
+        {
+            Replace,
+            Add,
+            Remove,
+        }
+
         public virtual AuthMethods AuthMethod { get; set; }
 
         public async Task ConnectAsync(string host, string username, string password, int port = 143, bool secure = false, bool validateCertificate = true)
@@ -396,7 +403,7 @@ namespace WinPhone.Mail.Protocols
         public virtual async Task DeleteMessageAsync(string uid)
         {
             await CheckMailboxSelectedAsync();
-            await StoreAsync("UID " + uid, true, "\\Seen \\Deleted");
+            await StoreAsync("UID " + uid, StoreMode.Replace, "\\Seen \\Deleted");
         }
 
         public virtual async Task MoveMessageAsync(string uid, string folderName)
@@ -845,28 +852,34 @@ namespace WinPhone.Mail.Protocols
 
         public virtual async Task SetFlagsAsync(string flags, params MailMessage[] msgs)
         {
-            await StoreAsync("UID " + string.Join(" ", msgs.Select(x => x.Uid)), true, flags);
+            await StoreAsync("UID " + string.Join(",", msgs.Select(x => x.Uid)), StoreMode.Replace, flags);
             foreach (var msg in msgs)
             {
                 msg.SetFlags(flags);
             }
         }
 
-        public virtual Task AddFlagsAsync(Flags flags, params MailMessage[] msgs)
+        public virtual async Task AddFlagsAsync(Flags flags, IEnumerable<MailMessage> msgs)
         {
-            return AddFlagsAsync(Utilities.FlagsToFlagString(flags), msgs);
-        }
-
-        public virtual async Task AddFlagsAsync(string flags, params MailMessage[] msgs)
-        {
-            await StoreAsync("UID " + string.Join(" ", msgs.Select(x => x.Uid)), false, flags);
+            await StoreAsync("UID " + string.Join(",", msgs.Select(x => x.Uid)), StoreMode.Add, Utilities.FlagsToFlagString(flags));
             foreach (var msg in msgs)
             {
-                msg.SetFlags(Utilities.FlagsToFlagString(msg.Flags) + " " + flags);
+                Flags newFlags = (msg.Flags | flags);
+                msg.SetFlags(Utilities.FlagsToFlagString(newFlags));
             }
         }
 
-        public virtual async Task StoreAsync(string messageset, bool replace, string flags)
+        public virtual async Task RemoveFlagsAsync(Flags flags, IEnumerable<MailMessage> msgs)
+        {
+            await StoreAsync("UID " + string.Join(",", msgs.Select(x => x.Uid)), StoreMode.Remove, Utilities.FlagsToFlagString(flags));
+            foreach (var msg in msgs)
+            {
+                Flags newFlags = (msg.Flags & ~flags);
+                msg.SetFlags(Utilities.FlagsToFlagString(newFlags));
+            }
+        }
+
+        public virtual async Task StoreAsync(string messageset, StoreMode mode, string flags)
         {
             await CheckMailboxSelectedAsync();
             await IdlePauseAsync();
@@ -877,7 +890,11 @@ namespace WinPhone.Mail.Protocols
                 prefix = "UID ";
             }
 
-            string command = string.Concat(GetTag(), prefix, "STORE ", messageset, " ", replace ? "" : "+", "FLAGS.SILENT (" + flags + ")");
+            string modeString = string.Empty;
+            if (mode == StoreMode.Add) modeString = "+";
+            else if (mode == StoreMode.Remove) modeString = "-";
+
+            string command = string.Concat(GetTag(), prefix, "STORE ", messageset, " ", modeString, "FLAGS.SILENT (" + flags + ")");
             string response = await SendCommandGetResponseAsync(command);
             while (response.StartsWith("*"))
             {

@@ -125,9 +125,6 @@
     <value>en-US</value>
     <comment>Controls the Language and ensures that the font for all elements in the RootFrame aligns with the app's language. Set to the language code of this resource file's language.</comment>
   </data>
-  <data name="ApplicationTitle" xml:space="preserve">
-    <value>MY APPLICATION</value>
-  </data>
   <data name="NewButtonText" xml:space="preserve">
     <value>new</value>
   </data>
@@ -148,5 +145,17 @@
   </data>
   <data name="LabelsButtonText" xml:space="preserve">
     <value>labels</value>
+  </data>
+  <data name="ArchiveButtonText" xml:space="preserve">
+    <value>archive</value>
+  </data>
+  <data name="DeleteButtonText" xml:space="preserve">
+    <value>delete</value>
+  </data>
+  <data name="MarkUnreadText" xml:space="preserve">
+    <value>mark unread</value>
+  </data>
+  <data name="SpamButtonText" xml:space="preserve">
+    <value>spam</value>
   </data>
 </root>

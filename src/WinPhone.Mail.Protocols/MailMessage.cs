@@ -41,6 +41,21 @@ namespace WinPhone.Mail.Protocols
         public virtual DateTime Date { get; set; }
         public virtual string[] RawFlags { get; set; }
         public virtual Flags Flags { get; set; }
+        public virtual bool Seen
+        {
+            get { return (Flags & Protocols.Flags.Seen) == Protocols.Flags.Seen; }
+            set
+            {
+                if (value)
+                {
+                    Flags |= Protocols.Flags.Seen;
+                }
+                else
+                {
+                    Flags = (Flags & ~Protocols.Flags.Seen);
+                }
+            }
+        }
 
         public virtual int Size { get; internal set; }
         public virtual string Subject { get; set; }
@@ -53,7 +68,7 @@ namespace WinPhone.Mail.Protocols
         public virtual MailAddress From { get; set; }
         public virtual MailAddress Sender { get; set; }
         public virtual string MessageID { get; set; }
-        public virtual string Uid { get; internal set; }
+        public virtual string Uid { get; set; }
         public virtual MailPriority Importance { get; set; }
         public virtual bool HeadersOnly { get; set; }
 

@@ -100,7 +100,7 @@ namespace WinPhone.Mail
             ActiveLabel.Conversations = await ReconcileConversationsAsync(serverConversations, ActiveLabel.Conversations ?? new List<ConversationThread>());
 
             // Write back to storage.
-            await MailStorage.StoreLabelConversationListAsync(Info.Address, ActiveLabel.Info.Name, ActiveLabel.Conversations);
+            await MailStorage.StoreLabelMessageListAsync(Info.Address, ActiveLabel.Info.Name, ActiveLabel.Conversations);
             // TODO: Only store conversations that have changed.
             await MailStorage.StoreConverationsAsync(Info.Address, ActiveLabel.Conversations);
 
@@ -251,11 +251,33 @@ namespace WinPhone.Mail
             return GmailImap.SelectLabelAsync(label.Name);
         }
 
-        public virtual Task SelectConversationAsync(ConversationThread conversation)
+        public virtual async Task SelectConversationAsync(ConversationThread conversation)
         {
             // TODO: Sync full conversation body, from disk or network.
             ActiveConversation = conversation;
-            return Task.FromResult(0);
+            await SetReadStatusAsync(conversation.Messages, true);
+        }
+
+        public async Task SetReadStatusAsync(List<MailMessage> messages, bool read)
+        {
+            List<MailMessage> changedMessages = new List<MailMessage>(messages.Count);
+            foreach (var message in messages)
+            {
+                if (message.Seen != read)
+                {
+                    message.Seen = read;
+                    // TODO: Store in memory
+                    await MailStorage.StoreMessageAsync(Info.Address, message);
+
+                    changedMessages.Add(message);
+                }
+            }
+
+            // TODO: Queue command to send change to the server
+            if (changedMessages.Count > 0)
+            {
+                await GmailImap.SetReadStatusAsync(changedMessages, read);
+            }
         }
     }
 }
