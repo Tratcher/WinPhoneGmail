@@ -51,12 +51,12 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
             else if (uids.Length == 1)
             {
-                MailMessage message = await Client.GetMessageAsync(uids[0], headersOnly, setseen: false);
+                MailMessage message = await Client.GetMessageAsync(uids[0], headersOnly);
                 messages = new MailMessage[] { message };
             }
             else
             {
-                messages = await Client.GetMessagesAsync(uids[0], uids[uids.Length - 1], headersOnly, setseen: false);
+                messages = await Client.GetMessagesAsync(uids[0], uids[uids.Length - 1], headersOnly);
             }
 
             // Group by thread ID

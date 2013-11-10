@@ -417,12 +417,12 @@ namespace WinPhone.Mail.Protocols
 
         public virtual Task<MailMessage> GetMessageAsync(string uid, bool headersonly = false)
         {
-            return GetMessageAsync(uid, headersonly, true);
+            return GetMessageAsync(uid, headersonly, setseen: false);
         }
 
         public virtual Task<MailMessage> GetMessageAsync(int index, bool headersonly = false)
         {
-            return GetMessageAsync(index, headersonly, true);
+            return GetMessageAsync(index, headersonly, setseen: false);
         }
 
         public virtual async Task<MailMessage> GetMessageAsync(int index, bool headersonly, bool setseen)
