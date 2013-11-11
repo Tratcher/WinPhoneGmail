@@ -102,6 +102,10 @@ namespace WinPhone.Mail
                 // An unhandled exception has occurred; break into the debugger
                 Debugger.Break();
             }
+            else
+            {
+                MessageBox.Show(e.ExceptionObject.ToString());
+            }
         }
 
         #region Phone application initialization

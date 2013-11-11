@@ -21,7 +21,7 @@ namespace WinPhone.Mail
             GmailImap = new GmailImapClient(Info.Address, Info.Password);
         }
 
-        public AccountInfo Info { get; private set; }
+        public AccountInfo Info { get; protected set; }
 
         public GmailImapClient GmailImap { get; private set; }
 
@@ -52,7 +52,7 @@ namespace WinPhone.Mail
             Mailbox[] serverMailboxes = await GmailImap.GetLabelsAsync();
             IEnumerable<LabelInfo> serverLabels = serverMailboxes.Select(box => new LabelInfo() { Name = box.Name });
 
-            await CompareListsAsync<LabelInfo>(serverLabels, Labels,
+            await SyncUtilities.CompareListsAsync<LabelInfo>(serverLabels, Labels,
                 label => label.Name, // Select key
                 async (serverLabel, clientLabel) => final.Add(clientLabel), // Match, client wins, it has client side settings.
                 async (serverLabel) => final.Add(serverLabel), // Server only, add.
@@ -111,7 +111,7 @@ namespace WinPhone.Mail
         {
             // TODO: Reconcile vs stored, remove no longer referenced conversations.
             List<ConversationThread> reconciledConversations = new List<ConversationThread>();
-            await CompareListsAsync(serverConversations, clientConversations,
+            await SyncUtilities.CompareListsAsync(serverConversations, clientConversations,
                 thread => thread.ID, // Selector
                 async (serverThread, clientThread) => // Match
                 {
@@ -151,7 +151,7 @@ namespace WinPhone.Mail
         private async Task<ConversationThread> ReconcileMessagesAsync(ConversationThread serverThread, ConversationThread clientThread)
         {
             List<MailMessage> reconciledMessages = new List<MailMessage>();
-            await CompareListsAsync(serverThread.Messages, clientThread.Messages,
+            await SyncUtilities.CompareListsAsync(serverThread.Messages, clientThread.Messages,
                 message => message.GetMessageId(), // Selector
                 async (serverMessage, clientMessage) => // Match
                 {
@@ -188,66 +188,10 @@ namespace WinPhone.Mail
             return new ConversationThread(reconciledMessages.OrderByDescending(message => message.Date).ToList());
         }
 
-        public static async Task CompareListsAsync<T>(IEnumerable<T> list1, IEnumerable<T> list2,
-            Func<T, string> selector, Func<T, T, Task> match, Func<T, Task> firstOnly, Func<T, Task> secondOnly)
-        {
-            IOrderedEnumerable<T> orderedList1 = list1.OrderBy(selector);
-            IOrderedEnumerable<T> orderedList2 = list2.OrderBy(selector);
-
-            IEnumerator<T> list1Enumerator = orderedList1.GetEnumerator();
-            IEnumerator<T> list2Enumerator = orderedList2.GetEnumerator();
-
-            bool moreInList1 = list1Enumerator.MoveNext();
-            bool moreInList2 = list2Enumerator.MoveNext();
-            T item1 = moreInList1 ? list1Enumerator.Current : default(T);
-            T item2 = moreInList2 ? list2Enumerator.Current : default(T);
-
-            while (moreInList1 && moreInList2)
-            {
-                int rank = selector(item1).CompareTo(selector(item2));
-                if (rank == 0)
-                {
-                    await match(item1, item2);
-                    moreInList1 = list1Enumerator.MoveNext();
-                    moreInList2 = list2Enumerator.MoveNext();
-                    item1 = moreInList1 ? list1Enumerator.Current : default(T);
-                    item2 = moreInList2 ? list2Enumerator.Current : default(T);
-                }
-                else if (rank < 0)
-                {
-                    // Found in the first but not in the second.
-                    await firstOnly(item1);
-                    moreInList1 = list1Enumerator.MoveNext();
-                    item1 = moreInList1 ? list1Enumerator.Current : default(T);
-                }
-                else
-                {
-                    // Found in the second list but not the first.
-                    await secondOnly(item2);
-                    moreInList2 = list2Enumerator.MoveNext();
-                    item2 = moreInList2 ? list2Enumerator.Current : default(T);
-                }
-            }
-
-            while (moreInList1)
-            {
-                await firstOnly(item1);
-                moreInList1 = list1Enumerator.MoveNext();
-                item1 = moreInList1 ? list1Enumerator.Current : default(T);
-            }
-
-            while (moreInList2)
-            {
-                await secondOnly(item2);
-                moreInList2 = list2Enumerator.MoveNext();
-                item2 = moreInList2 ? list2Enumerator.Current : default(T);
-            }
-        }
-
         public virtual Task SelectLabelAsync(LabelInfo label)
         {
             ActiveLabel = new Label() { Info = label };
-
+            // TODO: Put in command queue and run later.
             return GmailImap.SelectLabelAsync(label.Name);
         }
 
@@ -258,7 +202,7 @@ namespace WinPhone.Mail
             await SetReadStatusAsync(conversation.Messages, true);
         }
 
-        public async Task SetReadStatusAsync(List<MailMessage> messages, bool read)
+        public virtual async Task SetReadStatusAsync(List<MailMessage> messages, bool read)
         {
             List<MailMessage> changedMessages = new List<MailMessage>(messages.Count);
             foreach (var message in messages)
@@ -278,6 +222,41 @@ namespace WinPhone.Mail
             {
                 await GmailImap.SetReadStatusAsync(changedMessages, read);
             }
+        }
+
+        public virtual async Task AddLabelAsync(List<MailMessage> messages, string labelName)
+        {
+            foreach (var message in messages)
+            {
+                message.AddLabel(labelName);
+                // TODO: Store in memory
+                await MailStorage.StoreMessageAsync(Info.Address, message);
+
+                // TODO: Store in the message list for that label
+            }
+
+            // TODO: Queue command to send change to the server
+            await GmailImap.AddLabelAsync(messages, labelName);
+        }
+
+        public virtual async Task RemoveLabelAsync(List<MailMessage> messages, string labelName)
+        {
+            // throw new NotImplementedException()
+        }
+
+        public virtual async Task TrashAsync(List<MailMessage> messages, bool isSpam)
+        {
+            string labelName = isSpam ? "[Gmail]/Spam" : "[Gmail]/Trash";
+            foreach (var message in messages)
+            {
+                // TODO: Remove from all label lists?  Add to trash label list if sync'd?
+                message.AddLabel(labelName);
+                // TODO: Store in memory
+                await MailStorage.StoreMessageAsync(Info.Address, message);
+            }
+
+            // TODO: Queue command to send change to the server
+            await GmailImap.AddLabelAsync(messages, labelName);
         }
     }
 }

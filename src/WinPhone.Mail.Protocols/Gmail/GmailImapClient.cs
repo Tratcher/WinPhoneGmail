@@ -112,6 +112,16 @@ namespace WinPhone.Mail.Protocols.Gmail
 
             await Client.SelectMailboxAsync(mailboxName);
         }
+
+        public async Task AddLabelAsync(List<MailMessage> messages, string labelName)
+        {
+            if (!Client.IsConnected)
+            {
+                await ConnectAsync();
+            }
+
+            await Client.CopyAsync(messages, labelName);
+        }
         
         public void Dispose()
         {

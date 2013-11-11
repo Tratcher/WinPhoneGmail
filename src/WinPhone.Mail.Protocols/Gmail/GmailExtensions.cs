@@ -32,5 +32,14 @@ namespace WinPhone.Mail.Protocols.Gmail
         {
             return message.Headers["X-GM-MSGID"].Value;
         }
+
+        public static void AddLabel(this MailMessage message, string labelName)
+        {
+            // Space separated list with special items in quotes.
+            string rawLabels = message.Headers["X-GM-LABELS"].Value;
+            List<string> labels = Utilities.SplitQuotedList(rawLabels, ' ');
+            labels.Add(labelName);
+            message.Headers["X-GM-LABELS"] = new HeaderValue(string.Join(" ", labels.Distinct()));
+        }
     }
 }

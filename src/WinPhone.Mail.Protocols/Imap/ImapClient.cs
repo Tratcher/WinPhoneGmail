@@ -306,7 +306,13 @@ namespace WinPhone.Mail.Protocols
             return _Capability;
         }
 
-        public virtual async Task CopyAsync(string messageset, string destination)
+        public virtual Task<bool> CopyAsync(List<MailMessage> messages, string destination)
+        {
+            string keys = "UID " + string.Join(",", messages.Select(message => message.Uid));
+            return CopyAsync(keys, destination);
+        }
+
+        public virtual async Task<bool> CopyAsync(string messageset, string destination)
         {
             await CheckMailboxSelectedAsync();
             await IdlePauseAsync();
@@ -316,9 +322,32 @@ namespace WinPhone.Mail.Protocols
                 messageset = messageset.Substring(4);
                 prefix = "UID ";
             }
-            string command = string.Concat(GetTag(), prefix, "COPY ", messageset, " " + destination.QuoteString());
-            await SendCommandCheckOKAsync(command);
+
+            string tag = GetTag();
+            string command = string.Concat(tag, prefix, "COPY ", messageset, " " + ModifiedUtf7Encoding.Encode(destination).QuoteString());
+
+            await SendCommandAsync(command);
+
+            // Drain Expunge responses for cases where the item was removed from this mailbox by the server.
+            bool moved = false;
+            string response;
+            while (true)
+            {
+                response = await GetResponseAsync();
+                if (string.IsNullOrEmpty(response) || response.Contains(tag + "OK"))
+                    break;
+
+                if (response[0] != '*' || !response.Contains(" EXPUNGE"))
+                    continue;
+
+                // We could return the UIDs for the expunged messages, but they should match the input so we don't care.
+                moved = true;
+
+                response = await GetResponseAsync();
+            }
+
             await IdleResumeAsync();
+            return moved;
         }
 
         public virtual async Task CreateMailboxAsync(string mailbox)

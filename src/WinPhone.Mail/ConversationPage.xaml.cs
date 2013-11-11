@@ -46,6 +46,7 @@ namespace WinPhone.Mail
             ApplicationBar.Buttons.Add(deleteButton);
             deleteButton.Click += DeleteClick;
 
+            // TODO: Hide when in the spam folder?
             ApplicationBarMenuItem spamMenuItem = new ApplicationBarMenuItem(AppResources.SpamButtonText);
             ApplicationBar.MenuItems.Add(spamMenuItem);
             spamMenuItem.Click += SpamClick;
@@ -57,6 +58,7 @@ namespace WinPhone.Mail
             if (account != null)
             {
                 Conversation = account.ActiveConversation;
+                DataContext = null; // Force refresh after editing labels
                 DataContext = Conversation;
             }
 
@@ -86,7 +88,7 @@ namespace WinPhone.Mail
 
         private void EditLabelsClick(object sender, EventArgs e)
         {
-            // throw new NotImplementedException();
+            NavigationService.Navigate(new Uri("/EditMessageLabelsPage.xaml", UriKind.Relative));
         }
 
         private void ArchiveClick(object sender, EventArgs e)
@@ -95,16 +97,19 @@ namespace WinPhone.Mail
             // NavigationService.GoBack();
         }
 
-        private void DeleteClick(object sender, EventArgs e)
+        private async void DeleteClick(object sender, EventArgs e)
         {
-            // throw new NotImplementedException();
-            // NavigationService.GoBack();
+            // TODO: Full delete items already in Trash or Spam?
+            Account account = App.GetCurrentAccount();
+            await account.TrashAsync(Conversation.Messages, isSpam: false);
+            NavigationService.GoBack();
         }
 
-        private void SpamClick(object sender, EventArgs e)
+        private async void SpamClick(object sender, EventArgs e)
         {
-            // throw new NotImplementedException();
-            // NavigationService.GoBack();
+            Account account = App.GetCurrentAccount();
+            await account.TrashAsync(Conversation.Messages, isSpam: true);
+            NavigationService.GoBack();
         }
 
         private void MessageView_Loaded(object sender, System.Windows.RoutedEventArgs e)

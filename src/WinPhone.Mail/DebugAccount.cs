@@ -17,6 +17,7 @@ namespace WinPhone.Mail
 
         private DebugAccount()
         {
+            Info = new AccountInfo() { Address = "example@example.com", Password = "stuff" };
         }
 
         public override Task<List<LabelInfo>> GetLabelsAsync(bool forceSync)
@@ -24,6 +25,8 @@ namespace WinPhone.Mail
             List<LabelInfo> labels = new List<LabelInfo>();
             labels.Add(new LabelInfo() { Name = "INBOX" });
             labels.Add(new LabelInfo() { Name = "Custom" });
+            labels.Add(new LabelInfo() { Name = "Geeky" });
+            labels.Add(new LabelInfo() { Name = "Family" });
             labels.Add(new LabelInfo() { Name = "Label with spaces" });
             return Task.FromResult(labels);
         }
@@ -104,6 +107,15 @@ namespace WinPhone.Mail
         public override Task SelectLabelAsync(LabelInfo label)
         {
             activeLabel = label;
+            return Task.FromResult(0);
+        }
+
+        public override Task SetReadStatusAsync(List<MailMessage> messages, bool read)
+        {
+            foreach (var message in messages)
+            {
+                message.Seen = read;
+            }
             return Task.FromResult(0);
         }
     }
