@@ -42,13 +42,13 @@
 
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel Tap="MessageHeader_Tap">
+                    <StackPanel Tap="MessageHeader_Tap" Loaded="MessageView_Loaded">
                         <Grid Height="65" Margin="0" Background="{Binding Path=Flag}" >
                             <TextBlock Text="{Binding Path=From}" HorizontalAlignment="Left" FontSize="20" Margin="5,5,0,0" VerticalAlignment="Top" />
                             <TextBlock Text="{Binding Path=Date, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,0"/>
                             <Polygon Fill="{Binding Path=Headers, Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,40,10,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
                         </Grid>
-                        <TextBlock x:Name="BodyField" Text="{Binding Path=Body}" Margin="5,3,5,5" TextWrapping="Wrap"  />
+                        <phone:WebBrowser x:Name="BodyField" Margin="5,3,5,5" HorizontalAlignment="Stretch" Height="450" Navigating="BodyField_Navigating" />
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>

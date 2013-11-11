@@ -1,9 +1,11 @@
 ﻿using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
+using Microsoft.Phone.Tasks;
 using System;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Navigation;
+using WinPhone.Mail.Protocols;
 using WinPhone.Mail.Protocols.Gmail;
 using WinPhone.Mail.Resources;
 
@@ -64,7 +66,7 @@ namespace WinPhone.Mail
         private void MessageHeader_Tap(object sender, GestureEventArgs e)
         {
             StackPanel panel = (StackPanel)sender;
-            TextBlock bodyField = panel.Children[1] as TextBlock;
+            WebBrowser bodyField = (WebBrowser)panel.Children[1];
             if (bodyField.Visibility == System.Windows.Visibility.Collapsed)
             {
                 bodyField.Visibility = System.Windows.Visibility.Visible;
@@ -103,6 +105,36 @@ namespace WinPhone.Mail
         {
             // throw new NotImplementedException();
             // NavigationService.GoBack();
+        }
+
+        private void MessageView_Loaded(object sender, System.Windows.RoutedEventArgs e)
+        {
+            StackPanel panel = (StackPanel)sender;
+            WebBrowser browser = (WebBrowser)panel.Children[1];
+            MailMessage message = (MailMessage)panel.DataContext;
+
+            // TODO: Check for alternate views, prefer HTML.
+
+            // TODO: Resize the browser to fit the content?
+            // http://dan.clarke.name/2011/05/resizing-wp7-webbrowser-height-to-fit-content/
+
+            string body = message.Body;
+            // TODO: Content-type detection.
+            if (string.IsNullOrEmpty(message.ContentType) || message.ContentType.Equals("text/plain", StringComparison.OrdinalIgnoreCase))
+            {
+                body = body.Replace("\r\n", "<br>");
+            }
+
+            browser.NavigateToString(body);
+        }
+
+        // Force links to open in the normal browser rather than inline.
+        private void BodyField_Navigating(object sender, NavigatingEventArgs e)
+        {
+            e.Cancel = true;
+            WebBrowserTask task = new WebBrowserTask();
+            task.Uri = e.Uri;
+            task.Show();
         }
     }
 }
