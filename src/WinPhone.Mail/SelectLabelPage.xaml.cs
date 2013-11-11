@@ -58,9 +58,9 @@ namespace WinPhone.Mail
 
         private async void GetLabelsAsync(bool forceSync = false)
         {
+            ProgressIndicator.IsIndeterminate = true;
             try
             {
-                ProgressIndicator.IsIndeterminate = true;
                 var account = App.GetCurrentAccount();
                 if (account != null)
                 {
@@ -72,11 +72,10 @@ namespace WinPhone.Mail
                     LabelList.ItemsSource = null;
                 }
             }
-            catch (Exception ex)
+            finally
             {
-                MessageBox.Show(ex.ToString());
+                ProgressIndicator.IsIndeterminate = false;
             }
-            ProgressIndicator.IsIndeterminate = false;
         }
 
         private void AccountList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -87,9 +86,9 @@ namespace WinPhone.Mail
 
         private async void LabelList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            ProgressIndicator.IsIndeterminate = true;
             try
             {
-                ProgressIndicator.IsIndeterminate = true;
                 var account = App.GetCurrentAccount();
                 if (account != null)
                 {
@@ -100,12 +99,11 @@ namespace WinPhone.Mail
                     }
                 }
             }
-            catch (Exception ex)
+            finally
             {
-                MessageBox.Show(ex.ToString());
+                ProgressIndicator.IsIndeterminate = false;
             }
-            ProgressIndicator.IsIndeterminate = false;
-            NavigationService.Navigate(new Uri("/MainPage.xaml", UriKind.Relative));
+            NavigationService.GoBack();
         }
     }
 }

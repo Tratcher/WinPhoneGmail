@@ -62,19 +62,21 @@ namespace WinPhone.Mail
 
         private async void GetConversations(bool forceSync = false)
         {
+            ProgressIndicator.IsIndeterminate = true;
             try
             {
-                ProgressIndicator.IsIndeterminate = true;
                 var account = App.GetCurrentAccount();
                 if (account != null)
                 {
-                    Label label = await account.GetLabelAsync(forceSync);
-                    CurrentLabel.Text = label.Info.Name;
-
-                    DataContext = label; // TODO: Bind direct to this so we don't have to set things like CurrentLabel.Text ourselves
-                    MailList.ItemsSource = null; // Force a binding refresh on back
-                    MailList.ItemsSource = label.Conversations;
+                    // Force a binding refresh
+                    DataContext = null;
+                    MailList.ItemsSource = null;
                     MailList.SelectedIndex = -1;
+
+                    Label label = await account.GetLabelAsync(forceSync);
+
+                    DataContext = label;
+                    MailList.ItemsSource = label.Conversations;
                 }
                 else
                 {
@@ -82,11 +84,10 @@ namespace WinPhone.Mail
                     MailList.ItemsSource = null;
                 }
             }
-            catch (Exception ex)
+            finally
             {
-                MessageBox.Show(ex.ToString());
+                ProgressIndicator.IsIndeterminate = false;
             }
-            ProgressIndicator.IsIndeterminate = false;
         }
 
         private void SelectLabel(object sender, EventArgs e)
