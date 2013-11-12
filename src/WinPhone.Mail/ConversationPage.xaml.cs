@@ -36,6 +36,7 @@ namespace WinPhone.Mail
             ApplicationBar.Buttons.Add(labelsButton);
             labelsButton.Click += EditLabelsClick;
 
+            // TODO: Hide if this conversation is not in the inbox?
             ApplicationBarIconButton archiveButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/download.png", UriKind.Relative));
             archiveButton.Text = AppResources.ArchiveButtonText;
             ApplicationBar.Buttons.Add(archiveButton);
@@ -91,10 +92,11 @@ namespace WinPhone.Mail
             NavigationService.Navigate(new Uri("/EditMessageLabelsPage.xaml", UriKind.Relative));
         }
 
-        private void ArchiveClick(object sender, EventArgs e)
+        private async void ArchiveClick(object sender, EventArgs e)
         {
-            // throw new NotImplementedException();
-            // NavigationService.GoBack();
+            Account account = App.GetCurrentAccount();
+            await account.ArchiveAsync(Conversation.Messages);
+            NavigationService.GoBack();
         }
 
         private async void DeleteClick(object sender, EventArgs e)

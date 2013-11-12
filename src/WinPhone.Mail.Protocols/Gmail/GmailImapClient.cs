@@ -122,6 +122,18 @@ namespace WinPhone.Mail.Protocols.Gmail
 
             await Client.CopyAsync(messages, labelName);
         }
+
+        // TODO: Is this just as special case of removing a label?
+        public async Task ArchiveAsync(List<MailMessage> messages)
+        {
+            if (!Client.IsConnected)
+            {
+                await ConnectAsync();
+            }
+
+            // TODO: Assumes we're in the inbox.
+            await Client.DeleteMessagesAsync(messages);
+        }
         
         public void Dispose()
         {

@@ -435,6 +435,11 @@ namespace WinPhone.Mail.Protocols
             await StoreAsync("UID " + uid, StoreMode.Replace, "\\Seen \\Deleted");
         }
 
+        public Task DeleteMessagesAsync(List<MailMessage> messages)
+        {
+            return AddFlagsAsync(Flags.Deleted, messages);
+        }
+
         public virtual async Task MoveMessageAsync(string uid, string folderName)
         {
             await CheckMailboxSelectedAsync();

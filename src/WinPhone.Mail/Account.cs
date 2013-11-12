@@ -258,5 +258,26 @@ namespace WinPhone.Mail
             // TODO: Queue command to send change to the server
             await GmailImap.AddLabelAsync(messages, labelName);
         }
+
+        public virtual async Task ArchiveAsync(List<MailMessage> messages)
+        {
+            // TODO: Is this just a special case of remove label?
+            if (ActiveLabel.Info.Name.Equals("INBOX"))
+            {
+                // TODO: Remove from label message list.
+                IEnumerable<string> archivedThreadIds = messages.Select(message => message.GetThreadId()).Distinct();
+                ActiveLabel.Conversations = ActiveLabel.Conversations.Where(conversation => !archivedThreadIds.Contains(conversation.ID)).ToList();
+                await MailStorage.StoreLabelMessageListAsync(Info.Address, ActiveLabel.Info.Name, ActiveLabel.Conversations);
+
+                // TODO: If this was the last sync'd label, remove from storage.
+
+                // Labels are deleted by deleting the message from the associated mailbox.
+                await GmailImap.ArchiveAsync(messages);
+            }
+            else
+            {
+                // throw new NotImplementedException();
+            }
+        }
     }
 }
