@@ -44,6 +44,11 @@ namespace WinPhone.Mail.Protocols
 
         public virtual AuthMethods AuthMethod { get; set; }
 
+        public virtual string SelectedMailbox
+        {
+            get { return _SelectedMailbox; }
+        }
+
         public async Task ConnectAsync(string host, string username, string password, int port = 143, bool secure = false, bool validateCertificate = true)
         {
             await ConnectAsync(host, port, secure, validateCertificate);

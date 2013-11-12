@@ -63,15 +63,38 @@ namespace WinPhone.Mail.Protocols.Gmail
             // Group by thread ID
             foreach (IGrouping<string, MailMessage> group in messages.GroupBy(message => message.GetThreadId()))
             {
-                conversations.Add(new ConversationThread(group.OrderByDescending(message => message.Date).ToList()));
+                ConversationThread conversation = new ConversationThread(group.OrderByDescending(message => message.Date).ToList());
+                conversation.Messages.ForEach(message => FixUpLabels(message));
+                conversations.Add(conversation);
             }
             return conversations;
         }
 
-        // TODO: Starting with a message that's headers only, download and populate the body
-        public Task<MailMessage> DownloadMessageAsync(string uid)
+        // IMAP messages for a given label do not actually list that label in the label header.  Append it
+        // so there's less confusion correlating across different mailboxes.
+        private void FixUpLabels(MailMessage message)
         {
-            return Client.GetMessageAsync(uid, headersonly: false);
+            // Convert the special inbox label to match the inbox mailbox name.
+            string newLabelHeader = message.Headers["X-GM-LABELS"].RawValue.Replace("\"\\\\Inbox\"", "INBOX");
+            message.Headers["X-GM-LABELS"] = new HeaderValue(newLabelHeader);
+
+            if (Client.SelectedMailbox.Equals("[Gmail]/All Mail", StringComparison.Ordinal)
+                || Client.SelectedMailbox.Equals("[Gmail]/Starred", StringComparison.Ordinal))
+            {
+                // These are special mailboxes that don't appear as labels.
+            }
+            else
+            {
+                message.AddLabel(Client.SelectedMailbox);
+            }
+        }
+
+        // TODO: Starting with a message that's headers only, download and populate the body
+        public async Task<MailMessage> DownloadMessageAsync(string uid)
+        {
+            MailMessage message = await Client.GetMessageAsync(uid, headersonly: false);
+            FixUpLabels(message);
+            return message;
         }
 
         public async Task<Mailbox[]> GetLabelsAsync()
