@@ -99,6 +99,7 @@
     <Compile Include="AlternateViewCollection.cs" />
     <Compile Include="Attachment.cs" />
     <Compile Include="Gmail\ConversationThread.cs" />
+    <Compile Include="Gmail\GConstants.cs" />
     <Compile Include="Gmail\GmailExtensions.cs" />
     <Compile Include="Gmail\GmailImapClient.cs" />
     <Compile Include="Imap\ImapClient.cs" />

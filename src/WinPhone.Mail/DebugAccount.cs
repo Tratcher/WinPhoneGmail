@@ -13,7 +13,7 @@ namespace WinPhone.Mail
     {
         public static DebugAccount Current = new DebugAccount();
 
-        private LabelInfo activeLabel = new LabelInfo() { Name = "INBOX" };
+        private LabelInfo activeLabel = new LabelInfo() { Name = GConstants.Inbox };
 
         private DebugAccount()
         {
@@ -23,7 +23,7 @@ namespace WinPhone.Mail
         public override Task<List<LabelInfo>> GetLabelsAsync(bool forceSync)
         {
             List<LabelInfo> labels = new List<LabelInfo>();
-            labels.Add(new LabelInfo() { Name = "INBOX" });
+            labels.Add(new LabelInfo() { Name = GConstants.Inbox });
             labels.Add(new LabelInfo() { Name = "Custom" });
             labels.Add(new LabelInfo() { Name = "Geeky" });
             labels.Add(new LabelInfo() { Name = "Family" });
@@ -47,7 +47,7 @@ namespace WinPhone.Mail
                 From = new MailAddress("user1@domain.com", "From1 User"),
                 Headers = new HeaderDictionary()
                         {
-                            { "X-GM-LABELS", new HeaderValue("\"\\\\Sent\" Family \"\\\\Important\" Geeky \"\\\\Starred\"") },
+                            { GConstants.LabelsHeader, new HeaderValue("\"\\\\Sent\" Family \"\\\\Important\" Geeky \"\\\\Starred\"") },
                         },
                 Body = "Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, Hello World, "
             });
@@ -59,7 +59,7 @@ namespace WinPhone.Mail
                 Seen = true,
                 Headers = new HeaderDictionary()
                         {
-                            { "X-GM-LABELS", new HeaderValue("Geeky") },
+                            { GConstants.LabelsHeader, new HeaderValue("Geeky") },
                         },
                 Body = "Hello World \r\n Hello World \r\nHello World \r\nHello World \r\nHello World \r\nHello World \r\nHello World \r\nHello World \r\nHello World \r\n"
             });
@@ -82,7 +82,7 @@ namespace WinPhone.Mail
                 From = new MailAddress("user@domain.com", "From User"),
                 Headers = new HeaderDictionary()
                         {
-                            { "X-GM-LABELS", new HeaderValue("Geeky") },
+                            { GConstants.LabelsHeader, new HeaderValue("Geeky") },
                         },
                 Body = "Hello World"
             });

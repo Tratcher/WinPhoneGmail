@@ -19,27 +19,27 @@ namespace WinPhone.Mail.Protocols.Gmail
         public static List<string> GetLabels(this HeaderDictionary headers)
         {
             // Space separated list with special items in quotes.
-            string rawLabels = headers["X-GM-LABELS"].Value;
+            string rawLabels = headers[GConstants.LabelsHeader].Value;
             return Utilities.SplitQuotedList(rawLabels, ' ');
         }
 
         public static string GetThreadId(this MailMessage message)
         {
-            return message.Headers["X-GM-THRID"].Value;
+            return message.Headers[GConstants.ThreadIdHeader].Value;
         }
 
         public static string GetMessageId(this MailMessage message)
         {
-            return message.Headers["X-GM-MSGID"].Value;
+            return message.Headers[GConstants.MessageIdHeader].Value;
         }
 
         public static void AddLabel(this MailMessage message, string labelName)
         {
             // Space separated list with special items in quotes.
-            string rawLabels = message.Headers["X-GM-LABELS"].Value;
+            string rawLabels = message.Headers[GConstants.LabelsHeader].Value;
             List<string> labels = Utilities.SplitQuotedList(rawLabels, ' ');
             labels.Add(labelName);
-            message.Headers["X-GM-LABELS"] = new HeaderValue(string.Join(" ", labels.Distinct()));
+            message.Headers[GConstants.LabelsHeader] = new HeaderValue(string.Join(" ", labels.Distinct()));
         }
     }
 }

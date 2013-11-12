@@ -79,7 +79,7 @@ namespace WinPhone.Mail
                 List<LabelInfo> labels = await GetLabelsAsync();
                 ActiveLabel = new Label()
                 {
-                    Info = labels.Where(info => info.Name.Equals("INBOX")).First()
+                    Info = labels.Where(info => info.Name.Equals(GConstants.Inbox)).First()
                 };
             }
 
@@ -160,7 +160,7 @@ namespace WinPhone.Mail
                         // Overwrite the local headers that may have been update on the server.
                         // Flags and labels are the primary things we expect to change.
                         clientMessage.Flags = serverMessage.Flags;
-                        clientMessage.Headers["X-GM-LABELS"] = serverMessage.Headers["X-GM-LABELS"];
+                        clientMessage.Headers[GConstants.LabelsHeader] = serverMessage.Headers[GConstants.LabelsHeader];
                         reconciledMessages.Add(clientMessage);
                     }
                     else
@@ -262,7 +262,7 @@ namespace WinPhone.Mail
         public virtual async Task ArchiveAsync(List<MailMessage> messages)
         {
             // TODO: Is this just a special case of remove label?
-            if (ActiveLabel.Info.Name.Equals("INBOX"))
+            if (ActiveLabel.Info.Name.Equals(GConstants.Inbox))
             {
                 // TODO: Remove from label message list.
                 IEnumerable<string> archivedThreadIds = messages.Select(message => message.GetThreadId()).Distinct();

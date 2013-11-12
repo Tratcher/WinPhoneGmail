@@ -75,11 +75,11 @@ namespace WinPhone.Mail.Protocols.Gmail
         private void FixUpLabels(MailMessage message)
         {
             // Convert the special inbox label to match the inbox mailbox name.
-            string newLabelHeader = message.Headers["X-GM-LABELS"].RawValue.Replace("\"\\\\Inbox\"", "INBOX");
-            message.Headers["X-GM-LABELS"] = new HeaderValue(newLabelHeader);
+            string newLabelHeader = message.Headers[GConstants.LabelsHeader].RawValue.Replace(GConstants.InboxLabel, GConstants.Inbox);
+            message.Headers[GConstants.LabelsHeader] = new HeaderValue(newLabelHeader);
 
-            if (Client.SelectedMailbox.Equals("[Gmail]/All Mail", StringComparison.Ordinal)
-                || Client.SelectedMailbox.Equals("[Gmail]/Starred", StringComparison.Ordinal))
+            if (Client.SelectedMailbox.Equals(GConstants.AllMailMailbox, StringComparison.Ordinal)
+                || Client.SelectedMailbox.Equals(GConstants.StarredMailbox, StringComparison.Ordinal))
             {
                 // These are special mailboxes that don't appear as labels.
             }
