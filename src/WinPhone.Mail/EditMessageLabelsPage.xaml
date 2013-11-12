@@ -32,7 +32,7 @@
                     <DataTemplate>
                         <StackPanel>
                             <!--<CheckBox IsChecked="" /> TODO Show a checkbox on each selected item. -->
-                            <TextBlock Text="{Binding Path=Name}" HorizontalAlignment="Left" FontSize="24" Margin="5,5,0,0" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding Path=Name}" HorizontalAlignment="Left" FontSize="28" Margin="5,5,0,0" VerticalAlignment="Top" />
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
