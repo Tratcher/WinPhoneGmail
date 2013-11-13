@@ -8,6 +8,7 @@ namespace WinPhone.Mail.Protocols.Gmail
         public const string MessageIdHeader = "X-GM-MSGID";
         public const string Inbox = "INBOX";
         public const string InboxLabel = "\"\\\\Inbox\"";
+        public const string StarredLabel = "\"\\\\Starred\"";
         public const string TrashLabel = "[Gmail]/Trash";
         public const string SpamLabel = "[Gmail]/Spam";
         public const string AllMailMailbox = "[Gmail]/All Mail";

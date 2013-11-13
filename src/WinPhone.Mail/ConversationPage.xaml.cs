@@ -2,6 +2,8 @@
 using Microsoft.Phone.Shell;
 using Microsoft.Phone.Tasks;
 using System;
+using System.Collections.Generic;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Navigation;
@@ -66,17 +68,36 @@ namespace WinPhone.Mail
             base.OnNavigatedTo(e);
         }
 
-        private void MessageHeader_Tap(object sender, GestureEventArgs e)
+        private async void MessageHeader_Tap(object sender, GestureEventArgs e)
         {
             StackPanel panel = (StackPanel)sender;
-            WebBrowser bodyField = (WebBrowser)panel.Children[1];
-            if (bodyField.Visibility == System.Windows.Visibility.Collapsed)
+            Point point = e.GetPosition(panel);
+
+            // For clicks on the right side, apply them to the star.
+            if (point.X > (panel.ActualWidth * 0.8))
             {
-                bodyField.Visibility = System.Windows.Visibility.Visible;
+                // Add/remove star
+                Console.WriteLine();
+                MailMessage message = (MailMessage)panel.DataContext;
+
+                Account account = App.GetCurrentAccount();
+                await account.SetStarAsync(message, starred: !message.Flagged);
+
+                // Refresh the UI
+                panel.DataContext = null;
+                panel.DataContext = message;
             }
             else
             {
-                bodyField.Visibility = System.Windows.Visibility.Collapsed;
+                WebBrowser bodyField = (WebBrowser)panel.Children[1];
+                if (bodyField.Visibility == System.Windows.Visibility.Collapsed)
+                {
+                    bodyField.Visibility = System.Windows.Visibility.Visible;
+                }
+                else
+                {
+                    bodyField.Visibility = System.Windows.Visibility.Collapsed;
+                }
             }
         }
 

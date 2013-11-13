@@ -224,6 +224,15 @@ namespace WinPhone.Mail
             }
         }
 
+        public async Task SetStarAsync(MailMessage message, bool starred)
+        {
+            // Set or remove the Flagged flag.
+            message.Flagged = starred;
+            await MailStorage.StoreMessageAsync(Info.Address, message);
+            // TODO: Queue command to send change to the server
+            await GmailImap.SetFlaggedStatusAsync(message, starred);
+        }
+
         public virtual async Task AddLabelAsync(List<MailMessage> messages, string labelName)
         {
             foreach (var message in messages)

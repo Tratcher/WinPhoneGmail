@@ -104,7 +104,7 @@
       <DependentUpon>EditMessageLabelsPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Label.cs" />
-    <Compile Include="StarFromHeadersConverter.cs" />
+    <Compile Include="StarFromMessageConverter.cs" />
     <Compile Include="DebugAccount.cs" />
     <Compile Include="LabelsConverter.cs" />
     <Compile Include="LocalizedStrings.cs" />

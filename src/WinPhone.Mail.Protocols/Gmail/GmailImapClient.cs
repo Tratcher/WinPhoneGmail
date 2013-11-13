@@ -126,6 +126,25 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
         }
 
+        public async Task SetFlaggedStatusAsync(MailMessage message, bool flagged)
+        {
+            if (!Client.IsConnected)
+            {
+                await ConnectAsync();
+            }
+
+            MailMessage[] messages = new MailMessage[] { message };
+
+            if (flagged)
+            {
+                await Client.AddFlagsAsync(Flags.Flagged, messages);
+            }
+            else
+            {
+                await Client.RemoveFlagsAsync(Flags.Flagged, messages);
+            }
+        }
+
         public async Task SelectLabelAsync(string mailboxName)
         {
             if (!Client.IsConnected)

@@ -57,6 +57,22 @@ namespace WinPhone.Mail.Protocols
             }
         }
 
+        public virtual bool Flagged
+        {
+            get { return (Flags & Protocols.Flags.Flagged) == Protocols.Flags.Flagged; }
+            set
+            {
+                if (value)
+                {
+                    Flags |= Protocols.Flags.Flagged;
+                }
+                else
+                {
+                    Flags = (Flags & ~Protocols.Flags.Flagged);
+                }
+            }
+        }
+
         public virtual int Size { get; internal set; }
         public virtual string Subject { get; set; }
         public virtual ICollection<MailAddress> To { get; private set; }

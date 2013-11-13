@@ -68,7 +68,7 @@
                             <TextBlock Text="{Binding Path=Messages, Converter={StaticResource ShortNames}}" HorizontalAlignment="Left" FontSize="24" Margin="5,5,0,0" VerticalAlignment="Top" />
                             <TextBlock Text="{Binding Path=LatestDate, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,0"/>
                             <TextBlock Text="{Binding Path=Subject}" HorizontalAlignment="Left" Margin="5,30,30,0" TextTrimming="WordEllipsis" VerticalAlignment="Top" />
-                            <Polygon Fill="{Binding Path=Labels, Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,35,15,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
+                            <Polygon Fill="{Binding Path=Flags, Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,35,15,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
                             <TextBlock Text="{Binding Path=Labels, Converter={StaticResource Labels}}" HorizontalAlignment="Right" Margin="0,60,5,0" VerticalAlignment="Top" />
                             <!-- TODO: Add an expandable list-box to show the individual sub-messages -->
                         </Grid>

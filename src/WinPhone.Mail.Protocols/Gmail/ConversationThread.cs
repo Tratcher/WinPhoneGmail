@@ -68,5 +68,13 @@ namespace WinPhone.Mail.Protocols.Gmail
                 return Messages.First().GetThreadId();
             }
         }
+
+        public Flags Flags
+        {
+            get
+            {
+                return Messages.Aggregate<MailMessage, Flags>(Flags.None, (flags, message) => flags | message.Flags);
+            }
+        }
     }
 }
