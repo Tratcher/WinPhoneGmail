@@ -41,5 +41,21 @@ namespace WinPhone.Mail.Protocols.Gmail
             labels.Add(labelName);
             message.Headers[GConstants.LabelsHeader] = new HeaderValue(string.Join(" ", labels.Distinct()));
         }
+
+        public static bool RemoveLabel(this MailMessage message, string labelName)
+        {
+            // Space separated list with special items in quotes.
+            string rawLabels = message.Headers[GConstants.LabelsHeader].Value;
+            List<string> labels = Utilities.SplitQuotedList(rawLabels, ' ');
+            labels = labels.Where(label => !label.Equals(labelName)).ToList();
+            message.Headers[GConstants.LabelsHeader] = new HeaderValue(string.Join(" ", labels));
+            return !string.Equals(rawLabels, message.Headers[GConstants.LabelsHeader].Value);
+        }
+
+        // Labels like "\"\\\\foo\"" are special. Normal labels just look like "label"
+        public static List<string> GetNonSpecialLabels(List<string> labels)
+        {
+            return labels.Where(label => !label.StartsWith("\"\\")).ToList();
+        }
     }
 }

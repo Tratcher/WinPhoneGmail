@@ -233,6 +233,7 @@ namespace WinPhone.Mail
             await GmailImap.SetFlaggedStatusAsync(message, starred);
         }
 
+        // It's assumed that labelName is never the active label.
         public virtual async Task AddLabelAsync(List<MailMessage> messages, string labelName)
         {
             foreach (var message in messages)
@@ -248,11 +249,54 @@ namespace WinPhone.Mail
             await GmailImap.AddLabelAsync(messages, labelName);
         }
 
-        public virtual async Task RemoveLabelAsync(List<MailMessage> messages, string labelName)
+        public virtual Task RemoveLabelAsync(List<MailMessage> messages, string labelName)
         {
-            // throw new NotImplementedException()
+            if (ActiveLabel.Info.Name.Equals(labelName))
+            {
+                return RemoveCurrentLabelAsync(messages);
+            }
+
+            return RemoveOtherLabelAsync(messages, labelName);
         }
 
+        // Removing the label for the currently active mailbox is easy, we just flag
+        // the message as deleted in the active mailbox.
+        private async Task RemoveCurrentLabelAsync(List<MailMessage> messages)
+        {
+            string label = ActiveLabel.Info.Name;
+            // Remove from label message list.
+            IEnumerable<string> removedThreadIds = messages.Select(message => message.GetThreadId()).Distinct();
+            ActiveLabel.Conversations = ActiveLabel.Conversations.Where(conversation => !removedThreadIds.Contains(conversation.ID)).ToList();
+            await MailStorage.StoreLabelMessageListAsync(Info.Address, label, ActiveLabel.Conversations);
+
+            // TODO: If this was the last sync'd label, remove from storage.
+
+            // Update the messages to remove the label.
+            foreach (MailMessage message in messages)
+            {
+                if (message.RemoveLabel(label))
+                {
+                    // Store changes
+                    await MailStorage.StoreMessageAsync(Info.Address, message);
+                }
+            }
+
+            // Labels are deleted by deleting the message from the associated mailbox.
+            await GmailImap.RemoveCurrentLabelAsync(messages);
+        }
+
+        // Removing labels for the non-active mailboxes is a bit more work.  We must:
+        // - Switch to that mailbox
+        // - Find the message mailbox UID for that message
+        // -- Search storage first, then online
+        // - Delete the message from the mailbox & storage
+        // - Switch back to the original mailbox
+        private Task RemoveOtherLabelAsync(List<MailMessage> messages, string labelName)
+        {
+            throw new NotImplementedException();
+        }
+
+        // TODO: Full delete items already in Trash or Spam?
         public virtual async Task TrashAsync(List<MailMessage> messages, bool isSpam)
         {
             string labelName = isSpam ? "[Gmail]/Spam" : "[Gmail]/Trash";
@@ -266,27 +310,6 @@ namespace WinPhone.Mail
 
             // TODO: Queue command to send change to the server
             await GmailImap.AddLabelAsync(messages, labelName);
-        }
-
-        public virtual async Task ArchiveAsync(List<MailMessage> messages)
-        {
-            // TODO: Is this just a special case of remove label?
-            if (ActiveLabel.Info.Name.Equals(GConstants.Inbox))
-            {
-                // TODO: Remove from label message list.
-                IEnumerable<string> archivedThreadIds = messages.Select(message => message.GetThreadId()).Distinct();
-                ActiveLabel.Conversations = ActiveLabel.Conversations.Where(conversation => !archivedThreadIds.Contains(conversation.ID)).ToList();
-                await MailStorage.StoreLabelMessageListAsync(Info.Address, ActiveLabel.Info.Name, ActiveLabel.Conversations);
-
-                // TODO: If this was the last sync'd label, remove from storage.
-
-                // Labels are deleted by deleting the message from the associated mailbox.
-                await GmailImap.ArchiveAsync(messages);
-            }
-            else
-            {
-                // throw new NotImplementedException();
-            }
         }
     }
 }

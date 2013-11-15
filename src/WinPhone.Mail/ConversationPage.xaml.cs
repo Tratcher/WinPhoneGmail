@@ -116,7 +116,7 @@ namespace WinPhone.Mail
         private async void ArchiveClick(object sender, EventArgs e)
         {
             Account account = App.GetCurrentAccount();
-            await account.ArchiveAsync(Conversation.Messages);
+            await account.RemoveLabelAsync(Conversation.Messages, GConstants.Inbox);
             NavigationService.GoBack();
         }
 
@@ -130,6 +130,7 @@ namespace WinPhone.Mail
 
         private async void SpamClick(object sender, EventArgs e)
         {
+            // TODO: Full delete items already in Trash or Spam?
             Account account = App.GetCurrentAccount();
             await account.TrashAsync(Conversation.Messages, isSpam: true);
             NavigationService.GoBack();

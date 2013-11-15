@@ -56,7 +56,7 @@ namespace WinPhone.Mail
             }
 
             List<LabelInfo> labels = await account.GetLabelsAsync();
-            List<string> activeLabels = Conversation.Labels;
+            List<string> activeLabels = GmailExtensions.GetNonSpecialLabels(Conversation.Labels);
             LabelList.ItemsSource = labels;
 
             // Select all currently enabled labels
@@ -69,20 +69,33 @@ namespace WinPhone.Mail
 
         private async void SaveClick(object sender, EventArgs e)
         {
-            List<string> labelsBefore = Conversation.Labels;
+            // Filter out special labels that don't match mailbox names.
+            List<string> labelsBefore = GmailExtensions.GetNonSpecialLabels(Conversation.Labels);
             List<string> labelsAfter = LabelList.SelectedItems.Cast<LabelInfo>()
                 .Select(info => info.Name).ToList();
             
             Account account = App.GetCurrentAccount();
+            List<string> addTo = new List<string>();
+            List<string> removeFrom = new List<string>();
 
-            // TODO: Diff before and after.  For new labels, copy to that label.
-            // For old labels, delete from that label.
-            // TODO: Special case the current label, and maybe the INBOX?
-            await SyncUtilities.CompareListsAsync(labelsBefore, labelsAfter, input => input,
-                (before, after) => Task.FromResult(0), // Match, do nothing
-                (before) => account.RemoveLabelAsync(Conversation.Messages, before), // Removed
-                (after) => account.AddLabelAsync(Conversation.Messages, after) // Added
+            // Diff before and after.  For new labels, add that label.
+            // For old labels, remove that label.
+            SyncUtilities.CompareLists(labelsBefore, labelsAfter, input => input,
+                (before, after) => { }, // Match, do nothing
+                (before) => removeFrom.Add(before),
+                (after) => addTo.Add(after) // Added
                 );
+
+            // Do additions before removals.  Additions will fail if you first remove the current label because you'll 
+            // have deleted the message from the current mailbox.
+            foreach (string label in addTo)
+            {
+                await account.AddLabelAsync(Conversation.Messages, label); // Added
+            }
+            foreach (string label in removeFrom)
+            {
+                await account.RemoveLabelAsync(Conversation.Messages, label); // Removed
+            }
 
             NavigationService.GoBack();
         }
