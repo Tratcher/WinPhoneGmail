@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
 using WinPhone.Mail.Protocols;
+using WinPhone.Mail.Protocols.Gmail;
 
 namespace WinPhone.Mail
 {
@@ -18,7 +19,7 @@ namespace WinPhone.Mail
             // Includes normal labels and special ones too.  Filter out known special labels
             // "\\Sent" Family "\\Important" "\\Starred" Geeky
             // TODO: Label color
-            return string.Join(" ", labels.Where(label => !label.StartsWith("\"\\")));
+            return string.Join(" ", GmailExtensions.GetNonSpecialLabels(labels));
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)

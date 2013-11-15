@@ -104,17 +104,17 @@
       <DependentUpon>EditMessageLabelsPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Label.cs" />
-    <Compile Include="StarFromMessageConverter.cs" />
+    <Compile Include="UIHelpers\StarFromMessageConverter.cs" />
     <Compile Include="DebugAccount.cs" />
-    <Compile Include="LabelsConverter.cs" />
+    <Compile Include="UIHelpers\LabelsConverter.cs" />
     <Compile Include="LocalizedStrings.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ShortNameConverter.cs" />
+    <Compile Include="UIHelpers\ShortNameConverter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReadStatusConverter.cs" />
-    <Compile Include="RelativeDateTimeConverter.cs" />
+    <Compile Include="UIHelpers\ReadStatusConverter.cs" />
+    <Compile Include="UIHelpers\RelativeDateTimeConverter.cs" />
     <Compile Include="Resources\AppResources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -126,7 +126,7 @@
     <Compile Include="SettingsPage.xaml.cs">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="StarConverter.cs" />
+    <Compile Include="UIHelpers\StarConverter.cs" />
     <Compile Include="Storage\AccountInfo.cs" />
     <Compile Include="Storage\AppSettings.cs" />
     <Compile Include="Storage\LabelInfo.cs" />
