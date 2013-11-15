@@ -146,7 +146,7 @@ namespace WinPhone.Mail.Protocols
 
             if ((string.IsNullOrWhiteSpace(Body) || ContentType.StartsWith("multipart/")) && AlternateViews.Count > 0)
             {
-                var att = AlternateViews.GetTextView() ?? AlternateViews.GetHtmlView();
+                var att = AlternateViews.GetHtmlView() ?? AlternateViews.GetTextView();
                 if (att != null)
                 {
                     Body = att.Body;
@@ -282,7 +282,6 @@ namespace WinPhone.Mail.Protocols
             {
                 txt.WriteLine("Flags: {0}", Utilities.FlagsToFlagString(Flags));
             }
-            // TODO: Uid?
 
             string boundary = null;
             if (this.Attachments.Any())
@@ -310,6 +309,8 @@ namespace WinPhone.Mail.Protocols
                 txt.WriteLine();
                 txt.WriteLine(att.Body);
             });
+
+            // TODO: Alternate views
 
             if (boundary != null)
             {
