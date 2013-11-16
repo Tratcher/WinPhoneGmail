@@ -12,6 +12,7 @@ using WinPhone.Mail.Protocols;
 using System.Threading.Tasks;
 using WinPhone.Mail.Protocols.Gmail;
 using WinPhone.Mail.Storage;
+using System.Windows.Media.Imaging;
 
 namespace WinPhone.Mail
 {
@@ -64,23 +65,20 @@ namespace WinPhone.Mail
             ProgressIndicator.IsIndeterminate = true;
             try
             {
+                // Force a binding refresh
+                DataContext = null;
+                MailList.ItemsSource = null;
+                MailList.SelectedIndex = -1;
+
                 var account = App.GetCurrentAccount();
                 if (account != null)
                 {
-                    // Force a binding refresh
-                    DataContext = null;
-                    MailList.ItemsSource = null;
-                    MailList.SelectedIndex = -1;
-
                     Label label = await account.GetLabelAsync(forceSync);
 
                     DataContext = label;
                     MailList.ItemsSource = label.Conversations;
-                }
-                else
-                {
-                    CurrentLabel.Text = string.Empty;
-                    MailList.ItemsSource = null;
+
+                    SyncIcon.Source = label.Info.Store ? null : new BitmapImage(new Uri("/Assets/AppBar/not.png", UriKind.Relative));
                 }
             }
             finally
@@ -116,6 +114,33 @@ namespace WinPhone.Mail
         void LabelSettings_Click(object sender, EventArgs e)
         {
             NavigationService.Navigate(new Uri("/LabelSettingsPage.xaml", UriKind.Relative));
+        }
+
+        private async void SyncIcon_Tap(object sender, System.Windows.Input.GestureEventArgs e)
+        {
+            Account account = App.GetCurrentAccount();
+            if (account != null)
+            {
+                Label label = account.ActiveLabel;
+                if (!label.Info.Store)
+                {
+                    label.Info.Store = true;
+
+                    await account.SaveLabelSettingsAsync();
+                    SyncIcon.Source = null;
+
+                    // Store any locally sync'd mail
+                    if (label.Conversations != null)
+                    {
+                        await account.MailStorage.StoreLabelMessageListAsync(label.Info.Name, label.Conversations);
+                        await account.MailStorage.StoreConverationsAsync(label.Conversations);
+                    }
+                    else
+                    {
+                        GetConversations();
+                    }
+                }
+            }
         }
     }
 }

@@ -110,6 +110,12 @@ namespace WinPhone.Mail
                 return ActiveLabel;
             }
 
+            if (!forceSync && !ActiveLabel.Info.Store)
+            {
+                // Don't sync non-stored labels by default. Require force sync.
+                return ActiveLabel;
+            }
+
             bool headersOnly = (ActiveLabel.Conversations != null && ActiveLabel.Conversations.Count != 0); // Optimize for the first download.
             List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(headersOnly);
 
@@ -208,9 +214,13 @@ namespace WinPhone.Mail
 
         public virtual Task SelectLabelAsync(LabelInfo label)
         {
-            ActiveLabel = new Label() { Info = label };
-            // TODO: Put in command queue and run later.
-            return GmailImap.SelectLabelAsync(label.Name);
+            if (!label.Name.Equals(ActiveLabel.Info.Name))
+            {
+                ActiveLabel = new Label() { Info = label };
+                // TODO: Put in command queue and run later.
+                return GmailImap.SelectLabelAsync(label.Name);
+            }
+            return Task.FromResult(0);
         }
 
         public virtual async Task SelectConversationAsync(ConversationThread conversation)

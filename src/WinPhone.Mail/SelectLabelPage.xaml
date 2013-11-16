@@ -6,6 +6,7 @@
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:WinPhone.Mail"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -42,11 +43,20 @@
                 </ListBox.ItemTemplate>
             </ListBox>
             <ListBox x:Name="LabelList" Grid.Row="1" SelectionChanged="LabelList_SelectionChanged">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.Resources>
+                    <local:StoreStatusConverter x:Name="StoreStatus" />
+                </ListBox.Resources>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel>
+                        <Grid>
                             <TextBlock Text="{Binding Path=Name}" HorizontalAlignment="Left" FontSize="28" Margin="5,5,0,0" VerticalAlignment="Top" />
-                        </StackPanel>
+                            <Image Source="{Binding Converter={StaticResource StoreStatus}}" HorizontalAlignment="Right" Width="25" Height="25" Margin="0,0,5,0" />
+                        </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>                
             </ListBox>
