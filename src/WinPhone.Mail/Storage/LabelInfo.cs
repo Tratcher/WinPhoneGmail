@@ -10,7 +10,7 @@ namespace WinPhone.Mail.Storage
     {
         public string Name { get; set; }
 
-        public bool Sync { get; set; }
+        public bool Store { get; set; }
 
         public string Color { get; set; }
 

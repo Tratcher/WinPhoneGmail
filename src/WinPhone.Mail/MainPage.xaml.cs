@@ -43,11 +43,10 @@ namespace WinPhone.Mail
             settingsButton.Text = AppResources.SettingsButtonText;
             ApplicationBar.Buttons.Add(settingsButton);
             settingsButton.Click += SettingsClick;
-            /*
-            // Create a new menu item with the localized string from AppResources.
-            ApplicationBarMenuItem appBarMenuItem = new ApplicationBarMenuItem(AppResources.AppBarMenuItemText);
-            ApplicationBar.MenuItems.Add(appBarMenuItem);
-            */
+
+            ApplicationBarMenuItem labelSettingsMenuItem = new ApplicationBarMenuItem(AppResources.LabelSettingsText);
+            ApplicationBar.MenuItems.Add(labelSettingsMenuItem);
+            labelSettingsMenuItem.Click += LabelSettings_Click;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -112,6 +111,11 @@ namespace WinPhone.Mail
                     NavigationService.Navigate(new Uri("/ConversationPage.xaml", UriKind.Relative));
                 }
             }
+        }
+
+        void LabelSettings_Click(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/LabelSettingsPage.xaml", UriKind.Relative));
         }
     }
 }

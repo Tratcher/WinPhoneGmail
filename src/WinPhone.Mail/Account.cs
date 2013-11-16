@@ -43,11 +43,17 @@ namespace WinPhone.Mail
             }
 
             // From disk
-            Labels = await MailStorage.GetLabelsAsync() ?? new List<LabelInfo>();
+            Labels = await MailStorage.GetLabelInfoAsync() ?? new List<LabelInfo>();
 
             if (!forceSync && Labels.Count != 0)
             {
                 return Labels;
+            }
+
+            if (Labels.Count == 0)
+            {
+                // Default label settings for a new account
+                Labels.Add(new LabelInfo() { Name = GConstants.Inbox, Store = true });
             }
 
             // Sync with server
@@ -59,14 +65,21 @@ namespace WinPhone.Mail
                 label => label.Name, // Select key
                 async (serverLabel, clientLabel) => final.Add(clientLabel), // Match, client wins, it has client side settings.
                 async (serverLabel) => final.Add(serverLabel), // Server only, add.
-                (clientLabel) => MailStorage.DeleteLabelAsync(clientLabel.Name)); // Client side only, garbage collect.
+                (clientLabel) => MailStorage.DeleteLabelMessageListAsync(clientLabel.Name)); // Client side only, garbage collect.
 
             Labels = final;
 
             // Save back to storage
-            await MailStorage.SaveLabelsAsync(Labels);
+            await MailStorage.SaveLabelInfoAsync(Labels);
 
             return Labels;
+        }
+
+        // Force save after settings changes.
+        public async Task SaveLabelSettingsAsync()
+        {
+            List<LabelInfo> labels = await GetLabelsAsync();
+            await MailStorage.SaveLabelInfoAsync(labels);
         }
 
         public virtual async Task<Label> GetLabelAsync(bool forceSync = false)
@@ -86,7 +99,7 @@ namespace WinPhone.Mail
                 };
             }
 
-            if (ActiveLabel.Conversations == null)
+            if (ActiveLabel.Conversations == null && ActiveLabel.Info.Store)
             {
                 // From disk
                 ActiveLabel.Conversations = await MailStorage.GetConversationsAsync(ActiveLabel.Info.Name);
@@ -103,10 +116,12 @@ namespace WinPhone.Mail
             ActiveLabel.Conversations = await ReconcileConversationsAsync(serverConversations, ActiveLabel.Conversations ?? new List<ConversationThread>());
 
             // Write back to storage.
-            await MailStorage.StoreLabelMessageListAsync(ActiveLabel.Info.Name, ActiveLabel.Conversations);
-            // TODO: Only store conversations that have changed.
-            await MailStorage.StoreConverationsAsync(ActiveLabel.Conversations);
-
+            if (ActiveLabel.Info.Store)
+            {
+                await MailStorage.StoreLabelMessageListAsync(ActiveLabel.Info.Name, ActiveLabel.Conversations);
+                // TODO: Only store conversations that have changed.
+                await MailStorage.StoreConverationsAsync(ActiveLabel.Conversations);
+            }
             return ActiveLabel;
         }
 
@@ -213,8 +228,12 @@ namespace WinPhone.Mail
                 if (message.Seen != read)
                 {
                     message.Seen = read;
-                    // TODO: Store in memory
-                    await MailStorage.StoreMessageAsync(message);
+
+                    if (MailStorage.MessageIsStored(message))
+                    {
+                        // Update in memory
+                        await MailStorage.StoreMessageAsync(message);
+                    }
 
                     changedMessages.Add(message);
                 }
@@ -230,10 +249,16 @@ namespace WinPhone.Mail
         public async Task SetStarAsync(MailMessage message, bool starred)
         {
             // Set or remove the Flagged flag.
-            message.Flagged = starred;
-            await MailStorage.StoreMessageAsync(message);
-            // TODO: Queue command to send change to the server
-            await GmailImap.SetFlaggedStatusAsync(message, starred);
+            if (message.Flagged != starred)
+            {
+                message.Flagged = starred;
+                if (MailStorage.MessageIsStored(message))
+                {
+                    await MailStorage.StoreMessageAsync(message);
+                }
+                // TODO: Queue command to send change to the server
+                await GmailImap.SetFlaggedStatusAsync(message, starred);
+            }
         }
 
         // It's assumed that labelName is never the active label.
@@ -242,8 +267,11 @@ namespace WinPhone.Mail
             foreach (var message in messages)
             {
                 message.AddLabel(labelName);
-                // TODO: Store in memory
-                await MailStorage.StoreMessageAsync(message);
+                // Store in memory
+                if (MailStorage.MessageIsStored(message))
+                {
+                    await MailStorage.StoreMessageAsync(message);
+                }
 
                 // TODO: Store in the message list for that label
             }
@@ -277,7 +305,7 @@ namespace WinPhone.Mail
             // Update the messages to remove the label.
             foreach (MailMessage message in messages)
             {
-                if (message.RemoveLabel(label))
+                if (message.RemoveLabel(label) && MailStorage.MessageIsStored(message))
                 {
                     // Store changes
                     await MailStorage.StoreMessageAsync(message);
@@ -304,14 +332,21 @@ namespace WinPhone.Mail
                 if (message.RemoveLabel(labelName))
                 {
                     changedMessages.Add(message);
-                    await MailStorage.StoreMessageAsync(message);
+                    if (MailStorage.MessageIsStored(message))
+                    {
+                        await MailStorage.StoreMessageAsync(message);
+                    }
                 }
             }
+
+            LabelInfo labelInfo = Labels.Where(info => info.Name.Equals(labelName)).FirstOrDefault() ?? new LabelInfo() { Name = labelName };
 
             // Look up UIDs. If they're not here, we may need to check online.
             List<string> localMessageIds = new List<string>(); // Ids for messages we have referenced from a locally sync'd label.
             List<string> nonlocalMessageIds = new List<string>(); // Ids for messages we'll have to lookup online.
-            List<MessageIdInfo> labelMessageIds = await MailStorage.GetLabelMessageListAsync(labelName) ?? new List<MessageIdInfo>();
+            List<MessageIdInfo> labelMessageIds = (labelInfo.Store ? await MailStorage.GetLabelMessageListAsync(labelName) : null)
+                ?? new List<MessageIdInfo>();
+
             SyncUtilities.CompareLists(changedMessages.Select(message => message.GetMessageId()), labelMessageIds.Select(ids => ids.MessageId), id => id,
                 (searchId, localId) => localMessageIds.Add(localId),
                 (searchId) => nonlocalMessageIds.Add(searchId),
@@ -320,7 +355,10 @@ namespace WinPhone.Mail
 
             // Remove from that labelList
             List<MessageIdInfo> updatedLabelMessageIds = labelMessageIds.Where(messageIds => !localMessageIds.Contains(messageIds.MessageId)).ToList();
-            await MailStorage.StoreLabelMessageListAsync(labelName, updatedLabelMessageIds);
+            if (labelInfo.Store)
+            {
+                await MailStorage.StoreLabelMessageListAsync(labelName, updatedLabelMessageIds);
+            }
 
             List<string> uidsToRemove = labelMessageIds.Where(messageIds => localMessageIds.Contains(messageIds.MessageId)).Select(ids => ids.Uid).ToList();
 
@@ -345,17 +383,27 @@ namespace WinPhone.Mail
                 // TODO: Remove from all label lists?  Add to trash label list if sync'd?
                 message.AddLabel(labelName);
                 // TODO: Store in memory
-                await MailStorage.StoreMessageAsync(message);
+                if (MailStorage.MessageIsStored(message))
+                {
+                    await MailStorage.StoreMessageAsync(message);
+                }
             }
 
             // TODO: Queue command to send change to the server
             await GmailImap.AddLabelAsync(messages, labelName);
         }
 
-        public void DeleteAccount()
+        public void DeleteAccountData()
         {
             MailStorage.DeleteAccount();
             ActiveLabel = null;
+            Labels = null;
+            ActiveConversation = null;
+        }
+
+        public async Task LogoutAsync()
+        {
+            await GmailImap.Client.LogoutAsync();
             GmailImap.Dispose();
             GmailImap = new GmailImapClient(Info.Address, Info.Password);
         }

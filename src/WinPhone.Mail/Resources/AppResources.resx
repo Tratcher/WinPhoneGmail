@@ -152,6 +152,9 @@
   <data name="DeleteButtonText" xml:space="preserve">
     <value>delete</value>
   </data>
+  <data name="LabelSettingsText" xml:space="preserve">
+    <value>label settings</value>
+  </data>
   <data name="MarkUnreadText" xml:space="preserve">
     <value>mark unread</value>
   </data>

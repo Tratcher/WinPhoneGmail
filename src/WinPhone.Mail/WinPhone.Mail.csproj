@@ -104,6 +104,9 @@
       <DependentUpon>EditMessageLabelsPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Label.cs" />
+    <Compile Include="LabelSettingsPage.xaml.cs">
+      <DependentUpon>LabelSettingsPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Storage\MessageIdInfo.cs" />
     <Compile Include="UIHelpers\StarFromMessageConverter.cs" />
     <Compile Include="DebugAccount.cs" />
@@ -148,6 +151,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="EditMessageLabelsPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="LabelSettingsPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

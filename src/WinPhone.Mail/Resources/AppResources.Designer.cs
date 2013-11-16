@@ -97,6 +97,15 @@ namespace WinPhone.Mail.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to label settings.
+        /// </summary>
+        public static string LabelSettingsText {
+            get {
+                return ResourceManager.GetString("LabelSettingsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to mark unread.
         /// </summary>
         public static string MarkUnreadText {

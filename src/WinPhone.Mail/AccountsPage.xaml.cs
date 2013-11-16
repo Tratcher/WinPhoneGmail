@@ -71,7 +71,7 @@ namespace WinPhone.Mail
             AccountPasswordBox.Password = string.Empty;
         }
 
-        private void RemoveClick(object sender, EventArgs e)
+        private async void RemoveClick(object sender, EventArgs e)
         {
             Account account = AccountsList.SelectedItem as Account;
             if (account != null)
@@ -84,21 +84,24 @@ namespace WinPhone.Mail
 
                 AppSettings.SaveAccounts(accounts.Select(ac => ac.Info).ToArray());
 
-                account.DeleteAccount();
+                account.DeleteAccountData();
+                await account.LogoutAsync();
             }
             AccountAddressBox.Text = "@gmail.com";
             AccountPasswordBox.Password = string.Empty;
         }
 
-        private void SaveClick(object sender, EventArgs e)
+        private async void SaveClick(object sender, EventArgs e)
         {
             var accounts = App.GetAccounts();
             Account account = AccountsList.SelectedItem as Account;
             if (account != null
                 && !string.Equals(account.Info.Address, AccountAddressBox.Text, StringComparison.OrdinalIgnoreCase))
             {
-                account.DeleteAccount();
+                account.DeleteAccountData();
+                await account.LogoutAsync();
                 accounts.Remove(account);
+                account = null;
             }
 
             if (account != null)
@@ -107,6 +110,7 @@ namespace WinPhone.Mail
                 account.Info.Address = AccountAddressBox.Text;
                 // Update password in place.
                 account.Info.Password = AccountPasswordBox.Password;
+                await account.LogoutAsync();
             }
             else
             {

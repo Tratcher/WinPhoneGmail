@@ -34,7 +34,7 @@ namespace WinPhone.Mail.Storage
         }
 
         // Gets the list of labels and their settings.
-        public async Task<List<LabelInfo>> GetLabelsAsync()
+        public async Task<List<LabelInfo>> GetLabelInfoAsync()
         {
             string path = Path.Combine(AccountDir, _accountName, LabelsFile);
 
@@ -58,7 +58,7 @@ namespace WinPhone.Mail.Storage
                         labels.Add(new LabelInfo()
                         {
                             Name = Utilities.RemoveQuotes(items[0]),
-                            Sync = bool.Parse(items[1]),
+                            Store = bool.Parse(items[1]),
                             Color = items[2]
                         });
                     }
@@ -70,7 +70,7 @@ namespace WinPhone.Mail.Storage
         }
 
         // Stores the list of labels and their settings.
-        public async Task SaveLabelsAsync(List<LabelInfo> labels)
+        public async Task SaveLabelInfoAsync(List<LabelInfo> labels)
         {
             if (labels == null || labels.Count == 0)
             {
@@ -91,7 +91,7 @@ namespace WinPhone.Mail.Storage
                 {
                     LabelInfo label = labels[i];
                     string line = string.Format(CultureInfo.InvariantCulture, "\"{0}\", {1}, {2}\r\n", 
-                        label.Name, label.Sync, label.Color);
+                        label.Name, label.Store, label.Color);
                     await writer.WriteAsync(line);
                 }
             }
@@ -168,6 +168,26 @@ namespace WinPhone.Mail.Storage
             }
 
             return messageIds;
+        }
+
+        public Task DeleteLabelMessageListAsync(string labelName)
+        {
+            string labelsDir = Path.Combine(AccountDir, _accountName, LabelsDir);
+            string labelsFilePath = Path.Combine(labelsDir, EscapeLabelName(labelName) + ".csv");
+
+            if (!_storage.DirectoryExists(labelsDir) || !_storage.FileExists(labelsFilePath))
+            {
+                return Task.FromResult(0);
+            }
+
+            // Remove label index file.
+            _storage.DeleteFile(labelsFilePath);
+
+            // TODO: Remove any message threads that were only referenced by this thread index.
+            // This can be done by opening the threads and identifying other labels on the messages.
+            // If the message thread is not listed in any of those label indexes then it should be deleted.
+
+            return Task.FromResult(0);
         }
 
         // GMail system labels look like: [Gmail]/All Mail.  You can also make nested labels like Label/SubLabel.
@@ -269,15 +289,12 @@ namespace WinPhone.Mail.Storage
             }
         }
 
-        public Task DeleteLabelAsync(string labelName)
+        public bool MessageIsStored(MailMessage message)
         {
-            // TODO: Remove label index file.
+            string conversationDir = Path.Combine(AccountDir, _accountName, ConversationsDir, message.GetThreadId());
+            string messageFile = Path.Combine(conversationDir, message.GetMessageId() + ".msg");
 
-            // TODO: Remove any message threads that were only referenced by this thread index.
-            // This can be done by opening the threads and identifying other labels on the messages.
-            // If the message thread is not listed in any of those label indexes then it should be deleted.
-
-            return Task.FromResult(0);
+            return _storage.FileExists(messageFile);
         }
 
         public void DeleteAccount()

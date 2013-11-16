@@ -31,7 +31,7 @@ namespace WinPhone.Mail
             foreach (Account account in App.GetAccounts())
             {
                 // TODO: Clear in-memory caches for accounts, labels, etc.
-                account.DeleteAccount();
+                account.DeleteAccountData();
             }
 
             // Clear any leftover garbage.
