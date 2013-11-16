@@ -12,32 +12,40 @@ using WinPhone.Mail.Protocols.Gmail;
 
 namespace WinPhone.Mail.Storage
 {
-    public static class MailStorage
+    public class MailStorage
     {
         private const string AccountDir = "Accounts";
         private const string LabelsFile = "Labels.csv";
         private const string LabelsDir = "Labels";
         private const string ConversationsDir = "Conversations";
 
-        // Gets the list of labels and their settings.
-        public static async Task<List<LabelInfo>> GetLabelsAsync(string accountName)
+        private readonly string _accountName;
+        private readonly IsolatedStorageFile _storage;
+
+        public MailStorage(string accountName)
         {
             if (string.IsNullOrWhiteSpace(accountName))
             {
-                throw new ArgumentNullException("account");
+                throw new ArgumentNullException("accountName");
             }
 
-            string path = Path.Combine(AccountDir, accountName, LabelsFile);
+            _accountName = accountName;
+            _storage = IsolatedStorageFile.GetUserStoreForApplication();
+        }
 
-            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
-            if (!storage.FileExists(path))
+        // Gets the list of labels and their settings.
+        public async Task<List<LabelInfo>> GetLabelsAsync()
+        {
+            string path = Path.Combine(AccountDir, _accountName, LabelsFile);
+
+            if (!_storage.FileExists(path))
             {
                 return null;
             }
 
             List<LabelInfo> labels = new List<LabelInfo>();
 
-            IsolatedStorageFileStream stream = storage.OpenFile(path, FileMode.Open);
+            IsolatedStorageFileStream stream = _storage.OpenFile(path, FileMode.Open);
             using (StreamReader reader = new StreamReader(stream.AsInputStream().AsStreamForRead()))
             {
                 string line = await reader.ReadLineAsync();
@@ -62,27 +70,21 @@ namespace WinPhone.Mail.Storage
         }
 
         // Stores the list of labels and their settings.
-        public static async Task SaveLabelsAsync(string accountName, List<LabelInfo> labels)
+        public async Task SaveLabelsAsync(List<LabelInfo> labels)
         {
-            if (string.IsNullOrWhiteSpace(accountName))
-            {
-                throw new ArgumentNullException("account");
-            }
             if (labels == null || labels.Count == 0)
             {
                 throw new ArgumentNullException("labels");
             }
 
-            string dir = Path.Combine(AccountDir, accountName);
+            string dir = Path.Combine(AccountDir, _accountName);
             string path = Path.Combine(dir, LabelsFile);
 
-            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
-
-            if (!storage.DirectoryExists(dir))
+            if (!_storage.DirectoryExists(dir))
             {
-                storage.CreateDirectory(dir);
+                _storage.CreateDirectory(dir);
             }
-            IsolatedStorageFileStream stream = storage.OpenFile(path, FileMode.OpenOrCreate);
+            IsolatedStorageFileStream stream = _storage.OpenFile(path, FileMode.OpenOrCreate);
             using (StreamWriter writer = new StreamWriter(stream.AsOutputStream().AsStreamForWrite()))
             {
                 for (int i = 0; i < labels.Count; i++)
@@ -97,7 +99,7 @@ namespace WinPhone.Mail.Storage
 
         // Stores a list of all the conversation IDs associated with this label.
         // One id per line.
-        public static Task StoreLabelMessageListAsync(string accountName, string labelName, List<ConversationThread> conversations)
+        public Task StoreLabelMessageListAsync(string labelName, List<ConversationThread> conversations)
         {
             List<MessageIdInfo> messageIds = new List<MessageIdInfo>();
 
@@ -114,24 +116,22 @@ namespace WinPhone.Mail.Storage
                 }
             }
 
-            return StoreLabelMessageListAsync(accountName, labelName, messageIds);
+            return StoreLabelMessageListAsync(labelName, messageIds);
         }
 
         // Stores a list of all the conversation IDs associated with this label.
         // One id per line.
-        public static async Task StoreLabelMessageListAsync(string accountName, string labelName, List<MessageIdInfo> messageIds)
+        public async Task StoreLabelMessageListAsync(string labelName, List<MessageIdInfo> messageIds)
         {
-            string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
+            string labelsDir = Path.Combine(AccountDir, _accountName, LabelsDir);
             string labelsFilePath = Path.Combine(labelsDir, EscapeLabelName(labelName) + ".csv");
 
-            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
-
-            if (!storage.DirectoryExists(labelsDir))
+            if (!_storage.DirectoryExists(labelsDir))
             {
-                storage.CreateDirectory(labelsDir);
+                _storage.CreateDirectory(labelsDir);
             }
 
-            using (var writer = new StreamWriter(storage.CreateFile(labelsFilePath)))
+            using (var writer = new StreamWriter(_storage.CreateFile(labelsFilePath)))
             {
                 foreach (var ids in messageIds)
                 {
@@ -143,21 +143,19 @@ namespace WinPhone.Mail.Storage
 
         // Gets a list of all the conversation IDs associated with this label.
         // One id per line.
-        public static async Task<List<MessageIdInfo>> GetLabelMessageListAsync(string accountName, string labelName)
+        public async Task<List<MessageIdInfo>> GetLabelMessageListAsync(string labelName)
         {
-            string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
+            string labelsDir = Path.Combine(AccountDir, _accountName, LabelsDir);
             string labelsFilePath = Path.Combine(labelsDir, EscapeLabelName(labelName) + ".csv");
 
-            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
-
-            if (!storage.DirectoryExists(labelsDir) || !storage.FileExists(labelsFilePath))
+            if (!_storage.DirectoryExists(labelsDir) || !_storage.FileExists(labelsFilePath))
             {
                 return null;
             }
 
             List<MessageIdInfo> messageIds = new List<MessageIdInfo>();
 
-            using (var reader = new StreamReader(storage.OpenFile(labelsFilePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
+            using (var reader = new StreamReader(_storage.OpenFile(labelsFilePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
             {
                 string line = await reader.ReadLineAsync();
                 while (line != null)
@@ -180,37 +178,34 @@ namespace WinPhone.Mail.Storage
         }
 
         // Stores all the given conversations
-        public static async Task StoreConverationsAsync(string accountName, List<ConversationThread> conversations)
+        public async Task StoreConverationsAsync(List<ConversationThread> conversations)
         {
-            string conversationsDir = Path.Combine(AccountDir, accountName, ConversationsDir);
-
-            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
+            string conversationsDir = Path.Combine(AccountDir, _accountName, ConversationsDir);
 
             foreach (var conversation in conversations)
             {
                 string conversationDir = Path.Combine(conversationsDir, conversation.ID);
-                if (!storage.DirectoryExists(conversationDir))
+                if (!_storage.DirectoryExists(conversationDir))
                 {
-                    storage.CreateDirectory(conversationDir);
+                    _storage.CreateDirectory(conversationDir);
                 }
 
                 foreach (var message in conversation.Messages)
                 {
-                    await StoreMessageAsync(storage, conversationDir, message);
+                    await StoreMessageAsync(conversationDir, message);
                 }
             }
         }
 
         // Get all the conversations listed under the given label
-        public static async Task<List<ConversationThread>> GetConversationsAsync(string accountName, string labelName)
+        public async Task<List<ConversationThread>> GetConversationsAsync(string labelName)
         {
-            List<MessageIdInfo> messageIds = await GetLabelMessageListAsync(accountName, labelName);
+            List<MessageIdInfo> messageIds = await GetLabelMessageListAsync(labelName);
             if (messageIds == null)
             {
                 return null;
             }
 
-            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
             List<MailMessage> messages = new List<MailMessage>();
 
             foreach (var messageId in messageIds)
@@ -218,9 +213,9 @@ namespace WinPhone.Mail.Storage
                 string uid = messageId.Uid;
                 string googleUid = messageId.MessageId;
                 string conversationId = messageId.ThreadId;
-                string conversationDir = Path.Combine(AccountDir, accountName, ConversationsDir, conversationId);
+                string conversationDir = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId);
 
-                MailMessage message = await GetMessageAsync(storage, conversationDir, googleUid, uid);
+                MailMessage message = await GetMessageAsync(conversationDir, googleUid, uid);
                 if (message != null)
                 {
                     messages.Add(message);
@@ -237,18 +232,17 @@ namespace WinPhone.Mail.Storage
             return conversations;
         }
 
-        public static Task StoreMessageAsync(string accountName, MailMessage message)
+        public Task StoreMessageAsync(MailMessage message)
         {
-            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
-            string conversationDir = Path.Combine(AccountDir, accountName, ConversationsDir, message.GetThreadId());
-            return StoreMessageAsync(storage, conversationDir, message);
+            string conversationDir = Path.Combine(AccountDir, _accountName, ConversationsDir, message.GetThreadId());
+            return StoreMessageAsync(conversationDir, message);
         }
 
-        private static Task StoreMessageAsync(IsolatedStorageFile storage, string conversationDir, MailMessage message)
+        private Task StoreMessageAsync(string conversationDir, MailMessage message)
         {
             string messageFile = Path.Combine(conversationDir, message.GetMessageId() + ".msg");
 
-            using (Stream fileStream = storage.CreateFile(messageFile))
+            using (Stream fileStream = _storage.CreateFile(messageFile))
             {
                 // TODO: Async
                 message.Save(fileStream);
@@ -256,14 +250,14 @@ namespace WinPhone.Mail.Storage
             return Task.FromResult(0);
         }
 
-        private static Task<MailMessage> GetMessageAsync(IsolatedStorageFile storage, string conversationDir, string googleUid, string labelUid)
+        private Task<MailMessage> GetMessageAsync(string conversationDir, string googleUid, string labelUid)
         {
             string messageFile = Path.Combine(conversationDir, googleUid + ".msg");
-            if (!storage.FileExists(messageFile))
+            if (!_storage.FileExists(messageFile))
             {
                 return null;
             }
-            using (Stream fileStream = storage.OpenFile(messageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (Stream fileStream = _storage.OpenFile(messageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 MailMessage message = new MailMessage();
 
@@ -275,7 +269,7 @@ namespace WinPhone.Mail.Storage
             }
         }
 
-        public static Task DeleteLabelAsync(string labelName)
+        public Task DeleteLabelAsync(string labelName)
         {
             // TODO: Remove label index file.
 
@@ -286,13 +280,12 @@ namespace WinPhone.Mail.Storage
             return Task.FromResult(0);
         }
 
-        public static void DeleteAccount(string accountName)
+        public void DeleteAccount()
         {
-            IsolatedStorageFile storage = IsolatedStorageFile.GetUserStoreForApplication();
-            string dir = Path.Combine(AccountDir, accountName);
-            if (storage.DirectoryExists(dir))
+            string dir = Path.Combine(AccountDir, _accountName);
+            if (_storage.DirectoryExists(dir))
             {
-                DeleteDirectory(storage, dir);
+                DeleteDirectory(_storage, dir);
             }
         }
 

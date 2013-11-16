@@ -84,7 +84,7 @@ namespace WinPhone.Mail
 
                 AppSettings.SaveAccounts(accounts.Select(ac => ac.Info).ToArray());
 
-                MailStorage.DeleteAccount(account.Info.Address);
+                account.DeleteAccount();
             }
             AccountAddressBox.Text = "@gmail.com";
             AccountPasswordBox.Password = string.Empty;
@@ -92,37 +92,34 @@ namespace WinPhone.Mail
 
         private void SaveClick(object sender, EventArgs e)
         {
+            var accounts = App.GetAccounts();
             Account account = AccountsList.SelectedItem as Account;
+            if (account != null
+                && !string.Equals(account.Info.Address, AccountAddressBox.Text, StringComparison.OrdinalIgnoreCase))
+            {
+                account.DeleteAccount();
+                accounts.Remove(account);
+            }
+
             if (account != null)
             {
-                var accounts = App.GetAccounts();
-
-                string oldAddress = account.Info.Address;
+                // Let them change casing, it's only a visual change.
                 account.Info.Address = AccountAddressBox.Text;
+                // Update password in place.
                 account.Info.Password = AccountPasswordBox.Password;
-
-                AppSettings.SaveAccounts(accounts.Select(ac => ac.Info).ToArray());
-
-                // Storage cleanup if the address changed
-                if (!string.Equals(account.Info.Address, AccountAddressBox.Text, StringComparison.OrdinalIgnoreCase))
-                {
-                    MailStorage.DeleteAccount(oldAddress);
-                    // TODO: Clear out in-memory data from the modified Account.
-                }
             }
             else
             {
-                var accounts = App.GetAccounts();
                 accounts.Add(new Account(new AccountInfo()
                 {
                     Address = AccountAddressBox.Text,
                     Password = AccountPasswordBox.Password
                 }));
-                                
-                AppSettings.SaveAccounts(accounts.Select(ac => ac.Info).ToArray());
 
                 AccountsList.SelectedIndex = accounts.Count - 1;
             }
+
+            AppSettings.SaveAccounts(accounts.Select(ac => ac.Info).ToArray());
         }
 
         private void DoneClick(object sender, EventArgs e)

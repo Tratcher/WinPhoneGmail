@@ -1,5 +1,6 @@
 ﻿using Microsoft.Phone.Controls;
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Navigation;
 using WinPhone.Mail.Storage;
@@ -23,11 +24,20 @@ namespace WinPhone.Mail
         {
             // TODO: Prompt for confirmation
             // TODO: Error handling/reporting?
-            // AppSettings.ClearAll();
-            MailStorage.ClearAll();
-            // TODO: Prompt for success
 
-            // TODO: Clear in-memory caches for accounts, labels, etc.
+            // Clear usernames and passwords.
+            // AppSettings.ClearAll();
+
+            foreach (Account account in App.GetAccounts())
+            {
+                // TODO: Clear in-memory caches for accounts, labels, etc.
+                account.DeleteAccount();
+            }
+
+            // Clear any leftover garbage.
+            MailStorage.ClearAll();
+
+            // TODO: Prompt for success
         }
     }
 }
