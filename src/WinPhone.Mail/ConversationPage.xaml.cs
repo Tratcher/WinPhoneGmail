@@ -154,6 +154,13 @@ namespace WinPhone.Mail
                 body = body.Replace("\r\n", "<br>");
             }
 
+            int end = body.IndexOf(">");
+            if (body.TrimStart('\r', '\n', '\t', ' ').StartsWith("<!DOCTYPE") && end > 0)
+            {
+                // Strip off the DOCTYPE: http://www.w3schools.com/tags/tag_doctype.asp
+                body = body.Substring(end + 1);
+            }
+
             browser.NavigateToString(body);
         }
 
