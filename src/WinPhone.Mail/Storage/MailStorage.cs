@@ -97,7 +97,29 @@ namespace WinPhone.Mail.Storage
 
         // Stores a list of all the conversation IDs associated with this label.
         // One id per line.
-        public static async Task StoreLabelMessageListAsync(string accountName, string labelName, List<ConversationThread> conversations)
+        public static Task StoreLabelMessageListAsync(string accountName, string labelName, List<ConversationThread> conversations)
+        {
+            List<MessageIdInfo> messageIds = new List<MessageIdInfo>();
+
+            foreach (var conversation in conversations)
+            {
+                foreach (var message in conversation.Messages)
+                {
+                    messageIds.Add(new MessageIdInfo()
+                    {
+                        Uid = message.Uid,
+                        MessageId = message.GetMessageId(),
+                        ThreadId = message.GetThreadId()
+                    });
+                }
+            }
+
+            return StoreLabelMessageListAsync(accountName, labelName, messageIds);
+        }
+
+        // Stores a list of all the conversation IDs associated with this label.
+        // One id per line.
+        public static async Task StoreLabelMessageListAsync(string accountName, string labelName, List<MessageIdInfo> messageIds)
         {
             string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
             string labelsFilePath = Path.Combine(labelsDir, EscapeLabelName(labelName) + ".csv");
@@ -111,20 +133,17 @@ namespace WinPhone.Mail.Storage
 
             using (var writer = new StreamWriter(storage.CreateFile(labelsFilePath)))
             {
-                foreach (var conversation in conversations)
+                foreach (var ids in messageIds)
                 {
-                    foreach (var message in conversation.Messages)
-                    {
-                        await writer.WriteLineAsync(string.Format(CultureInfo.InvariantCulture, 
-                            "{0},{1},{2}", message.Uid, message.GetMessageId(), message.GetThreadId()));
-                    }
+                    await writer.WriteLineAsync(string.Format(CultureInfo.InvariantCulture,
+                        "{0},{1},{2}", ids.Uid, ids.MessageId, ids.ThreadId));
                 }
             }
         }
 
         // Gets a list of all the conversation IDs associated with this label.
         // One id per line.
-        private static async Task<List<string[]>> GetLabelMessageListAsync(string accountName, string labelName)
+        public static async Task<List<MessageIdInfo>> GetLabelMessageListAsync(string accountName, string labelName)
         {
             string labelsDir = Path.Combine(AccountDir, accountName, LabelsDir);
             string labelsFilePath = Path.Combine(labelsDir, EscapeLabelName(labelName) + ".csv");
@@ -136,14 +155,16 @@ namespace WinPhone.Mail.Storage
                 return null;
             }
 
-            List<string[]> messageIds = new List<string[]>();
+            List<MessageIdInfo> messageIds = new List<MessageIdInfo>();
 
             using (var reader = new StreamReader(storage.OpenFile(labelsFilePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
             {
                 string line = await reader.ReadLineAsync();
                 while (line != null)
                 {
-                    messageIds.Add(line.Split(','));
+                    string[] parts = line.Split(',');
+                    MessageIdInfo ids = new MessageIdInfo() { Uid = parts[0], MessageId = parts[1], ThreadId = parts[2] };
+                    messageIds.Add(ids);
                     line = await reader.ReadLineAsync();
                 }
             }
@@ -183,7 +204,7 @@ namespace WinPhone.Mail.Storage
         // Get all the conversations listed under the given label
         public static async Task<List<ConversationThread>> GetConversationsAsync(string accountName, string labelName)
         {
-            List<string[]> messageIds = await GetLabelMessageListAsync(accountName, labelName);
+            List<MessageIdInfo> messageIds = await GetLabelMessageListAsync(accountName, labelName);
             if (messageIds == null)
             {
                 return null;
@@ -194,9 +215,9 @@ namespace WinPhone.Mail.Storage
 
             foreach (var messageId in messageIds)
             {
-                string uid = messageId[0];
-                string googleUid = messageId[1];
-                string conversationId = messageId[2];
+                string uid = messageId.Uid;
+                string googleUid = messageId.MessageId;
+                string conversationId = messageId.ThreadId;
                 string conversationDir = Path.Combine(AccountDir, accountName, ConversationsDir, conversationId);
 
                 MailMessage message = await GetMessageAsync(storage, conversationDir, googleUid, uid);

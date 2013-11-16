@@ -291,9 +291,40 @@ namespace WinPhone.Mail
         // -- Search storage first, then online
         // - Delete the message from the mailbox & storage
         // - Switch back to the original mailbox
-        private Task RemoveOtherLabelAsync(List<MailMessage> messages, string labelName)
+        private async Task RemoveOtherLabelAsync(List<MailMessage> messages, string labelName)
         {
-            throw new NotImplementedException();
+            List<MailMessage> changedMessages = new List<MailMessage>();
+            // Remove the label from the messages and store the changes.
+            // TODO: Remove message from disk if the message is no longer referenced by any sync'd labels.
+            foreach (var message in messages)
+            {
+                if (message.RemoveLabel(labelName))
+                {
+                    changedMessages.Add(message);
+                    await MailStorage.StoreMessageAsync(Info.Address, message);
+                }
+            }
+
+            // Look up UIDs. If they're not here, we may need to check online.
+            List<string> localMessageIds = new List<string>(); // Ids for messages we have referenced from a locally sync'd label.
+            List<string> nonlocalMessageIds = new List<string>(); // Ids for messages we'll have to lookup online.
+            List<MessageIdInfo> labelMessageIds = await MailStorage.GetLabelMessageListAsync(Info.Address, labelName) ?? new List<MessageIdInfo>();
+            SyncUtilities.CompareLists(changedMessages.Select(message => message.GetMessageId()), labelMessageIds.Select(ids => ids.MessageId), id => id,
+                (searchId, localId) => localMessageIds.Add(localId),
+                (searchId) => nonlocalMessageIds.Add(searchId),
+                (localId) => { } // Only in storage, ignore.
+                );
+
+            // Remove from that labelList
+            List<MessageIdInfo> updatedLabelMessageIds = labelMessageIds.Where(messageIds => !localMessageIds.Contains(messageIds.MessageId)).ToList();
+            await MailStorage.StoreLabelMessageListAsync(Info.Address, labelName, updatedLabelMessageIds);
+
+            List<string> uidsToRemove = labelMessageIds.Where(messageIds => localMessageIds.Contains(messageIds.MessageId)).Select(ids => ids.Uid).ToList();
+
+            // TODO: Queue up this action for later
+            List<string> remoteUids = await GmailImap.GetUidsFromMessageIds(labelName, nonlocalMessageIds);
+            uidsToRemove.AddRange(remoteUids);
+            await GmailImap.RemoveOtherLabelAsync(labelName, uidsToRemove);
         }
 
         // TODO: Full delete items already in Trash or Spam?

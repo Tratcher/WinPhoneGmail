@@ -32,12 +32,19 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
         }
 
-        public async Task<List<ConversationThread>> GetConversationsAsync(bool headersOnly)
+        public async Task CheckConnectedAsync()
         {
             if (!Client.IsConnected)
             {
                 await ConnectAsync();
             }
+
+            // TODO: Do a test send to verify connectivity? Auto-disconnect and reconnect?
+        }
+
+        public async Task<List<ConversationThread>> GetConversationsAsync(bool headersOnly)
+        {
+            await CheckConnectedAsync();
 
             // TODO: Configurable range
             SearchCondition condition = SearchCondition.Since(DateTime.Now - TimeSpan.FromDays(30));
@@ -76,12 +83,14 @@ namespace WinPhone.Mail.Protocols.Gmail
         {
             // Convert the special inbox label to match the inbox mailbox name.
             string newLabelHeader = message.Headers[GConstants.LabelsHeader].RawValue.Replace(GConstants.InboxLabel, GConstants.Inbox);
+
             message.Headers[GConstants.LabelsHeader] = new HeaderValue(newLabelHeader);
 
             if (Client.SelectedMailbox.Equals(GConstants.AllMailMailbox, StringComparison.Ordinal)
                 || Client.SelectedMailbox.Equals(GConstants.StarredMailbox, StringComparison.Ordinal))
             {
                 // These are special mailboxes that don't appear as labels.
+                // TODO: Others?
             }
             else
             {
@@ -99,10 +108,7 @@ namespace WinPhone.Mail.Protocols.Gmail
 
         public async Task<Mailbox[]> GetLabelsAsync()
         {
-            if (!Client.IsConnected)
-            {
-                await ConnectAsync();
-            }
+            await CheckConnectedAsync();
 
             Mailbox[] mailboxes = await Client.ListMailboxesAsync(string.Empty, "*");
             // Filter out the special [Gmail] dir that can't directly contain messages.
@@ -111,10 +117,7 @@ namespace WinPhone.Mail.Protocols.Gmail
 
         public async Task SetReadStatusAsync(List<MailMessage> messages, bool read)
         {
-            if (!Client.IsConnected)
-            {
-                await ConnectAsync();
-            }
+            await CheckConnectedAsync();
 
             if (read)
             {
@@ -128,10 +131,7 @@ namespace WinPhone.Mail.Protocols.Gmail
 
         public async Task SetFlaggedStatusAsync(MailMessage message, bool flagged)
         {
-            if (!Client.IsConnected)
-            {
-                await ConnectAsync();
-            }
+            await CheckConnectedAsync();
 
             MailMessage[] messages = new MailMessage[] { message };
 
@@ -147,32 +147,60 @@ namespace WinPhone.Mail.Protocols.Gmail
 
         public async Task SelectLabelAsync(string mailboxName)
         {
-            if (!Client.IsConnected)
-            {
-                await ConnectAsync();
-            }
+            await CheckConnectedAsync();
 
             await Client.SelectMailboxAsync(mailboxName);
         }
 
         public async Task AddLabelAsync(List<MailMessage> messages, string labelName)
         {
-            if (!Client.IsConnected)
-            {
-                await ConnectAsync();
-            }
+            await CheckConnectedAsync();
 
             await Client.CopyAsync(messages, labelName);
         }
 
         public async Task RemoveCurrentLabelAsync(List<MailMessage> messages)
         {
-            if (!Client.IsConnected)
-            {
-                await ConnectAsync();
-            }
+            await CheckConnectedAsync();
 
             await Client.DeleteMessagesAsync(messages);
+        }
+
+        // Given a list of unique message ids, find the Uids for the corresponding mailbox/label.
+        public async Task<List<string>> GetUidsFromMessageIds(string labelName, List<string> messageIds)
+        {
+            await CheckConnectedAsync();
+
+            // Presume this is not the current mailbox.
+            string priorMailbox = Client.SelectedMailbox;
+            await Client.SelectMailboxAsync(labelName);
+
+            List<string> uids = new List<string>();
+            foreach (string id in messageIds)
+            {
+                // We won't normally have to look up very many items, so it should be ok do search for them individually.
+                string[] results = await Client.SearchAsync(GConstants.MessageIdHeader + " " + id, uid: true);
+                string result = results.FirstOrDefault();
+                if (result != null)
+                {
+                    uids.Add(result);
+                }
+            }
+
+            await Client.SelectMailboxAsync(priorMailbox);
+            return uids;
+        }
+
+        public async Task RemoveOtherLabelAsync(string labelName, List<string> ids)
+        {
+            await CheckConnectedAsync();
+
+            string priorMailbox = Client.SelectedMailbox;
+            await Client.SelectMailboxAsync(labelName);
+
+            await Client.DeleteMessagesAsync(ids);
+
+            await Client.SelectMailboxAsync(priorMailbox);
         }
         
         public void Dispose()

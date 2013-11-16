@@ -20,7 +20,7 @@ namespace WinPhone.Mail.Protocols.Gmail
         {
             // Space separated list with special items in quotes.
             string rawLabels = headers[GConstants.LabelsHeader].Value;
-            return Utilities.SplitQuotedList(rawLabels, ' ');
+            return Utilities.SplitQuotedList(rawLabels, ' ').Select(label => Utilities.RemoveQuotes(label)).ToList();
         }
 
         public static string GetThreadId(this MailMessage message)
@@ -38,12 +38,13 @@ namespace WinPhone.Mail.Protocols.Gmail
             // Space separated list with special items in quotes.
             string rawLabels = message.Headers[GConstants.LabelsHeader].Value;
             List<string> labels = Utilities.SplitQuotedList(rawLabels, ' ');
-            labels.Add(labelName);
+            labels.Add(Utilities.QuoteStringWithSpaces(labelName));
             message.Headers[GConstants.LabelsHeader] = new HeaderValue(string.Join(" ", labels.Distinct()));
         }
 
         public static bool RemoveLabel(this MailMessage message, string labelName)
         {
+            labelName = Utilities.QuoteStringWithSpaces(labelName);
             // Space separated list with special items in quotes.
             string rawLabels = message.Headers[GConstants.LabelsHeader].Value;
             List<string> labels = Utilities.SplitQuotedList(rawLabels, ' ');
@@ -53,9 +54,10 @@ namespace WinPhone.Mail.Protocols.Gmail
         }
 
         // Labels like "\"\\\\foo\"" are special. Normal labels just look like "label"
+        // This assumes the quotes have already been removed.
         public static List<string> GetNonSpecialLabels(List<string> labels)
         {
-            return labels.Where(label => !label.StartsWith("\"\\")).ToList();
+            return labels.Where(label => !label.StartsWith("\\")).ToList();
         }
     }
 }

@@ -246,6 +246,15 @@ namespace WinPhone.Mail.Protocols
                                             .Replace("\"", "\\\"") + "\"";
         }
 
+        public static string QuoteStringWithSpaces(string value)
+        {
+            if (value.Contains(' '))
+            {
+                return '"' + value + '"';
+            }
+            return value;
+        }
+
         public static bool StartsWithWhiteSpace(this string line)
         {
             if (string.IsNullOrEmpty(line))
