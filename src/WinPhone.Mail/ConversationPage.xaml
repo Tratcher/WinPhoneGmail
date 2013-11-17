@@ -30,7 +30,9 @@
             <local:ReadStatusConverter x:Name="HasUnread" />
         </Grid.Resources>
 
-        <TextBlock Grid.Row="0" Text="{Binding Path=Subject}" Style="{StaticResource PhoneTextNormalStyle}" Height="Auto" VerticalAlignment="Top" FontSize="30" TextWrapping="Wrap" Margin="5,5,5,0"/>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" >
+            <TextBlock Grid.Row="0" Text="{Binding Path=Subject}" Style="{StaticResource PhoneTextNormalStyle}" Height="Auto" VerticalAlignment="Top" FontSize="30" Margin="5,5,5,0"/>
+        </ScrollViewer>
         <TextBlock Grid.Row="1" Text="{Binding Path=Labels, Converter={StaticResource Labels}}" HorizontalAlignment="Left" Margin="5,5,5,0" VerticalAlignment="Top" />
 
         <ListBox Grid.Row="2" ItemsSource="{Binding Path=Messages}" >
