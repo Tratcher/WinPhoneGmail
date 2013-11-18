@@ -120,6 +120,15 @@ namespace WinPhone.Mail.Protocols
             CheckResultOK(await SendCommandGetResponseAsync(command));
         }
 
+        protected virtual async Task SendCommandCheckResponseAsync(string command, string expectedResponse)
+        {
+            string response = await SendCommandGetResponseAsync(command);
+            if (!response.Equals(expectedResponse))
+            {
+                throw new InvalidOperationException("Unexpected response '" + response + "' for command '" + command);
+            }
+        }
+
         public virtual async Task DisconnectAsync()
         {
             if (IsAuthenticated)

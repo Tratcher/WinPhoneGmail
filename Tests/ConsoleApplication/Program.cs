@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WinPhone.Mail.Protocols.Gmail;
 
 namespace ConsoleApplication1
 {
@@ -11,20 +12,39 @@ namespace ConsoleApplication1
     {
         static void Main(string[] args)
         {
-            string host = "imap.gmail.com";
             string username = "tracher@gmail.com";
             string password = "";
-            int port = 993;
-            bool useSsl = true;
 
-            using (var imap = new ImapClient(ImapClient.AuthMethods.Login))
+            try
             {
-                imap.ConnectAsync(host, username, password, port, useSsl).Wait();
-                MailMessage[] messages = imap.GetMessagesAsync(0, 15, true, false).Result;
-                foreach (var message in messages)
+                /*
+                using (var imap = new GmailImapClient(username, password))
                 {
-                    Console.WriteLine(message.Subject);
+                    List<ConversationThread> conversations = imap.GetConversationsAsync(headersOnly: true).Result;
+                    foreach (var conversation in conversations)
+                    {
+                        Console.WriteLine(conversation.Subject);
+                    }
                 }
+                */
+
+                using (var smtp = new GmailSmtpClient(username, password))
+                {
+                    MailMessage message = new MailMessage();
+                    message.From = new MailAddress(username);
+                    message.To.Add(new MailAddress(username));
+                    message.Cc.Add(new MailAddress(username));
+                    message.Bcc.Add(new MailAddress(username));
+                    message.Subject = "Test Message " + DateTime.Now;
+                    message.ContentType = "text/plain";
+                    message.Body = "This is a plain text message. It has a few new lines\r\nin it. It should also be long enough to go over the normal 72 character limit. Maybe.\r\nI should really add some special characters in here.";
+
+                    smtp.SendAsync(message).Wait();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
             }
         }
     }

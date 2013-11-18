@@ -761,5 +761,11 @@ YEKT +05"
                 }
         }
          */
+
+        // Just the address, surrounded by '<' and '>'.  Escaping?
+        public static string GetSmtpAddress(MailAddress mailAddress)
+        {
+            return '<' + mailAddress.Address + '>';
+        }
     }
 }

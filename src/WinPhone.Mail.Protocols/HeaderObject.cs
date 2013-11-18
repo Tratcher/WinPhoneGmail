@@ -30,7 +30,7 @@ namespace WinPhone.Mail.Protocols
         public virtual string ContentType
         {
             get { return Headers["Content-Type"].Value.NotEmpty("text/plain"); }
-            internal set
+            set
             {
                 Headers.Set("Content-Type", new HeaderValue(value));
             }
