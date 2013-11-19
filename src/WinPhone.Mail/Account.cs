@@ -403,6 +403,15 @@ namespace WinPhone.Mail
             await GmailImap.AddLabelAsync(messages, labelName);
         }
 
+        public async Task SendMessageAsync(MailMessage message)
+        {
+            // We don't send mail very often, so we don't need to keep the SmtpClient instance around.
+            using (GmailSmtpClient client = new GmailSmtpClient(Info.Address, Info.Password))
+            {
+                await client.SendAsync(message);
+            }
+        }
+
         public void DeleteAccountData()
         {
             MailStorage.DeleteAccount();

@@ -44,10 +44,10 @@ namespace WinPhone.Mail
             ApplicationBar.Buttons.Add(archiveButton);
             archiveButton.Click += ArchiveClick;
 
-            ApplicationBarIconButton deleteButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/delete.png", UriKind.Relative));
-            deleteButton.Text = AppResources.DeleteButtonText;
-            ApplicationBar.Buttons.Add(deleteButton);
-            deleteButton.Click += DeleteClick;
+            ApplicationBarIconButton trashButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/delete.png", UriKind.Relative));
+            trashButton.Text = AppResources.TrashButtonText;
+            ApplicationBar.Buttons.Add(trashButton);
+            trashButton.Click += TrashClick;
 
             // TODO: Hide when in the spam folder?
             ApplicationBarMenuItem spamMenuItem = new ApplicationBarMenuItem(AppResources.SpamButtonText);
@@ -120,7 +120,7 @@ namespace WinPhone.Mail
             NavigationService.GoBack();
         }
 
-        private async void DeleteClick(object sender, EventArgs e)
+        private async void TrashClick(object sender, EventArgs e)
         {
             // TODO: Full delete items already in Trash or Spam?
             Account account = App.GetCurrentAccount();

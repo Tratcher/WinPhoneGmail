@@ -149,8 +149,8 @@
   <data name="ArchiveButtonText" xml:space="preserve">
     <value>archive</value>
   </data>
-  <data name="DeleteButtonText" xml:space="preserve">
-    <value>delete</value>
+  <data name="TrashButtonText" xml:space="preserve">
+    <value>trash</value>
   </data>
   <data name="LabelSettingsText" xml:space="preserve">
     <value>label settings</value>
@@ -160,5 +160,20 @@
   </data>
   <data name="SpamButtonText" xml:space="preserve">
     <value>spam</value>
+  </data>
+  <data name="AttachButtonText" xml:space="preserve">
+    <value>attach</value>
+  </data>
+  <data name="DictateButtonText" xml:space="preserve">
+    <value>speak</value>
+  </data>
+  <data name="DiscardButtonText" xml:space="preserve">
+    <value>discard</value>
+  </data>
+  <data name="LabelItemText" xml:space="preserve">
+    <value>label</value>
+  </data>
+  <data name="SendButtonText" xml:space="preserve">
+    <value>send</value>
   </data>
 </root>

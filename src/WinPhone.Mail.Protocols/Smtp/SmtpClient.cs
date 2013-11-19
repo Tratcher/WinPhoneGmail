@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -104,14 +105,14 @@ namespace WinPhone.Mail.Protocols.Smtp
             StreamWriter writer = new StreamWriter(_Stream, Encoding, 1024, leaveOpen: true);
             // Send FROM, ReplyTo, TO, CC, etc. BUT NOT BCC.
             await writer.WriteLineAsync("Date: " + message.Date.GetRFC2060Date());
-            await writer.WriteLineAsync("From: " + message.From);
+            await writer.WriteLineAsync(EncodeAddressLine("From: ", message.From));
             if (message.ReplyTo.Count > 0)
             {
-                await writer.WriteLineAsync("Reply-To: " + string.Join("; ", message.ReplyTo.Select(x => x.ToString())));
+                await writer.WriteLineAsync(EncodeAddressLine("Reply-To: ", message.ReplyTo));
             }
             await writer.WriteLineAsync("Subject: " + message.Subject);
-            await writer.WriteLineAsync("To: " + string.Join("; ", message.To.Select(x => x.ToString())));
-            await writer.WriteLineAsync("Cc: " + string.Join("; ", message.Cc.Select(x => x.ToString())));
+            await writer.WriteLineAsync(EncodeAddressLine("To: ", message.To));
+            await writer.WriteLineAsync(EncodeAddressLine("Cc: ", message.Cc));
 
             if (!string.IsNullOrEmpty(message.MessageID)) // TODO?
             {
@@ -123,9 +124,9 @@ namespace WinPhone.Mail.Protocols.Smtp
             {
                 await writer.WriteLineAsync(header.Key + ": " + header.Value);
             }
-            if (message.Importance != MailPriority.Normal)
+            if (message.Importance != MailPriority.Normal && message.Importance != MailPriority.None)
             {
-                await writer.WriteLineAsync("Importance: " + (int)message.Importance);
+                await writer.WriteLineAsync("Importance: " + ((int)message.Importance).ToString(CultureInfo.InvariantCulture));
             }
 
             string boundary = null;
@@ -163,6 +164,17 @@ namespace WinPhone.Mail.Protocols.Smtp
             }
 
             await writer.FlushAsync();
+        }
+
+        public static string EncodeAddressLine(string header, MailAddress address)
+        {
+            return EncodeAddressLine(header, new[] { address });
+        }
+
+        public static string EncodeAddressLine(string header, IEnumerable<MailAddress> addresses)
+        {
+            // TODO: line wrapping, display name encoding/escaping, etc.
+            return header + string.Join(", ", addresses.Select(x => x.ToString()));
         }
     }
 }

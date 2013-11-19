@@ -30,6 +30,11 @@ namespace WinPhone.Mail
         {
             ApplicationBar = new ApplicationBar();
 
+            ApplicationBarIconButton composeButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/new.png", UriKind.Relative));
+            composeButton.Text = AppResources.SyncButtonText;
+            ApplicationBar.Buttons.Add(composeButton);
+            composeButton.Click += Compose;
+
             ApplicationBarIconButton syncButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/sync.png", UriKind.Relative));
             syncButton.Text = AppResources.SyncButtonText;
             ApplicationBar.Buttons.Add(syncButton);
@@ -85,6 +90,11 @@ namespace WinPhone.Mail
             {
                 ProgressIndicator.IsIndeterminate = false;
             }
+        }
+
+        private void Compose(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/ComposePage.xaml", UriKind.Relative));
         }
 
         private void SelectLabel(object sender, EventArgs e)

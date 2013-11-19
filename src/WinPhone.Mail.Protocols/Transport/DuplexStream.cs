@@ -26,7 +26,7 @@ namespace WinPhone.Mail.Protocols.Transport
 
         public override bool CanSeek
         {
-            get { throw new NotSupportedException(); }
+            get { return false; }
         }
 
         public override bool CanTimeout

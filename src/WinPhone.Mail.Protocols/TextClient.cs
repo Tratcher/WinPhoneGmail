@@ -23,7 +23,7 @@ namespace WinPhone.Mail.Protocols
 
         public TextClient()
         {
-            Encoding = Encoding.UTF8; // System.Text.Encoding.GetEncoding("Windows-1252");
+            Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false); // System.Text.Encoding.GetEncoding("Windows-1252");
         }
 
         internal abstract Task OnLoginAsync(string username, string password);

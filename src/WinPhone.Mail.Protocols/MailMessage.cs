@@ -11,7 +11,8 @@ namespace WinPhone.Mail.Protocols
     {
         Normal = 3,
         High = 5,
-        Low = 1
+        Low = 1,
+        None = 0
     }
 
     [Flags]

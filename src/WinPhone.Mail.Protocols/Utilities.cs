@@ -12,9 +12,9 @@ namespace WinPhone.Mail.Protocols
 {
     public static class Utilities
     {
-        private static CultureInfo _enUsCulture = CultureInfo.InvariantCulture;
         public static Encoding ASCII =
-            Encoding.UTF8;
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            // Encoding.UTF8;
             // Encoding.GetEncoding("iso-8859-1"); // causes an ArgumentException - "Recursive fallback not allowed for character \uFFFD. ThrowLastCharRecursive"
             // TODO: ASCII is not available on winphone.
         public static Encoding UTF7 = Encoding.GetEncoding("iso-8859-1"); //  Encoding.UTF8; // TODO: UTF7 is not available on winphone.
@@ -134,6 +134,7 @@ namespace WinPhone.Mail.Protocols
         }
 
         // TODO: Temp workaround while we're forced to use UTF8 in our stored files.
+        // TODO: I think this has been fixed by using the UTF8Encoding constructor that disables BOMs.
         private static bool HasBOM(byte[] bytes)
         {
             return (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF);
@@ -204,7 +205,7 @@ namespace WinPhone.Mail.Protocols
         {
             DateTime result;
             input = NormalizeDate(input);
-            if (DateTime.TryParse(input, _enUsCulture, DateTimeStyles.None, out result))
+            if (DateTime.TryParse(input, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
             {
                 return result;
             }
@@ -234,7 +235,7 @@ namespace WinPhone.Mail.Protocols
 
         public static string GetRFC2060Date(this DateTime date)
         {
-            return date.ToString("dd-MMM-yyyy HH:mm:ss zzz", _enUsCulture);
+            return date.ToString("dd-MMM-yyyy HH:mm:ss zzz", CultureInfo.InvariantCulture);
         }
 
         public static string QuoteString(this string value)
