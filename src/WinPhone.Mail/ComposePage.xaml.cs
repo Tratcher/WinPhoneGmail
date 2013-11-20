@@ -66,7 +66,8 @@ namespace WinPhone.Mail
             message.From = new MailAddress(account.Info.Address); // TODO: From display name
             MailAddressParser.ParseAddressField(ToField.Text.Trim()).ForEach(message.To.Add);
             message.Subject = SubjectField.Text.Trim();
-            message.ContentType = "text/plain";
+            message.ContentType = "text/plain; charset=utf-8";
+            message.ContentTransferEncoding = "quoted-printable";
             message.Body = BodyField.Text;
 
             // TODO: Short term: Progress bar
