@@ -110,7 +110,7 @@ namespace WinPhone.Mail.Protocols.Smtp
             {
                 await writer.WriteLineAsync(EncodeAddressLine("Reply-To: ", message.ReplyTo));
             }
-            await writer.WriteLineAsync("Subject: " + message.Subject);
+            await writer.WriteLineAsync(EncodeHeader("Subject: ", message.Subject));
             await writer.WriteLineAsync(EncodeAddressLine("To: ", message.To));
             await writer.WriteLineAsync(EncodeAddressLine("Cc: ", message.Cc));
 
@@ -163,6 +163,80 @@ namespace WinPhone.Mail.Protocols.Smtp
             }
             */
             await writer.FlushAsync();
+        }
+
+        // Generate MIME encoding if required.
+        // =?utf-8?Q?Data?=
+        // Honor line length limits
+        // Header: =?utf-8?Q?Some=20Data?=
+        //  =?utf-8?Q?More Data?=
+        public static string EncodeHeader(string header, string value)
+        {
+            string prefix = string.Empty;
+            string suffix = string.Empty;
+            if (ContainsUnsafeCharacters(value))
+            {
+                prefix = "=?utf-8?Q?";
+                suffix = "?=";
+            }
+
+            StringBuilder builder = new StringBuilder(header);
+            builder.Append(prefix);
+
+            // TODO: For un-encoded content it's preferred to break on existing whitespaces.
+            // This may insert an extra white space in the subject after a line break.
+            // TODO: This may generate a trailing line that's got nothing in it.
+            int lineLength = builder.Length;
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+                if (IsSafeChar(c))
+                {
+                    builder.Append(c);
+                    lineLength++;
+                    if (lineLength >= 76 - suffix.Length)
+                    {
+                        builder.AppendLine(suffix);
+                        builder.Append(' ');
+                        builder.Append(prefix);
+                        lineLength = prefix.Length;
+                    }
+                }
+                else
+                {
+                    byte[] bytes = Encoding.UTF8.GetBytes(new[] { c });
+
+                    // Don't split an encoded character
+                    if (lineLength >= 76 - suffix.Length - (bytes.Length * 3))
+                    {
+                        builder.AppendLine(suffix);
+                        builder.Append(' ');
+                        builder.Append(prefix);
+                        lineLength = prefix.Length;
+                    }
+
+                    for (int j = 0; j < bytes.Length; j++)
+                    {
+                        AppendQuotedByte(builder, bytes[j]);
+                    }
+                }
+            }
+
+            builder.Append(suffix);
+
+            return builder.ToString();
+        }
+
+        private static bool ContainsUnsafeCharacters(string value)
+        {
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (!IsSafeChar(value[i]))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public static string EncodeAddressLine(string header, MailAddress address)

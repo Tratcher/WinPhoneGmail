@@ -41,5 +41,49 @@ this line should end in spaces, if it gets wrapped like that               =20=
 
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public void DontEncodeNormalHeader()
+        {
+            string header = "foo: ";
+            string value = "Hello World";
+            string expected = "foo: Hello World";
+
+            string result = SmtpClient.EncodeHeader(header, value);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void DontEncodeNormalHeaderButAddLineBreaks()
+        {
+            string header = "foo: ";
+            string value = "Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World";
+            string expected = "foo: Hello World Hello World Hello World Hello World Hello World Hello World\r\n  Hello World Hello World Hello World";
+
+            string result = SmtpClient.EncodeHeader(header, value);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void EncodeHeader()
+        {
+            string header = "foo: ";
+            string value = "Hello = World 1234567890 \r \n stuff";
+            string expected = "foo: =?utf-8?Q?Hello =3D World 1234567890 =0D =0A stuff?=";
+
+            string result = SmtpClient.EncodeHeader(header, value);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void EncodeHeaderAndAddLineBreak()
+        {
+            string header = "foo: ";
+            string value = "Hello = World 1234567890 \r \n stuff World Hello World Hello World Hello World Hello World";
+            string expected = "foo: =?utf-8?Q?Hello =3D World 1234567890 =0D =0A stuff World Hello World Hello Wor?=\r\n =?utf-8?Q?ld Hello World Hello World?=";
+
+            string result = SmtpClient.EncodeHeader(header, value);
+            Assert.Equal(expected, result);
+        }
     }
 }
