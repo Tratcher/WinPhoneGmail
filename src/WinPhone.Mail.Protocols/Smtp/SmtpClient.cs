@@ -244,10 +244,86 @@ namespace WinPhone.Mail.Protocols.Smtp
             return EncodeAddressLine(header, new[] { address });
         }
 
+        // The address line consists of coma seperated addresses, with or without quoted display names.
         public static string EncodeAddressLine(string header, IEnumerable<MailAddress> addresses)
         {
             // TODO: line wrapping, display name encoding/escaping, etc.
-            return header + string.Join(", ", addresses.Select(x => x.ToString()));
+            StringBuilder builder = new StringBuilder(header);
+            int lineLength = builder.Length;
+            bool first = true;
+            foreach (MailAddress address in addresses)
+            {
+                if (!first)
+                {
+                    builder.Append(", ");
+                    lineLength += 2;
+                }
+                first = false;
+
+                bool addBrackets = false;
+                if (!string.IsNullOrWhiteSpace(address.DisplayName))
+                {
+                    addBrackets = true;
+
+                    // The display name will either be in quotes or fully encoded.
+                    // TODO: Officialy we need to line wrap very long display names, but that should be rare.
+                    if (ContainsUnsafeCharacters(address.DisplayName))
+                    {
+                        byte[] encoded = Encoding.UTF8.GetBytes(address.DisplayName);
+                        string base64Encoded = Convert.ToBase64String(encoded);
+
+                        string prefix = "=?utf-8?B?";
+                        string suffix = "?= ";
+                        if (base64Encoded.Length + prefix.Length + suffix.Length + lineLength >= 76)
+                        {
+                            builder.Append("\r\n ");
+                            lineLength = 1;
+                        }
+
+                        builder.Append(prefix);
+                        builder.Append(base64Encoded);
+                        builder.Append(suffix);
+                        lineLength += prefix.Length + base64Encoded.Length + suffix.Length;
+                    }
+                    else
+                    {
+                        if (address.DisplayName.Length + 3 + lineLength >= 76)
+                        {
+                            builder.Append("\r\n ");
+                            lineLength = 1;
+                        }
+
+                        builder.Append('"');
+                        builder.Append(address.DisplayName);
+                        builder.Append("\" ");
+                        lineLength += address.DisplayName.Length + 3;
+                    }
+                }
+
+                if (address.Address.Length + lineLength + (addBrackets ? 2 : 0) >= 76)
+                {
+                    builder.Append("\r\n ");
+                    lineLength = 1;
+                }
+
+                if (addBrackets)
+                {
+                    builder.Append('<');
+                    lineLength++;
+                }
+
+                // TODO: Punycode IDNs
+                builder.Append(address.Address);
+                lineLength += address.Address.Length;
+
+                if (addBrackets)
+                {
+                    builder.Append('>');
+                    lineLength++;
+                }
+            }
+
+            return builder.ToString();
         }
 
         // Encode the body using quoted printable encoding and utf8
