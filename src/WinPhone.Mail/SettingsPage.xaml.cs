@@ -39,5 +39,10 @@ namespace WinPhone.Mail
 
             // TODO: Prompt for success
         }
+
+        private void AboutButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/AboutPage.xaml", UriKind.Relative));
+        }
     }
 }
