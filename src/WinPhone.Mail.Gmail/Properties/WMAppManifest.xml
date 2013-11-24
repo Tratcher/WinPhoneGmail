@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Deployment xmlns="http://schemas.microsoft.com/windowsphone/2012/deployment" AppPlatformVersion="8.0">
   <DefaultLanguage xmlns="" code="en-US" />
-  <App xmlns="" ProductID="{769f9997-e075-4608-b30b-281205e10102}" Title="Gmail Client" RuntimeType="Silverlight" Version="0.1.0.0" Genre="apps.normal" Author="Tratcher" Description="" Publisher="Tratcher" PublisherID="{1e3f089c-a096-43ba-9049-fbb7563e1158}">
+  <App xmlns="" ProductID="{769f9997-e075-4608-b30b-281205e10102}" Title="Gmail Client" RuntimeType="Silverlight" Version="0.1.1.0" Genre="apps.normal" Author="Tratcher" Description="" Publisher="Tratcher" PublisherID="{1e3f089c-a096-43ba-9049-fbb7563e1158}">
     <IconPath IsRelative="true" IsResource="false">Assets\ApplicationIcon.png</IconPath>
     <Capabilities>
       <Capability Name="ID_CAP_NETWORKING" />
