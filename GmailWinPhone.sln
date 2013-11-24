@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail.Protocols.Desktop", "src\WinPhone.Mail.Protocols\WinPhone.Mail.Protocols.Desktop.csproj", "{68E9CF8C-AB54-4CC7-A34F-C7F469E4EFE0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail.Protocols.IntegrationTests", "Tests\WinPhone.Mail.Protocols.IntegrationTests\WinPhone.Mail.Protocols.IntegrationTests.csproj", "{85F13B66-47EF-4588-ABD1-39CDBE1C3DA1}"
@@ -18,7 +20,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail.Protocols.Tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail.Protocols.Phone", "src\WinPhone.Mail.Protocols\WinPhone.Mail.Protocols.Phone.csproj", "{A332811E-4832-4E87-8C7F-442C6F76D5E6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail", "src\WinPhone.Mail\WinPhone.Mail.csproj", "{769F9997-E075-4608-B30B-281205E10102}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinPhone.Mail.Gmail", "src\WinPhone.Mail.Gmail\WinPhone.Mail.Gmail.csproj", "{769F9997-E075-4608-B30B-281205E10102}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
