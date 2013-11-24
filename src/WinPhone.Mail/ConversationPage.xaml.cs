@@ -44,10 +44,23 @@ namespace WinPhone.Mail
             ApplicationBar.Buttons.Add(archiveButton);
             archiveButton.Click += ArchiveClick;
 
-            ApplicationBarIconButton trashButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/delete.png", UriKind.Relative));
-            trashButton.Text = AppResources.TrashButtonText;
-            ApplicationBar.Buttons.Add(trashButton);
-            trashButton.Click += TrashClick;
+            ApplicationBarIconButton replyAllButton = new ApplicationBarIconButton(new Uri("/Assets/AppBar/appbar.reply.email.png", UriKind.Relative));
+            replyAllButton.Text = AppResources.ReplyAllButtonText;
+            ApplicationBar.Buttons.Add(replyAllButton);
+            replyAllButton.Click += ReplyAll;
+
+            ApplicationBarMenuItem replyMenuItem = new ApplicationBarMenuItem(AppResources.ReplyButtonText);
+            ApplicationBar.MenuItems.Add(replyMenuItem);
+            replyMenuItem.Click += Reply;
+
+            ApplicationBarMenuItem forwardMenuItem = new ApplicationBarMenuItem(AppResources.ForwardButtonText);
+            ApplicationBar.MenuItems.Add(forwardMenuItem);
+            forwardMenuItem.Click += Forward;
+
+            // TODO: Change to 'delete' in the Trash folder?
+            ApplicationBarMenuItem trashMenuItem = new ApplicationBarMenuItem(AppResources.TrashButtonText);
+            ApplicationBar.MenuItems.Add(trashMenuItem);
+            trashMenuItem.Click += TrashClick;
 
             // TODO: Hide when in the spam folder?
             ApplicationBarMenuItem spamMenuItem = new ApplicationBarMenuItem(AppResources.SpamButtonText);
@@ -147,9 +160,11 @@ namespace WinPhone.Mail
             // TODO: Resize the browser to fit the content?
             // http://dan.clarke.name/2011/05/resizing-wp7-webbrowser-height-to-fit-content/
 
-            string body = message.Body;
-            // TODO: Content-type detection.
-            if (string.IsNullOrEmpty(message.ContentType) || message.ContentType.Equals("text/plain", StringComparison.OrdinalIgnoreCase))
+            ObjectWHeaders view = message.GetHtmlView() ?? message.GetTextView() ?? message;
+
+            string body = view.Body;
+            // Content-type detection.
+            if (string.IsNullOrEmpty(view.ContentType) || view.ContentType.Equals("text/plain", StringComparison.OrdinalIgnoreCase))
             {
                 body = body.Replace("\r\n", "<br>");
             }
@@ -171,6 +186,21 @@ namespace WinPhone.Mail
             WebBrowserTask task = new WebBrowserTask();
             task.Uri = e.Uri;
             task.Show();
+        }
+
+        private void ReplyAll(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/ComposePage.xaml?ReplyAll", UriKind.Relative));
+        }
+
+        private void Reply(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/ComposePage.xaml?Reply", UriKind.Relative));
+        }
+
+        private void Forward(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/ComposePage.xaml?Forward", UriKind.Relative));
         }
     }
 }

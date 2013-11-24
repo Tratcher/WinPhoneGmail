@@ -111,8 +111,14 @@ namespace WinPhone.Mail.Protocols.Smtp
                 await writer.WriteLineAsync(EncodeAddressLine("Reply-To: ", message.ReplyTo));
             }
             await writer.WriteLineAsync(EncodeHeader("Subject: ", message.Subject));
-            await writer.WriteLineAsync(EncodeAddressLine("To: ", message.To));
-            await writer.WriteLineAsync(EncodeAddressLine("Cc: ", message.Cc));
+            if (message.To.Count > 0)
+            {
+                await writer.WriteLineAsync(EncodeAddressLine("To: ", message.To));
+            }
+            if (message.Cc.Count > 0)
+            {
+                await writer.WriteLineAsync(EncodeAddressLine("Cc: ", message.Cc));
+            }
 
             if (!string.IsNullOrEmpty(message.MessageID)) // TODO?
             {
@@ -361,6 +367,12 @@ namespace WinPhone.Mail.Protocols.Smtp
 
                 if (IsSafeChar(c))
                 {
+                    // "Transparancy" - Any line starting with a dot must be padded with an extra so it's never
+                    // mistaken for the end of the message.
+                    if (c == '.' && builder.Length == 0)
+                    {
+                        builder.Append('.');
+                    }
                     builder.Append(c);
                     priorCharWasSpace = (c == ' ');
                     if (builder.Length >= 76)
@@ -419,7 +431,9 @@ namespace WinPhone.Mail.Protocols.Smtp
                 || ('A' <= c && c <= 'Z')
                 || ' ' == c || ',' == c
                 || '?' == c || '!' == c
-                || '@' == c;
+                || '@' == c || ':' == c
+                || '<' == c || '>' == c
+                || '.' == c;
         }
 
         private static void AppendQuotedByte(StringBuilder builder, byte b)

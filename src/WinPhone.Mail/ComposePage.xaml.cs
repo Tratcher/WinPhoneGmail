@@ -9,11 +9,14 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using WinPhone.Mail.Resources;
 using WinPhone.Mail.Protocols;
+using WinPhone.Mail.Protocols.Gmail;
 
 namespace WinPhone.Mail
 {
     public partial class ComposePage : PhoneApplicationPage
     {
+        private List<KeyValuePair<string, string>> _additionalHeaders = new List<KeyValuePair<string, string>>();
+
         public ComposePage()
         {
             InitializeComponent();
@@ -51,6 +54,79 @@ namespace WinPhone.Mail
             labelMenuItem.Click += LabelClick;
         }
 
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            // The query parameter is used to tell us if we're in a reply mode.
+            string[] parts = e.Uri.ToString().Split('?');
+            if (parts.Length > 1 && !string.IsNullOrEmpty(parts[1]))
+            {
+                string query = parts[1];
+                Account account = App.GetCurrentAccount();
+                ConversationThread mailThread = account.ActiveConversation;
+                MailMessage lastMessage = mailThread.Messages.First(); // They're in reverse order.
+
+                if (query.Equals("Forward"))
+                {
+                    // No addresses
+                    // TODO: Prefix subject
+                    SubjectField.Text = lastMessage.Subject;
+                }
+                else if (query.Equals("ReplyAll"))
+                {
+                    // Include all addresses
+                    if (lastMessage.ReplyTo.Count > 0)
+                    {
+                        ToField.Text = string.Join(", ", lastMessage.ReplyTo);
+                    }
+                    else
+                    {
+                        ToField.Text = string.Join(", ", new[] { lastMessage.From }.Concat(
+                            lastMessage.To.Where(mailAddress =>
+                                // Filter yourself out of the to line, unless you explicitly sent the e-mail.
+                                !mailAddress.Address.Equals(account.Info.Address, StringComparison.OrdinalIgnoreCase)
+                            )));
+                    }
+                    // TODO: CC
+
+                    // TODO: Prefix subject
+                    SubjectField.Text = lastMessage.Subject;
+
+                    // For threading
+                    _additionalHeaders.Add(new KeyValuePair<string, string>("In-Reply-To", lastMessage.MessageID));
+                    _additionalHeaders.Add(new KeyValuePair<string, string>("References", lastMessage.MessageID));
+                }
+                else if (query.Equals("Reply"))
+                {
+                    // Include only the sender/reply-to
+                    if (lastMessage.ReplyTo.Count > 0)
+                    {
+                        ToField.Text = string.Join(", ", lastMessage.ReplyTo);
+                    }
+                    else
+                    {
+                        ToField.Text = lastMessage.From.ToString();
+                    }
+
+                    // TODO: Prefix subject
+                    SubjectField.Text = lastMessage.Subject;
+
+                    // For threading
+                    _additionalHeaders.Add(new KeyValuePair<string, string>("In-Reply-To", lastMessage.MessageID));
+                    _additionalHeaders.Add(new KeyValuePair<string, string>("References", lastMessage.MessageID));
+                }
+
+                ObjectWHeaders view = lastMessage.GetTextView() ?? lastMessage;
+
+                BodyField.Text = "\r\n\r\nOn "
+                    + lastMessage.Date.ToString("ddd, MMM d, yyyy a\\t h:mm tt") + ", " + lastMessage.From + " wrote:\r\n\r\n> "
+                    + view.Body.Replace("\r\n", "\r\n> ");
+            }
+
+            // TODO: Signature
+
+            base.OnNavigatedTo(e);
+        }
+
         private async void Send(object sender, EventArgs e)
         {
             Account account = App.GetCurrentAccount();
@@ -69,6 +145,11 @@ namespace WinPhone.Mail
             message.ContentType = "text/plain; charset=utf-8";
             message.ContentTransferEncoding = "quoted-printable";
             message.Body = BodyField.Text;
+
+            foreach (var pair in _additionalHeaders)
+            {
+                message.Headers.Add(pair.Key, new HeaderValue(pair.Value));
+            }
 
             // TODO: Short term: Progress bar
             // TODO: Long term: Save to drafts and memory, then send in the background. Retry if no connectivity.

@@ -145,17 +145,6 @@ namespace WinPhone.Mail.Protocols
                 }
             }
 
-            if ((string.IsNullOrWhiteSpace(Body) || ContentType.StartsWith("multipart/")) && AlternateViews.Count > 0)
-            {
-                var att = AlternateViews.GetHtmlView() ?? AlternateViews.GetTextView();
-                if (att != null)
-                {
-                    Body = att.Body;
-                    ContentTransferEncoding = att.Headers["Content-Transfer-Encoding"].RawValue;
-                    ContentType = att.Headers["Content-Type"].RawValue;
-                }
-            }
-
             Date = Headers.GetDate();
             To = Headers.GetMailAddresses("To").ToList();
             Cc = Headers.GetMailAddresses("Cc").ToList();
@@ -285,7 +274,7 @@ namespace WinPhone.Mail.Protocols
             }
 
             string boundary = null;
-            if (this.Attachments.Any())
+            if (Attachments.Any() || AlternateViews.Any())
             {
                 boundary = string.Format("--boundary_{0}", Guid.NewGuid());
                 txt.WriteLine("Content-Type: multipart/mixed; boundary={0}", boundary);
@@ -294,29 +283,80 @@ namespace WinPhone.Mail.Protocols
             // signal end of headers
             txt.WriteLine();
 
-            if (boundary != null)
+            if (!string.IsNullOrWhiteSpace(Body))
             {
-                txt.WriteLine("--" + boundary);
-                txt.WriteLine();
+                if (boundary != null)
+                {
+                    txt.WriteLine("--" + boundary);
+                    txt.WriteLine();
+                }
+
+                txt.Write(Body);
             }
 
-            txt.Write(Body);
+            AlternateViews.ToList().ForEach(view =>
+            {
+                txt.WriteLine();
+                txt.WriteLine("--" + boundary);
+                txt.WriteLine(string.Join("\r\n", view.Headers.Select(h => string.Format("{0}: {1}", h.Key, h.Value))));
+                txt.WriteLine();
+                txt.WriteLine(view.Body);
+            });
+
 
             this.Attachments.ToList().ForEach(att =>
             {
                 txt.WriteLine();
                 txt.WriteLine("--" + boundary);
-                txt.WriteLine(string.Join("\n", att.Headers.Select(h => string.Format("{0}: {1}", h.Key, h.Value))));
+                txt.WriteLine(string.Join("\r\n", att.Headers.Select(h => string.Format("{0}: {1}", h.Key, h.Value))));
                 txt.WriteLine();
                 txt.WriteLine(att.Body);
             });
-
-            // TODO: Alternate views
 
             if (boundary != null)
             {
                 txt.WriteLine("--" + boundary + "--");
             }
+        }
+
+        public ObjectWHeaders GetHtmlView()
+        {
+            return GetView("text", "html");
+            // TODO: Are there other html based content-types? See AltenativeViewCollection.GetHtmlView();
+            // return OfType("text/html").FirstOrDefault() ?? OfType(ct => ct.Contains("html")).FirstOrDefault();
+        }
+
+        public ObjectWHeaders GetTextView()
+        {
+            return GetView("text", "plain");
+            // return OfType("text/plain").FirstOrDefault() ?? OfType(ct => ct.StartsWith("text/")).FirstOrDefault();
+        }
+
+        private ObjectWHeaders GetView(string contentTypeCategory, string contentTypeSpecific)
+        {
+            // Full match
+            string contentType = contentTypeCategory + "/" + contentTypeSpecific;
+            if (ContentType.Equals(contentType, StringComparison.OrdinalIgnoreCase)
+                || ContentType.StartsWith(contentType + ";", StringComparison.OrdinalIgnoreCase))
+            {
+                return this;
+            }
+
+            ObjectWHeaders match = AlternateViews.Where(view =>
+                view.ContentType.Equals(contentType, StringComparison.OrdinalIgnoreCase)
+                    || ContentType.StartsWith(contentType + ";", StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+            if (match != null)
+            {
+                return match;
+            }
+
+            // partial match
+            if (ContentType.StartsWith(contentTypeCategory + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                return this;
+            }
+            return AlternateViews.Where(view =>
+                view.ContentType.StartsWith(contentTypeCategory + "/", StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
         }
     }
 }

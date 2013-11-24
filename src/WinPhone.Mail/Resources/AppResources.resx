@@ -176,4 +176,13 @@
   <data name="SendButtonText" xml:space="preserve">
     <value>send</value>
   </data>
+  <data name="ForwardButtonText" xml:space="preserve">
+    <value>forward</value>
+  </data>
+  <data name="ReplyAllButtonText" xml:space="preserve">
+    <value>reply all</value>
+  </data>
+  <data name="ReplyButtonText" xml:space="preserve">
+    <value>reply</value>
+  </data>
 </root>

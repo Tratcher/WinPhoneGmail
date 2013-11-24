@@ -106,6 +106,15 @@ namespace WinPhone.Mail.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to forward.
+        /// </summary>
+        public static string ForwardButtonText {
+            get {
+                return ResourceManager.GetString("ForwardButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to label.
         /// </summary>
         public static string LabelItemText {
@@ -156,6 +165,24 @@ namespace WinPhone.Mail.Resources {
         public static string RemoveButtonText {
             get {
                 return ResourceManager.GetString("RemoveButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to reply all.
+        /// </summary>
+        public static string ReplyAllButtonText {
+            get {
+                return ResourceManager.GetString("ReplyAllButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to reply.
+        /// </summary>
+        public static string ReplyButtonText {
+            get {
+                return ResourceManager.GetString("ReplyButtonText", resourceCulture);
             }
         }
         

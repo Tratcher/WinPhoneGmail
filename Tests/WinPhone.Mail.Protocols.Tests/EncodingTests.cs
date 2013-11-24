@@ -17,14 +17,14 @@ namespace WinPhone.Mail.Protocols.Tests
         {
             string body =
 @"This line is normal
-This line has a . in it
+.This line started with a dot
 This line is very long and should get broken up, after a few more characters maybe
 this line ends in three spaces   
 this line should end in spaces, if it gets wrapped like that                  but did it?
 ";
             string expected =
 @"This line is normal
-This line has a =2E in it
+..This line started with a dot
 This line is very long and should get broken up, after a few more characters=
  maybe
 this line ends in three spaces  =20
