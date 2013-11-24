@@ -31,6 +31,7 @@
             <TextBlock x:Name="VersionField" HorizontalAlignment="Left" Margin="23,37,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" Width="213"/>
             <TextBlock Text="Project Site:" HorizontalAlignment="Left" Margin="10,87,0,0" TextWrapping="Wrap" VerticalAlignment="Top"/>
             <HyperlinkButton Content="https://github.com/Tratcher/WinPhoneGmail" NavigateUri="https://github.com/Tratcher/WinPhoneGmail" TargetName="_blank" HorizontalAlignment="Left" Margin="10,119,0,0" VerticalAlignment="Top" FontSize="18" />
+            <TextBlock Text="This project is not directly affiliated with Gmail or Google." TextWrapping="Wrap" HorizontalAlignment="Left" Margin="10,0,0,10" VerticalAlignment="Bottom" Width="436"/>
         </Grid>
     </Grid>
 
