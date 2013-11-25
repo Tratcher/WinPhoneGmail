@@ -10,5 +10,6 @@ namespace WinPhone.Mail.Gmail.Storage
     {
         public string Address { get; set; }
         public string Password { get; set; }
+        public string DisplayName { get; set; }
     }
 }

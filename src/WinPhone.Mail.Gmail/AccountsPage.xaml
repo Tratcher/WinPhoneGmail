@@ -27,21 +27,24 @@
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
-            <ListBox x:Name="AccountsList" Margin="0,0,0,314" SelectionChanged="AccountsList_SelectionChanged">
+            <Grid Height="319" VerticalAlignment="Top">
+                <TextBlock HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="NoWrap" Text="E-Mail Address" VerticalAlignment="Top" Width="436"/>
+                <TextBox x:Name="AccountAddressBox" Height="72" Margin="0,37,0,0" TextWrapping="NoWrap" VerticalAlignment="Top" Text="@gmail.com"/>
+                <TextBlock Margin="10,114,10,0" TextWrapping="NoWrap" Text="Password" VerticalAlignment="Top"/>
+                <PasswordBox x:Name="AccountPasswordBox" Margin="0,141,0,0" VerticalAlignment="Top"/>
+                <TextBlock Text="Display Name"  Margin="10,213,10,0" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                <TextBox x:Name="DisplayNameBox" Height="72" Margin="0,245,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top"/>
+            </Grid>
+            <ListBox BorderThickness="0,3,0,0" x:Name="AccountsList" Margin="0,324,0,10" SelectionChanged="AccountsList_SelectionChanged" BorderBrush="{StaticResource PhoneBorderBrush}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid Height="60" Margin="5" >
+                        <Grid Height="40" Margin="5" >
                             <TextBlock Text="{Binding Path=Info.Address}" HorizontalAlignment="Left" FontSize="24" Margin="0" />
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <Grid Height="309" VerticalAlignment="Bottom">
-                <TextBlock HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="NoWrap" Text="E-Mail Address" VerticalAlignment="Top" Width="436"/>
-                <TextBox x:Name="AccountAddressBox" HorizontalAlignment="Left" Height="72" Margin="0,37,0,0" TextWrapping="NoWrap" VerticalAlignment="Top" Width="456" Text="@gmail.com"/>
-                <TextBlock HorizontalAlignment="Left" Margin="10,114,0,0" TextWrapping="NoWrap" Text="Password" VerticalAlignment="Top" Width="436"/>
-                <PasswordBox x:Name="AccountPasswordBox" HorizontalAlignment="Left" Margin="0,141,0,0" VerticalAlignment="Top" Width="456"/>
-            </Grid>
+
         </Grid>
     </Grid>
 

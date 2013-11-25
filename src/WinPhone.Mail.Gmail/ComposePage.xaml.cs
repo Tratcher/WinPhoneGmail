@@ -136,7 +136,7 @@ namespace WinPhone.Mail.Gmail
 
             MailMessage message = new MailMessage();
             message.Date = DateTime.Now;
-            message.From = new MailAddress(account.Info.Address); // TODO: From display name
+            message.From = new MailAddress(account.Info.Address, account.Info.DisplayName);
             MailAddressParser.ParseAddressField(ToField.Text.Trim()).ForEach(message.To.Add);
             message.Subject = SubjectField.Text.Trim();
             message.ContentType = "text/plain; charset=utf-8";

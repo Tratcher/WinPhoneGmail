@@ -57,6 +57,7 @@ namespace WinPhone.Mail.Gmail
             {
                 AccountAddressBox.Text = account.Info.Address;
                 AccountPasswordBox.Password = account.Info.Password;
+                DisplayNameBox.Text = account.Info.DisplayName ?? string.Empty;
             }
         }
 
@@ -66,6 +67,7 @@ namespace WinPhone.Mail.Gmail
 
             AccountAddressBox.Text = "@gmail.com";
             AccountPasswordBox.Password = string.Empty;
+            DisplayNameBox.Text = string.Empty;
         }
 
         private async void RemoveClick(object sender, EventArgs e)
@@ -86,6 +88,7 @@ namespace WinPhone.Mail.Gmail
             }
             AccountAddressBox.Text = "@gmail.com";
             AccountPasswordBox.Password = string.Empty;
+            DisplayNameBox.Text = string.Empty;
         }
 
         private async void SaveClick(object sender, EventArgs e)
@@ -107,6 +110,7 @@ namespace WinPhone.Mail.Gmail
                 account.Info.Address = AccountAddressBox.Text;
                 // Update password in place.
                 account.Info.Password = AccountPasswordBox.Password;
+                account.Info.DisplayName = DisplayNameBox.Text;
                 await account.LogoutAsync();
             }
             else
@@ -114,7 +118,8 @@ namespace WinPhone.Mail.Gmail
                 accounts.Add(new Account(new AccountInfo()
                 {
                     Address = AccountAddressBox.Text,
-                    Password = AccountPasswordBox.Password
+                    Password = AccountPasswordBox.Password,
+                    DisplayName = DisplayNameBox.Text
                 }));
 
                 AccountsList.SelectedIndex = accounts.Count - 1;
