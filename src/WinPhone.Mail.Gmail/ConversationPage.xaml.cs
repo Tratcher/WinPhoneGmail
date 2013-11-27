@@ -76,11 +76,10 @@ namespace WinPhone.Mail.Gmail
                 DataContext = null; // Force refresh after editing labels
                 DataContext = Conversation;
             }
-
             base.OnNavigatedTo(e);
         }
 
-        private async void MessageHeader_Tap(object sender, GestureEventArgs e)
+        private async void MessageHeader_Tap(object sender, System.Windows.Input.GestureEventArgs e)
         {
             StackPanel panel = (StackPanel)sender;
             Point point = e.GetPosition(panel);

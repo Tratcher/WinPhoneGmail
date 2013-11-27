@@ -6,6 +6,7 @@
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -27,16 +28,15 @@
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
-            <ListBox x:Name="LabelList" SelectionMode="Multiple" >
-                <ListBox.ItemTemplate>
+            <toolkit:LongListMultiSelector x:Name="LabelList">
+                <toolkit:LongListMultiSelector.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
-                            <!--<CheckBox IsChecked="" /> TODO Show a checkbox on each selected item. -->
-                            <TextBlock Text="{Binding Path=Name}" HorizontalAlignment="Left" FontSize="28" Margin="5,5,0,0" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding Path=Name}" HorizontalAlignment="Left" FontSize="28" Margin="0,0,0,0" VerticalAlignment="Top" />
                         </StackPanel>
                     </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                </toolkit:LongListMultiSelector.ItemTemplate>
+            </toolkit:LongListMultiSelector>
         </Grid>
     </Grid>
 
