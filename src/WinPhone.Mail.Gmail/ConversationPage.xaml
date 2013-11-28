@@ -27,10 +27,10 @@
             <uihelpers:ShortNameConverter x:Name="ShortNames" />
             <uihelpers:LabelsConverter x:Name="Labels" />
             <uihelpers:StarFromMessageConverter x:Name="Star" />
-            <uihelpers:ReadStatusConverter x:Name="HasUnread" />
+            <uihelpers:ToAndCcConverter x:Name="ToAndCc" />
         </Grid.Resources>
 
-        <ScrollViewer HorizontalScrollBarVisibility="Auto" >
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" >
             <TextBlock Grid.Row="0" Text="{Binding Path=Subject}" Style="{StaticResource PhoneTextNormalStyle}" Height="Auto" VerticalAlignment="Top" FontSize="30" Margin="5,5,5,0"/>
         </ScrollViewer>
         <TextBlock Grid.Row="1" Text="{Binding Path=Labels, Converter={StaticResource Labels}}" HorizontalAlignment="Left" Margin="5,5,5,0" VerticalAlignment="Top" />
@@ -46,7 +46,10 @@
                 <DataTemplate>
                     <StackPanel Tap="MessageHeader_Tap" Loaded="MessageView_Loaded">
                         <Grid Height="65" Margin="0" Background="{Binding Path=Flag}" >
-                            <TextBlock Text="{Binding Path=From}" HorizontalAlignment="Left" FontSize="20" Margin="5,5,0,0" VerticalAlignment="Top" Height="65" /> <!-- This is taller than normal so that it makes MessageHeader_Tap fire more reliably-->
+                            <TextBlock Text="{Binding Path=From}" HorizontalAlignment="Left" FontSize="20" Margin="5,5,0,0" VerticalAlignment="Top" />
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="5,35,40,0" >
+                                <TextBlock Text="{Binding Converter={StaticResource ToAndCc}}" HorizontalAlignment="Left" FontSize="20" VerticalAlignment="Top" />
+                            </ScrollViewer>
                             <TextBlock Text="{Binding Path=Date, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,0" Height="65"/> <!-- This is taller than normal so that it makes MessageHeader_Tap fire more reliably-->
                             <Polygon Fill="{Binding Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,40,10,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
                         </Grid>

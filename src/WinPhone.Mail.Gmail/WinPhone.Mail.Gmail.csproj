@@ -145,6 +145,7 @@
     <Compile Include="Storage\MailStorage.cs" />
     <Compile Include="SyncUtilities.cs" />
     <Compile Include="UIHelpers\StoreStatusConverter.cs" />
+    <Compile Include="UIHelpers\ToAndCcConverter.cs" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
