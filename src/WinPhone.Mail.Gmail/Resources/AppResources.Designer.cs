@@ -142,6 +142,15 @@ namespace WinPhone.Mail.Gmail.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to mark as read.
+        /// </summary>
+        public static string MarkAsReadText {
+            get {
+                return ResourceManager.GetString("MarkAsReadText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to mark unread.
         /// </summary>
         public static string MarkUnreadText {

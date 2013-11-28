@@ -88,7 +88,6 @@ namespace WinPhone.Mail.Gmail
             if (point.X > (panel.ActualWidth * 0.8))
             {
                 // Add/remove star
-                Console.WriteLine();
                 MailMessage message = (MailMessage)panel.DataContext;
 
                 Account account = App.GetCurrentAccount();

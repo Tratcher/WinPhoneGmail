@@ -129,11 +129,9 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
         }
 
-        public async Task SetFlaggedStatusAsync(MailMessage message, bool flagged)
+        public async Task SetFlaggedStatusAsync(IEnumerable<MailMessage> messages, bool flagged)
         {
             await CheckConnectedAsync();
-
-            MailMessage[] messages = new MailMessage[] { message };
 
             if (flagged)
             {

@@ -69,11 +69,18 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
         }
 
-        public Flags Flags
+        public bool HasStar
         {
             get
             {
-                return Messages.Aggregate<MailMessage, Flags>(Flags.None, (flags, message) => flags | message.Flags);
+                foreach (var message in Messages)
+                {
+                    if (message.Flagged)
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
         }
     }

@@ -256,18 +256,27 @@ namespace WinPhone.Mail.Gmail
             }
         }
 
-        public async Task SetStarAsync(MailMessage message, bool starred)
+        public Task SetStarAsync(MailMessage message, bool starred)
         {
+            return SetStarAsync(new MailMessage[] { message }, starred);
+        }
+
+        public async Task SetStarAsync(IEnumerable<MailMessage> messages, bool starred)
+        {
+            messages = messages.Where(message => message.Flagged != starred).ToList();
             // Set or remove the Flagged flag.
-            if (message.Flagged != starred)
+            foreach (MailMessage message in messages)
             {
                 message.Flagged = starred;
                 if (MailStorage.MessageIsStored(message))
                 {
                     await MailStorage.StoreMessageAsync(message);
                 }
+            }
+            if (messages.Any())
+            {
                 // TODO: Queue command to send change to the server
-                await GmailImap.SetFlaggedStatusAsync(message, starred);
+                await GmailImap.SetFlaggedStatusAsync(messages, starred);
             }
         }
 

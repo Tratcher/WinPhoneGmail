@@ -185,4 +185,7 @@
   <data name="ReplyButtonText" xml:space="preserve">
     <value>reply</value>
   </data>
+  <data name="MarkAsReadText" xml:space="preserve">
+    <value>mark as read</value>
+  </data>
 </root>

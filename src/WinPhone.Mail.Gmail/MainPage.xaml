@@ -6,6 +6,7 @@
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit"
     xmlns:uihelpers="clr-namespace:WinPhone.Mail.Gmail.UIHelpers"
     mc:Ignorable="d"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
@@ -49,33 +50,35 @@
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="0,0,0,0">
-            <ListBox x:Name="MailList" SelectionChanged="MailList_SelectionChanged" >
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
-                    </Style>
-                </ListBox.ItemContainerStyle>
-                <ListBox.Resources>
+            <toolkit:LongListMultiSelector x:Name="MailList" IsSelectionEnabledChanged="MailList_IsSelectionEnabledChanged">
+                <toolkit:LongListMultiSelector.Resources>
                     <uihelpers:RelativeDateTimeConverter x:Name="RelativeDateTime" />
                     <uihelpers:ShortNameConverter x:Name="ShortNames" />
                     <uihelpers:LabelsConverter x:Name="Labels" />
-                    <uihelpers:StarConverter x:Name="Star" />
+                    <uihelpers:StarFromConversationConverter x:Name="Star" />
                     <uihelpers:ReadStatusConverter x:Name="HasUnread" />
-                </ListBox.Resources>
-                <ListBox.ItemTemplate>
+                </toolkit:LongListMultiSelector.Resources>
+                <toolkit:LongListMultiSelector.ItemTemplate>
                     <DataTemplate>
                         <!-- This is bound to a ConversationThread item -->
-                        <Grid Height="90" Margin="0" Background="{Binding Path=HasUnread, Converter={StaticResource HasUnread}}" >
-                            <TextBlock Text="{Binding Path=Messages, Converter={StaticResource ShortNames}}" HorizontalAlignment="Left" FontSize="24" Margin="5,5,0,0" VerticalAlignment="Top" />
-                            <TextBlock Text="{Binding Path=LatestDate, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,0"/>
-                            <TextBlock Text="{Binding Path=Subject}" HorizontalAlignment="Left" Margin="5,30,30,0" TextTrimming="WordEllipsis" VerticalAlignment="Top" />
-                            <Polygon Fill="{Binding Path=Flags, Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,35,15,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
-                            <TextBlock Text="{Binding Path=Labels, Converter={StaticResource Labels}}" HorizontalAlignment="Right" Margin="0,60,5,0" VerticalAlignment="Top" />
+                        <StackPanel Height="90" Margin="0" Background="{Binding Path=HasUnread, Converter={StaticResource HasUnread}}" Tap="ConversationHeader_Tap" >
+                            <TextBlock Text="{Binding Path=Messages, Converter={StaticResource ShortNames}}" HorizontalAlignment="Left" FontSize="24" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding Path=Subject}" HorizontalAlignment="Left" TextTrimming="WordEllipsis" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding Path=Labels, Converter={StaticResource Labels}}" HorizontalAlignment="Left"  VerticalAlignment="Top" />
                             <!-- TODO: Add an expandable list-box to show the individual sub-messages -->
+                        </StackPanel>
+                    </DataTemplate>
+                </toolkit:LongListMultiSelector.ItemTemplate>
+                <toolkit:LongListMultiSelector.ItemInfoTemplate>
+                    <DataTemplate>
+                        <!-- This is bound to a ConversationThread item -->
+                        <Grid Height="90" Margin="0" Background="{Binding Path=HasUnread, Converter={StaticResource HasUnread}}" Tap="ConversationInfoHeader_Tap" >
+                            <TextBlock Text="{Binding Path=LatestDate, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,0"/>
+                            <Polygon Fill="{Binding Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,40,10,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
                         </Grid>
                     </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                </toolkit:LongListMultiSelector.ItemInfoTemplate>
+            </toolkit:LongListMultiSelector>
         </Grid>
 
         <!--Uncomment to see an alignment grid to help ensure your controls are

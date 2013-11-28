@@ -138,7 +138,7 @@
     <Compile Include="SettingsPage.xaml.cs">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="UIHelpers\StarConverter.cs" />
+    <Compile Include="UIHelpers\StarFromConversationConverter.cs" />
     <Compile Include="Storage\AccountInfo.cs" />
     <Compile Include="Storage\AppSettings.cs" />
     <Compile Include="Storage\LabelInfo.cs" />
