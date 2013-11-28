@@ -149,8 +149,16 @@ namespace WinPhone.Mail.Gmail
             }
 
             // TODO: Short term: Progress bar
-            // TODO: Long term: Save to drafts and memory, then send in the background. Retry if no connectivity.
-            await account.SendMessageAsync(message);
+            ProgressIndicator.IsIndeterminate = true;
+            try
+            {
+                // TODO: Long term: Save to drafts and memory, then send in the background. Retry if no connectivity.
+                await account.SendMessageAsync(message);
+            }
+            finally
+            {
+                ProgressIndicator.IsIndeterminate = false;
+            }
 
             NavigationService.GoBack();
         }

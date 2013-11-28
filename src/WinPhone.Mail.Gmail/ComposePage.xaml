@@ -15,6 +15,7 @@
 
     <!--LayoutRoot is the root grid where all page content is placed-->
     <Grid x:Name="LayoutRoot" Background="Transparent">
+        <ProgressBar x:Name="ProgressIndicator" Height="5" Margin="0,0,0,0" VerticalAlignment="Top" Foreground="{StaticResource PhoneInverseBackgroundBrush}" Background="{StaticResource PhoneBackgroundBrush}" />
         <TextBox x:Name="ToField" Text="To" Height="70" VerticalAlignment="Top" BorderThickness="0,0,0,3" >
             <TextBox.Background>
                 <SolidColorBrush Color="{StaticResource PhoneBackgroundColor}"/>
