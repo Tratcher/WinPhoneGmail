@@ -53,7 +53,14 @@
                             <TextBlock Text="{Binding Path=Date, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,0" Height="65"/> <!-- This is taller than normal so that it makes MessageHeader_Tap fire more reliably-->
                             <Polygon Fill="{Binding Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,40,10,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
                         </Grid>
-                        <phone:WebBrowser x:Name="BodyField" Margin="5,3,5,5" HorizontalAlignment="Stretch" Height="450" Navigating="BodyField_Navigating" BorderBrush="{StaticResource PhoneBorderBrush}" BorderThickness="0,1,0,3" />
+                        <phone:WebBrowser x:Name="BodyField" Margin="5,3,5,5" HorizontalAlignment="Stretch" Height="450" Navigating="BodyField_Navigating" BorderBrush="{StaticResource PhoneBorderBrush}" BorderThickness="0,1,0,0" />
+                        <ListBox x:Name="AttachmentsList" ItemsSource="{Binding Path=Attachments}" SelectionChanged="AttachmentsList_SelectionChanged" MaxHeight="50" BorderBrush="{StaticResource PhoneBorderBrush}" BorderThickness="0,1,0,3">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Filename}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>

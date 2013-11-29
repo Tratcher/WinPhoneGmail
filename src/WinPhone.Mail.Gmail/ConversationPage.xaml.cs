@@ -4,7 +4,6 @@ using Microsoft.Phone.Tasks;
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Navigation;
 using WinPhone.Mail.Gmail.Resources;
 using WinPhone.Mail.Protocols;
@@ -100,13 +99,16 @@ namespace WinPhone.Mail.Gmail
             else
             {
                 WebBrowser bodyField = (WebBrowser)panel.Children[1];
+                ListBox attachmentsFieled = (ListBox)panel.Children[2];
                 if (bodyField.Visibility == System.Windows.Visibility.Collapsed)
                 {
                     bodyField.Visibility = System.Windows.Visibility.Visible;
+                    attachmentsFieled.Visibility = System.Windows.Visibility.Visible;
                 }
                 else
                 {
                     bodyField.Visibility = System.Windows.Visibility.Collapsed;
+                    attachmentsFieled.Visibility = System.Windows.Visibility.Collapsed;
                 }
             }
         }
@@ -174,6 +176,21 @@ namespace WinPhone.Mail.Gmail
             }
 
             browser.NavigateToString(body);
+        }
+
+        private async void AttachmentsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ListBox attachmentsList = (ListBox)sender;
+            Attachment attachment = (Attachment)attachmentsList.SelectedItem;
+            FrameworkElement panel = (FrameworkElement)attachmentsList.Parent;
+            MailMessage message = (MailMessage)panel.DataContext;
+            if (attachment == null)
+            {
+                return;
+            }
+
+            Account account = App.GetCurrentAccount();
+            await account.OpenAttachmentAsync(message, attachment);
         }
 
         // Force links to open in the normal browser rather than inline.

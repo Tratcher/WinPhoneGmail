@@ -5,8 +5,9 @@ using System.Globalization;
 using System.IO;
 using System.IO.IsolatedStorage;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using Windows.Storage;
+using Windows.Storage.Streams;
 using WinPhone.Mail.Protocols;
 using WinPhone.Mail.Protocols.Gmail;
 
@@ -313,6 +314,8 @@ namespace WinPhone.Mail.Gmail.Storage
             {
                 DeleteDirectory(storage, AccountDir);
             }
+
+            MailStorage.DeleteTempFiles();
         }
 
         // Can't delete unless empty. Must recursively delete files and folders
@@ -327,6 +330,25 @@ namespace WinPhone.Mail.Gmail.Storage
                 DeleteDirectory(storage, Path.Combine(dir, subDir));
             }
             storage.DeleteDirectory(dir);
+        }
+
+        public static async Task<StorageFile> SaveAttachmentToTempAsync(Attachment attachment)
+        {
+            StorageFile file = await ApplicationData.Current.LocalFolder.CreateFileAsync(attachment.Filename, CreationCollisionOption.ReplaceExisting);
+            IRandomAccessStream randomStream = await file.OpenAsync(FileAccessMode.ReadWrite);
+            Stream writeStream = randomStream.AsStream();
+            attachment.Save(writeStream);
+            writeStream.Close();
+            return file;
+        }
+
+        public static async void DeleteTempFiles()
+        {
+            IReadOnlyList<StorageFile> files = await ApplicationData.Current.LocalFolder.GetFilesAsync();
+            foreach (StorageFile file in files)
+            {
+                await file.DeleteAsync(StorageDeleteOption.PermanentDelete);
+            }
         }
     }
 }

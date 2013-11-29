@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using Windows.Storage;
+using Windows.System;
+using WinPhone.Mail.Gmail.Storage;
 using WinPhone.Mail.Protocols;
 using WinPhone.Mail.Protocols.Gmail;
 using WinPhone.Mail.Protocols.Imap;
-using WinPhone.Mail.Gmail.Storage;
 
 namespace WinPhone.Mail.Gmail
 {
@@ -434,6 +435,24 @@ namespace WinPhone.Mail.Gmail
             await GmailImap.Client.LogoutAsync();
             GmailImap.Dispose();
             GmailImap = new GmailImapClient(Info.Address, Info.Password);
+        }
+
+        public async Task OpenAttachmentAsync(MailMessage message, Attachment attachment)
+        {
+            // TODO: For this to work the attachment needs to be stored in a seperate file from the e-mail.
+            // I've already considered breaking up the message so parts that could be downloaded and stored sepeartely.
+            // Especially since attchments take forever to download (our mail parsing algorithm may be very slow, one byte at a time).
+            //
+            // For now just store a temp copy of the file somewhere that we can open.
+            //
+            // http://architects.dzone.com/articles/lap-around-windows-phone-8-sdk
+            // StorageFile file = await ApplicationData.Current.LocalFolder.GetFileAsync("rss.log");
+            // Windows.System.Launcher.LaunchFileAsync(file);
+
+            StorageFile file = await MailStorage.SaveAttachmentToTempAsync(attachment);
+            await Launcher.LaunchFileAsync(file);
+
+            // TODO: Delete temp files on app close?
         }
     }
 }
