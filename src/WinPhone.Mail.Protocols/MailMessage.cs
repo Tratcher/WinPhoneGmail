@@ -98,7 +98,7 @@ namespace WinPhone.Mail.Protocols
             }
         }
 
-        public virtual void Load(Stream reader, bool headersOnly = false, int maxLength = 0, char? termChar = null)
+        public virtual void Load(Stream reader, bool headersOnly, int maxLength, char? termChar = null)
         {
             HeadersOnly = headersOnly;
             Headers = null;

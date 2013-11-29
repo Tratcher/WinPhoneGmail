@@ -170,6 +170,40 @@ namespace WinPhone.Mail.Protocols.Transport
             return _count;
         }
 
+        public async Task<int> EnsureBufferAsync(int min)
+        {
+            if (_count < min)
+            {
+                if (_buffer.Length < min)
+                {
+                    // Grow buffer
+                    byte[] newBuffer = new byte[min];
+                    if (_count > 0)
+                    {
+                        // Copy existing data
+                        Array.Copy(_buffer, _offset, newBuffer, 0, _count);
+                        _offset = 0;
+                    }
+                    _buffer = newBuffer;
+                }
+                else if (min - _count > _buffer.Length - (_offset + _count))
+                {
+                    // Shift down to make room
+                    Array.Copy(_buffer, _offset, _buffer, 0, _count);
+                    _offset = 0;
+                }
+                int read = 0;
+                do
+                {
+                    // Fill buffer
+                    read = await _innerStream.ReadAsync(_buffer, _offset + _count, _buffer.Length - (_offset + _count));
+                    _count += read;
+                } while (read != 0 && _count < min);
+            }
+
+            return _count;
+        }
+
         public async Task<string> ReadLineAsync(int maxLength, Encoding encoding, char? termChar)
         {
             var maxLengthSpecified = maxLength > 0;

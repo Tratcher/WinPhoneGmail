@@ -258,7 +258,7 @@ E-mail Deployment Division
             msg.Attachments.Count.ShouldBe(1);
             msg.Attachments.All(a => a.GetData().Any().ShouldBe());
             msg.Subject.ShouldBe("Frånvaro: Örebro Golfklubb - Scorecard");
-            msg.Body.ShouldContain("Due");
+            msg.GetTextView().Body.ShouldContain("Due");
 
             msg = GetMessage(anotherMessage);
             msg.Body.ShouldContain("Joplin");

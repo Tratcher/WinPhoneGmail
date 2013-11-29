@@ -502,7 +502,7 @@ namespace WinPhone.Mail.Protocols
             return GetMessagesAsync((index + 1).ToString(), (index + 1).ToString(), false, false, setseen, (message, size, headers) =>
             {
                 Utilities.CopyStream(message, stream, size);
-                return null;
+                return Task.FromResult<MailMessage>(null);
             });
         }
 
@@ -511,7 +511,7 @@ namespace WinPhone.Mail.Protocols
             return GetMessagesAsync(uid, uid, true, false, setseen, (message, size, headers) =>
             {
                 Utilities.CopyStream(message, stream, size);
-                return null;
+                return Task.FromResult<MailMessage>(null);
             });
         }
 
@@ -520,7 +520,7 @@ namespace WinPhone.Mail.Protocols
             var x = new List<MailMessage>();
 
             await GetMessagesAsync(start, end, uid, headersonly, setseen,
-                (stream, size, imapHeaders) =>
+                async (stream, size, imapHeaders) =>
                 {
                     var mail = new MailMessage { Encoding = Encoding };
                     mail.Size = size;
@@ -531,6 +531,7 @@ namespace WinPhone.Mail.Protocols
                     if (imapHeaders["Flags"] != null)
                         mail.SetFlags(imapHeaders["Flags"]);
 
+                    await _Stream.EnsureBufferAsync(mail.Size);
                     mail.Load(_Stream, headersonly, mail.Size);
 
                     foreach (var key in imapHeaders.Keys.Except(new[] { "UID", "Flags", "BODY[]", "BODY[HEADER]" }, StringComparer.OrdinalIgnoreCase))
@@ -545,7 +546,7 @@ namespace WinPhone.Mail.Protocols
             return x.ToArray();
         }
 
-        public virtual async Task GetMessagesAsync(string start, string end, bool uid, bool headersonly, bool setseen, Func<Stream, int, IDictionary<string, string>, MailMessage> action)
+        public virtual async Task GetMessagesAsync(string start, string end, bool uid, bool headersonly, bool setseen, Func<Stream, int, IDictionary<string, string>, Task<MailMessage>> action)
         {
             await CheckMailboxSelectedAsync();
             await IdlePauseAsync();
@@ -573,7 +574,7 @@ namespace WinPhone.Mail.Protocols
 
                 var imapHeaders = Utilities.ParseImapHeader(response.Substring(response.IndexOf('(') + 1));
                 var size = (imapHeaders["BODY[HEADER]"] ?? imapHeaders["BODY[]"]).Trim('{', '}').ToInt();
-                var msg = action(_Stream, size, imapHeaders);
+                var msg = await action(_Stream, size, imapHeaders);
 
                 response = await GetResponseAsync();
                 var n = response.Trim().LastOrDefault();

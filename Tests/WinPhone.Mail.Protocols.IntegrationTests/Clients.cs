@@ -231,7 +231,7 @@ namespace Tests
                 using (var file = new System.IO.FileStream(filename, System.IO.FileMode.Open))
                 {
                     var msg = new WinPhone.Mail.Protocols.MailMessage();
-                    msg.Load(file);
+                    msg.Load(file, headersOnly: false, maxLength: 0);
                     msg.Subject.ShouldNotBeNullOrEmpty();
                 }
 
