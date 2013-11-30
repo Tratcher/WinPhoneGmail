@@ -83,5 +83,20 @@ namespace WinPhone.Mail.Protocols.Gmail
                 return false;
             }
         }
+
+        public bool HasAttachment
+        {
+            get
+            {
+                foreach (var message in Messages)
+                {
+                    if (message.Attachments.Count > 0)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
     }
 }
