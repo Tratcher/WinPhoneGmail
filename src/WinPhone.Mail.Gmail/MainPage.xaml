@@ -74,7 +74,7 @@
                         <!-- This is bound to a ConversationThread item -->
                         <Grid Height="90" Margin="0" Background="{Binding Path=HasUnread, Converter={StaticResource HasUnread}}" Tap="ConversationInfoHeader_Tap" >
                             <TextBlock Text="{Binding Path=LatestDate, Converter={StaticResource RelativeDateTime}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,0"/>
-                            <Polygon Fill="{Binding Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,40,10,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneTextBoxReadOnlyBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" />
+                            <Polygon Fill="{Binding Converter={StaticResource Star}}" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,40,10,0" VerticalAlignment="Top" Stroke="{StaticResource PhoneForegroundBrush}" Points="9,2 10,7 17,7 12,10 14,15 9,12 4,15 6,10 1,7 7,7" Stretch="Uniform" StrokeThickness="0.25" />
                         </Grid>
                     </DataTemplate>
                 </toolkit:LongListMultiSelector.ItemInfoTemplate>

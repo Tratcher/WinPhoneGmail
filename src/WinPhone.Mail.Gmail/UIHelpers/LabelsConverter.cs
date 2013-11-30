@@ -19,7 +19,7 @@ namespace WinPhone.Mail.Gmail.UIHelpers
             // Includes normal labels and special ones too.  Filter out known special labels
             // "\\Sent" Family "\\Important" "\\Starred" Geeky
             // TODO: Label color
-            return string.Join(" ", GmailExtensions.GetNonSpecialLabels(labels));
+            return string.Join(", ", GmailExtensions.GetNonSpecialLabels(labels));
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)

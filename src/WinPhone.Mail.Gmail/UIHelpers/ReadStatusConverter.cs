@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
-using WinPhone.Mail.Protocols;
 
 namespace WinPhone.Mail.Gmail.UIHelpers
 {
@@ -16,8 +12,11 @@ namespace WinPhone.Mail.Gmail.UIHelpers
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            SolidColorBrush unreadBrush = (SolidColorBrush)Application.Current.Resources["PhoneBackgroundBrush"];
+            SolidColorBrush readBrush = (SolidColorBrush)Application.Current.Resources["PhoneDisabledBrush"];
+
             bool hasUnread = (bool)value;
-            return hasUnread ? null : Gray;
+            return hasUnread ? unreadBrush : readBrush;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
