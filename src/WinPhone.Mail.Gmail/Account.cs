@@ -435,6 +435,7 @@ namespace WinPhone.Mail.Gmail
             await GmailImap.Client.LogoutAsync();
             GmailImap.Dispose();
             GmailImap = new GmailImapClient(Info.Address, Info.Password);
+            ActiveLabel = null;
         }
 
         public async Task OpenAttachmentAsync(MailMessage message, Attachment attachment)
