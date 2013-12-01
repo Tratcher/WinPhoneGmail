@@ -35,7 +35,7 @@ namespace WinPhone.Mail.Gmail
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             if (account != null)
             {
                 Conversation = account.ActiveConversation;
@@ -47,7 +47,7 @@ namespace WinPhone.Mail.Gmail
 
         private async void GetLabelsAsync()
         {
-            var account = App.GetCurrentAccount();
+            var account = App.AccountManager.GetCurrentAccount();
             if (account == null)
             {
                 throw new InvalidOperationException("How did you get to this page without an account?");
@@ -71,8 +71,8 @@ namespace WinPhone.Mail.Gmail
             List<string> labelsBefore = GmailExtensions.GetNonSpecialLabels(Conversation.Labels);
             List<string> labelsAfter = LabelList.SelectedItems.Cast<LabelInfo>()
                 .Select(info => info.Name).ToList();
-            
-            Account account = App.GetCurrentAccount();
+
+            Account account = App.AccountManager.GetCurrentAccount();
             List<string> addTo = new List<string>();
             List<string> removeFrom = new List<string>();
 

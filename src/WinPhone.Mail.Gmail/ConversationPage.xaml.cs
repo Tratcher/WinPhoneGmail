@@ -69,7 +69,7 @@ namespace WinPhone.Mail.Gmail
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             if (account != null)
             {
                 Conversation = account.ActiveConversation;
@@ -90,7 +90,7 @@ namespace WinPhone.Mail.Gmail
                 // Add/remove star
                 MailMessage message = (MailMessage)panel.DataContext;
 
-                Account account = App.GetCurrentAccount();
+                Account account = App.AccountManager.GetCurrentAccount();
                 await account.SetStarAsync(message, starred: !message.Flagged);
 
                 // Refresh the UI
@@ -116,7 +116,7 @@ namespace WinPhone.Mail.Gmail
 
         private async void MarkUnreadClick(object sender, EventArgs e)
         {
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             await account.SetReadStatusAsync(Conversation.Messages, read: false);
             NavigationService.GoBack();
         }
@@ -128,7 +128,7 @@ namespace WinPhone.Mail.Gmail
 
         private async void ArchiveClick(object sender, EventArgs e)
         {
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             await account.RemoveLabelAsync(Conversation.Messages, GConstants.Inbox);
             NavigationService.GoBack();
         }
@@ -136,7 +136,7 @@ namespace WinPhone.Mail.Gmail
         private async void TrashClick(object sender, EventArgs e)
         {
             // TODO: Full delete items already in Trash or Spam?
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             await account.TrashAsync(Conversation.Messages, isSpam: false);
             NavigationService.GoBack();
         }
@@ -144,7 +144,7 @@ namespace WinPhone.Mail.Gmail
         private async void SpamClick(object sender, EventArgs e)
         {
             // TODO: Full delete items already in Trash or Spam?
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             await account.TrashAsync(Conversation.Messages, isSpam: true);
             NavigationService.GoBack();
         }
@@ -190,7 +190,7 @@ namespace WinPhone.Mail.Gmail
                 return;
             }
 
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             await account.OpenAttachmentAsync(message, attachment);
         }
 

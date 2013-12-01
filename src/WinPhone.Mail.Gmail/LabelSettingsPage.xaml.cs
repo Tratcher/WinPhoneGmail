@@ -15,7 +15,7 @@ namespace WinPhone.Mail.Gmail
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             if (account != null)
             {
                 Label label = account.ActiveLabel;
@@ -27,7 +27,7 @@ namespace WinPhone.Mail.Gmail
 
         private async void StoreLocallyCheckBox_Click(object sender, RoutedEventArgs e)
         {
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             if (account != null)
             {
                 Label label = account.ActiveLabel;

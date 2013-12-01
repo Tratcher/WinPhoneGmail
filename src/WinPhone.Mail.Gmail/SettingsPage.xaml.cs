@@ -28,7 +28,7 @@ namespace WinPhone.Mail.Gmail
             // Clear usernames and passwords.
             // AppSettings.ClearAll();
 
-            foreach (Account account in App.GetAccounts())
+            foreach (Account account in App.AccountManager.Accounts)
             {
                 // TODO: Clear in-memory caches for accounts, labels, etc.
                 account.DeleteAccountData();

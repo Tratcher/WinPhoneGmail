@@ -5,6 +5,7 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Scheduler;
 using Microsoft.Phone.Shell;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
@@ -20,6 +21,13 @@ namespace WinPhone.Mail.Gmail
     {
         private PeriodicTask _periodicBackgroundTask;
         private string _periodicBackgroundTaskName = "GmailClientBackgroundAgent";
+
+        private AccountManager _accountManager;
+
+        public static AccountManager AccountManager
+        {
+            get { return ((App)App.Current)._accountManager; }
+        }
 
         /// <summary>
         /// Provides easy access to the root frame of the Phone Application.
@@ -83,13 +91,7 @@ namespace WinPhone.Mail.Gmail
         // This code will not execute when the application is closing
         private async void Application_Deactivated(object sender, DeactivatedEventArgs e)
         {
-            // TODO: Flush any pending IMAP/SMTP traffic.
-            foreach (Account account in Accounts)
-            {
-                // This is a workaround to avoid hitting a connection closed error
-                // next time we come back to the app.
-                await account.LogoutAsync();
-            }
+            await AccountManager.LogoutAllAsync();
         }
 
         // Code to execute when the application is closing (eg, user hit Back)
@@ -160,6 +162,16 @@ namespace WinPhone.Mail.Gmail
             RootFrame.Navigated -= CompleteInitializePhoneApplication;
 
             InitializeAccounts();
+        }
+
+        private void InitializeAccounts()
+        {
+            _accountManager = new AccountManager();
+
+            if (AccountManager.Accounts.Count == 0)
+            {
+                RootFrame.Navigate(new Uri("/AccountsPage.xaml", UriKind.Relative));
+            }
         }
 
         private void CheckForResetNavigation(object sender, NavigationEventArgs e)
@@ -244,66 +256,6 @@ namespace WinPhone.Mail.Gmail
             }
         }
 
-        private void InitializeAccounts()
-        {
-            AccountInfo[] accounts = AppSettings.GetAccounts();
-            Accounts = new ObservableCollection<Account>();
-
-            if (accounts.Length == 0)
-            {
-                RootFrame.Navigate(new Uri("/AccountsPage.xaml", UriKind.Relative));
-                return;
-            }
-
-            for (int i = 0; i < accounts.Length; i++)
-            {
-                Accounts.Add(new Account(accounts[i]));
-            }
-        }
-
-        public static App GetApp()
-        {
-            return (App)App.Current;
-        }
-
-        private ObservableCollection<Account> Accounts { get; set; }
-        private int AccountIndex { get; set; }
-
-        public static Account GetCurrentAccount()
-        {
-            var accounts = App.GetApp().Accounts;
-            int accountIndex = App.GetApp().AccountIndex;
-            if (accounts.Count == 0)
-            {
-#if DEBUG
-                // TODO: Make sure to test with null;
-                return DebugAccount.Current;
-#else
-                return null;
-#endif
-            }
-            return accounts[accountIndex];
-        }
-
-        public static ObservableCollection<Account> GetAccounts()
-        {
-            return App.GetApp().Accounts;
-        }
-
-        internal static void SetCurrentAccount(Account account)
-        {
-            if (account == null)
-            {
-                App.GetApp().AccountIndex = 0;
-            }
-            else
-            {
-                var accounts = App.GetApp().Accounts;
-                App.GetApp().AccountIndex = accounts.IndexOf(account);
-            }
-        }
-
-        // TODO: Move this out of MainPage into a helper class
         private void StartPeriodicAgent()
         {
             // Obtain a reference to the period task, if one exists

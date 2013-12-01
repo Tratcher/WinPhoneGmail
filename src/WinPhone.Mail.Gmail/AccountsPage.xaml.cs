@@ -48,7 +48,7 @@ namespace WinPhone.Mail.Gmail
         {
             base.OnNavigatedTo(e);
 
-            AccountsList.ItemsSource = App.GetAccounts();
+            AccountsList.ItemsSource = App.AccountManager.Accounts;
         }
 
         private void AccountsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -76,16 +76,12 @@ namespace WinPhone.Mail.Gmail
             Account account = AccountsList.SelectedItem as Account;
             if (account != null)
             {
-                var accounts = App.GetAccounts();
-                accounts.Remove(account);
-                App.SetCurrentAccount(accounts.FirstOrDefault());
+                await App.AccountManager.RemoveAccountAsync(account);
 
+                // Refresh
                 AccountsList.SelectedItem = null;
-
-                AppSettings.SaveAccounts(accounts.Select(ac => ac.Info).ToArray());
-
-                account.DeleteAccountData();
-                await account.LogoutAsync();
+                AccountsList.ItemsSource = null;
+                AccountsList.ItemsSource = App.AccountManager.Accounts;
             }
             AccountAddressBox.Text = "@gmail.com";
             AccountPasswordBox.Password = string.Empty;
@@ -94,15 +90,13 @@ namespace WinPhone.Mail.Gmail
 
         private async void SaveClick(object sender, EventArgs e)
         {
-            var accounts = App.GetAccounts();
             Account account = AccountsList.SelectedItem as Account;
             if (account != null
                 && !string.Equals(account.Info.Address, AccountAddressBox.Text, StringComparison.OrdinalIgnoreCase))
             {
-                account.DeleteAccountData();
-                await account.LogoutAsync();
-                accounts.Remove(account);
+                await App.AccountManager.RemoveAccountAsync(account);
                 account = null;
+                AccountsList.SelectedItem = null;
             }
 
             if (account != null)
@@ -111,11 +105,19 @@ namespace WinPhone.Mail.Gmail
                 account.Info.Address = AccountAddressBox.Text;
                 // Update password in place.
                 account.Info.Password = AccountPasswordBox.Password;
+                // Update username in place.
                 account.Info.DisplayName = DisplayNameBox.Text;
                 await account.LogoutAsync();
+
+                // Refresh
+                AccountsList.SelectedItem = null;
+                AccountsList.ItemsSource = null;
+                AccountsList.ItemsSource = App.AccountManager.Accounts;
+                AccountsList.SelectedItem = account;
             }
             else
             {
+                var accounts = App.AccountManager.Accounts;
                 accounts.Add(new Account(new AccountInfo()
                 {
                     Address = AccountAddressBox.Text,
@@ -123,10 +125,14 @@ namespace WinPhone.Mail.Gmail
                     DisplayName = DisplayNameBox.Text
                 }));
 
+                // Refresh
+                AccountsList.SelectedItem = null;
+                AccountsList.ItemsSource = null;
+                AccountsList.ItemsSource = App.AccountManager.Accounts;
                 AccountsList.SelectedIndex = accounts.Count - 1;
             }
 
-            AppSettings.SaveAccounts(accounts.Select(ac => ac.Info).ToArray());
+            App.AccountManager.SaveAccounts();
         }
 
         private void DoneClick(object sender, EventArgs e)

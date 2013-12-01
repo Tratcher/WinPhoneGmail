@@ -44,7 +44,7 @@ namespace WinPhone.Mail.Gmail
 
         private void GetAccounts()
         {
-            var accounts = App.GetAccounts();
+            var accounts = App.AccountManager.Accounts;
             if (accounts.Count < 2)
             {
                AccountList.Visibility = System.Windows.Visibility.Collapsed;
@@ -52,7 +52,7 @@ namespace WinPhone.Mail.Gmail
             else
             {
                 AccountList.ItemsSource = accounts;
-                AccountList.SelectedItem = App.GetCurrentAccount();
+                AccountList.SelectedItem = App.AccountManager.GetCurrentAccount();
             }
         }
 
@@ -61,7 +61,7 @@ namespace WinPhone.Mail.Gmail
             ProgressIndicator.IsIndeterminate = true;
             try
             {
-                var account = App.GetCurrentAccount();
+                var account = App.AccountManager.GetCurrentAccount();
                 if (account != null)
                 {
                     List<LabelInfo> labels = await account.GetLabelsAsync(forceSync);
@@ -80,7 +80,7 @@ namespace WinPhone.Mail.Gmail
 
         private void AccountList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            App.SetCurrentAccount((Account)AccountList.SelectedItem);
+            App.AccountManager.SetCurrentAccount((Account)AccountList.SelectedItem);
             GetLabelsAsync();
         }
 
@@ -89,7 +89,7 @@ namespace WinPhone.Mail.Gmail
             ProgressIndicator.IsIndeterminate = true;
             try
             {
-                var account = App.GetCurrentAccount();
+                var account = App.AccountManager.GetCurrentAccount();
                 if (account != null)
                 {
                     LabelInfo label = LabelList.SelectedItem as LabelInfo;

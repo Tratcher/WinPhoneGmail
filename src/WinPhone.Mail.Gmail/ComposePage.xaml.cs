@@ -59,7 +59,7 @@ namespace WinPhone.Mail.Gmail
             if (parts.Length > 1 && !string.IsNullOrEmpty(parts[1]))
             {
                 string query = parts[1];
-                Account account = App.GetCurrentAccount();
+                Account account = App.AccountManager.GetCurrentAccount();
                 ConversationThread mailThread = account.ActiveConversation;
                 MailMessage lastMessage = mailThread.Messages.First(); // They're in reverse order.
 
@@ -127,7 +127,7 @@ namespace WinPhone.Mail.Gmail
 
         private async void Send(object sender, EventArgs e)
         {
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             if (account == null)
             {
                 return;

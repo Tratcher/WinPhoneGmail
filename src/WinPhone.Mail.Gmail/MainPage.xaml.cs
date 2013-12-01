@@ -154,7 +154,7 @@ namespace WinPhone.Mail.Gmail
                 DataContext = null;
                 MailList.ItemsSource = null;
 
-                var account = App.GetCurrentAccount();
+                var account = App.AccountManager.GetCurrentAccount();
                 if (account != null)
                 {
                     Label label = await account.GetLabelAsync(forceSync);
@@ -193,7 +193,7 @@ namespace WinPhone.Mail.Gmail
 
             if (conversation != null)
             {
-                Account account = App.GetCurrentAccount();
+                Account account = App.AccountManager.GetCurrentAccount();
                 if (account != null)
                 {
                     await account.SelectConversationAsync(conversation);
@@ -213,7 +213,7 @@ namespace WinPhone.Mail.Gmail
             {
                 if (conversation != null)
                 {
-                    Account account = App.GetCurrentAccount();
+                    Account account = App.AccountManager.GetCurrentAccount();
                     if (account != null)
                     {
                         if (conversation.HasStar)
@@ -246,7 +246,7 @@ namespace WinPhone.Mail.Gmail
 
         private async void SyncIcon_Tap(object sender, System.Windows.Input.GestureEventArgs e)
         {
-            Account account = App.GetCurrentAccount();
+            Account account = App.AccountManager.GetCurrentAccount();
             if (account != null)
             {
                 Label label = account.ActiveLabel;
@@ -294,7 +294,7 @@ namespace WinPhone.Mail.Gmail
                 messages = messages.Where(message => message.Seen != readStatus);
                 if (messages.Any())
                 {
-                    Account account = App.GetCurrentAccount();
+                    Account account = App.AccountManager.GetCurrentAccount();
                     await account.SetReadStatusAsync(messages.ToList(), read: readStatus);
 
                     // Force Refresh
@@ -331,7 +331,7 @@ namespace WinPhone.Mail.Gmail
                 }
                 if (messages.Any())
                 {
-                    Account account = App.GetCurrentAccount();
+                    Account account = App.AccountManager.GetCurrentAccount();
                     await account.RemoveLabelAsync(messages.ToList(), GConstants.Inbox);
 
                     // Force Refresh
@@ -359,7 +359,7 @@ namespace WinPhone.Mail.Gmail
                 }
                 if (messages.Any())
                 {
-                    Account account = App.GetCurrentAccount();
+                    Account account = App.AccountManager.GetCurrentAccount();
                     await account.TrashAsync(messages.ToList(), isSpam: false);
 
                     // Force Refresh
@@ -387,7 +387,7 @@ namespace WinPhone.Mail.Gmail
                 }
                 if (messages.Any())
                 {
-                    Account account = App.GetCurrentAccount();
+                    Account account = App.AccountManager.GetCurrentAccount();
                     await account.TrashAsync(messages.ToList(), isSpam: true);
 
                     // Force Refresh
