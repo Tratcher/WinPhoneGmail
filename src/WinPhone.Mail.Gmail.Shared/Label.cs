@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WinPhone.Mail.Protocols.Gmail;
-using WinPhone.Mail.Gmail.Storage;
+using WinPhone.Mail.Gmail.Shared.Storage;
 
-namespace WinPhone.Mail.Gmail
+namespace WinPhone.Mail.Gmail.Shared
 {
     public class Label
     {

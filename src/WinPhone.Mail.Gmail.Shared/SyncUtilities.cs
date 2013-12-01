@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace WinPhone.Mail.Gmail
+namespace WinPhone.Mail.Gmail.Shared
 {
     public class SyncUtilities
     {

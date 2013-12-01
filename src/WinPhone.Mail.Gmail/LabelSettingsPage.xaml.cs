@@ -1,6 +1,8 @@
 ﻿using Microsoft.Phone.Controls;
 using System.Windows;
 using System.Windows.Navigation;
+using WinPhone.Mail.Gmail.Shared;
+using WinPhone.Mail.Gmail.Shared.Accounts;
 
 namespace WinPhone.Mail.Gmail
 {

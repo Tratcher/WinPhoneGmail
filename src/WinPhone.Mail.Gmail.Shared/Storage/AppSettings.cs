@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WinPhone.Mail.Gmail.Storage
+namespace WinPhone.Mail.Gmail.Shared.Storage
 {
     public class AppSettings
     {

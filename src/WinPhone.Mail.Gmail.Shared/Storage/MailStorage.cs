@@ -11,7 +11,7 @@ using Windows.Storage.Streams;
 using WinPhone.Mail.Protocols;
 using WinPhone.Mail.Protocols.Gmail;
 
-namespace WinPhone.Mail.Gmail.Storage
+namespace WinPhone.Mail.Gmail.Shared.Storage
 {
     public class MailStorage
     {

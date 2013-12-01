@@ -4,12 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.System;
-using WinPhone.Mail.Gmail.Storage;
+using WinPhone.Mail.Gmail.Shared.Storage;
 using WinPhone.Mail.Protocols;
 using WinPhone.Mail.Protocols.Gmail;
 using WinPhone.Mail.Protocols.Imap;
 
-namespace WinPhone.Mail.Gmail
+namespace WinPhone.Mail.Gmail.Shared.Accounts
 {
     public class Account
     {

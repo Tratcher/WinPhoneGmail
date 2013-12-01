@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
-using WinPhone.Mail.Gmail.Storage;
+using WinPhone.Mail.Gmail.Shared.Storage;
 
 namespace WinPhone.Mail.Gmail.UIHelpers
 {

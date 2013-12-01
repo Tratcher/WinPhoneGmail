@@ -1,4 +1,8 @@
-﻿using Microsoft.Phone.Controls;
+﻿
+// #define DEBUG_AGENT
+
+using Microsoft.Phone.Controls;
+using Microsoft.Phone.Scheduler;
 using Microsoft.Phone.Shell;
 using System;
 using System.Collections.ObjectModel;
@@ -7,12 +11,16 @@ using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Navigation;
 using WinPhone.Mail.Gmail.Resources;
-using WinPhone.Mail.Gmail.Storage;
+using WinPhone.Mail.Gmail.Shared.Accounts;
+using WinPhone.Mail.Gmail.Shared.Storage;
 
 namespace WinPhone.Mail.Gmail
 {
     public partial class App : Application
     {
+        private PeriodicTask _periodicBackgroundTask;
+        private string _periodicBackgroundTaskName = "GmailClientBackgroundAgent";
+
         /// <summary>
         /// Provides easy access to the root frame of the Phone Application.
         /// </summary>
@@ -62,6 +70,7 @@ namespace WinPhone.Mail.Gmail
         // This code will not execute when the application is reactivated
         private void Application_Launching(object sender, LaunchingEventArgs e)
         {
+            StartPeriodicAgent();
         }
 
         // Code to execute when the application is activated (brought to foreground)
@@ -291,6 +300,60 @@ namespace WinPhone.Mail.Gmail
             {
                 var accounts = App.GetApp().Accounts;
                 App.GetApp().AccountIndex = accounts.IndexOf(account);
+            }
+        }
+
+        // TODO: Move this out of MainPage into a helper class
+        private void StartPeriodicAgent()
+        {
+            // Obtain a reference to the period task, if one exists
+            _periodicBackgroundTask = ScheduledActionService.Find(_periodicBackgroundTaskName) as PeriodicTask;
+
+            // If the task already exists and background agents are enabled for the
+            // application, you must remove the task and then add it again to update 
+            // the schedule
+            if (_periodicBackgroundTask != null)
+            {
+                try
+                {
+                    ScheduledActionService.Remove(_periodicBackgroundTaskName);
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            _periodicBackgroundTask = new PeriodicTask(_periodicBackgroundTaskName);
+
+            // The description is required for periodic agents. This is the string that the user
+            // will see in the background services Settings page on the device.
+            _periodicBackgroundTask.Description = "This checks periodically for new mail.";
+
+            // Place the call to Add in a try block in case the user has disabled agents.
+            try
+            {
+                ScheduledActionService.Add(_periodicBackgroundTask);
+
+                // If debugging is enabled, use LaunchForTest to launch the agent in one minute.
+#if DEBUG_AGENT
+                ScheduledActionService.LaunchForTest(_periodicBackgroundTaskName, TimeSpan.FromSeconds(60));
+#endif
+            }
+            catch (InvalidOperationException exception)
+            {
+                if (exception.Message.Contains("BNS Error: The action is disabled"))
+                {
+                    MessageBox.Show("Background agents for this application have been disabled by the user.");
+                }
+
+                if (exception.Message.Contains("BNS Error: The maximum number of ScheduledActions of this type have already been added."))
+                {
+                    // No user action required. The system prompts the user when the hard limit of periodic tasks has been reached.
+                }
+            }
+            catch (SchedulerServiceException)
+            {
+                // No user action required.
             }
         }
     }

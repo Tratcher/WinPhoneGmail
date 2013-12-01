@@ -1,5 +1,5 @@
 ﻿
-namespace WinPhone.Mail.Gmail.Storage
+namespace WinPhone.Mail.Gmail.Shared.Storage
 {
     public class MessageIdInfo
     {

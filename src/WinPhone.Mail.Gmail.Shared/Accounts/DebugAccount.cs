@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using WinPhone.Mail.Protocols;
 using WinPhone.Mail.Protocols.Gmail;
 using WinPhone.Mail.Protocols.Imap;
-using WinPhone.Mail.Gmail.Storage;
+using WinPhone.Mail.Gmail.Shared.Storage;
 
-namespace WinPhone.Mail.Gmail
+namespace WinPhone.Mail.Gmail.Shared.Accounts
 {
     // Used to test UI elements
     public class DebugAccount : Account

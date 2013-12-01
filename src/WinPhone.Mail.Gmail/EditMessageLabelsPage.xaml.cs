@@ -5,7 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Navigation;
 using WinPhone.Mail.Gmail.Resources;
-using WinPhone.Mail.Gmail.Storage;
+using WinPhone.Mail.Gmail.Shared;
+using WinPhone.Mail.Gmail.Shared.Accounts;
+using WinPhone.Mail.Gmail.Shared.Storage;
 using WinPhone.Mail.Protocols.Gmail;
 
 namespace WinPhone.Mail.Gmail
