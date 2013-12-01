@@ -5,15 +5,13 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Scheduler;
 using Microsoft.Phone.Shell;
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Navigation;
 using WinPhone.Mail.Gmail.Resources;
 using WinPhone.Mail.Gmail.Shared.Accounts;
-using WinPhone.Mail.Gmail.Shared.Storage;
 
 namespace WinPhone.Mail.Gmail
 {
@@ -85,6 +83,18 @@ namespace WinPhone.Mail.Gmail
         // This code will not execute when the application is first launched
         private void Application_Activated(object sender, ActivatedEventArgs e)
         {
+            ResetLiveTile();
+        }
+
+        private void ResetLiveTile()
+        {
+            ShellTile tile = ShellTile.ActiveTiles.FirstOrDefault();
+            if (tile != null)
+            {
+                IconicTileData data = new IconicTileData();
+                data.Count = 0;
+                tile.Update(data);
+            }
         }
 
         // Code to execute when the application is deactivated (sent to background)

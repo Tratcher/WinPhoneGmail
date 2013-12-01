@@ -4,8 +4,11 @@
 using Microsoft.Phone.Scheduler;
 using Microsoft.Phone.Shell;
 using System;
+using System.Linq;
 using System.Diagnostics;
 using System.Windows;
+using WinPhone.Mail.Gmail.Shared;
+using WinPhone.Mail.Gmail.Shared.Accounts;
 
 namespace WinPhone.Mail.Gmail.BackgroundTask
 {
@@ -42,46 +45,93 @@ namespace WinPhone.Mail.Gmail.BackgroundTask
         /// <remarks>
         /// This method is called when a periodic or resource intensive task is invoked
         /// </remarks>
-        protected override void OnInvoke(ScheduledTask task)
+        protected override async void OnInvoke(ScheduledTask task)
         {
-            /*
-            string toastMessage = "";
-
-            // If your application uses both PeriodicTask and ResourceIntensiveTask
-            // you can branch your application code here. Otherwise, you don't need to.
-            if (task is PeriodicTask)
+            try
             {
-                // Execute periodic task actions here.
-                toastMessage = "Periodic task running.";
-            }
-            else
-            {
-                // TODO: Consider scheduling a resource intensive task for a daily sync of historical mail.
+                /*
+                string toastMessage = "";
 
-                // Execute resource-intensive task actions here.
-                toastMessage = "Resource-intensive task running.";
-            }*/
+                // If your application uses both PeriodicTask and ResourceIntensiveTask
+                // you can branch your application code here. Otherwise, you don't need to.
+                if (task is PeriodicTask)
+                {
+                    // Execute periodic task actions here.
+                    toastMessage = "Periodic task running.";
+                }
+                else
+                {
+                    // TODO: Consider scheduling a resource intensive task for a daily sync of historical mail.
 
-            // TODO: Check the sync schedule to see if it's time to perform a sync
+                    // Execute resource-intensive task actions here.
+                    toastMessage = "Resource-intensive task running.";
+                }*/
 
-            // TODO: Check for new mail
-            // TODO: Extract the Account and Storage components into a shared library that can be called from the
-            // scheduled task and the main app.
-            // http://www.31a2ba2a-b718-11dc-8314-0800200c9a66.com/2011/11/simple-wp7-mango-app-for-background.html
-                        
-            // Launch a toast to show that the agent is running.
-            // The toast will not be shown if the foreground application is running.
-            ShellToast toast = new ShellToast();
-            toast.Title = "New messages are available";
-            toast.Content = "You have 3 new messages";
-            toast.Show();
 
-            // TODO: Update the live tile
+                AccountManager accountManager = new AccountManager();
+                int newMailCount = 0;
+                foreach (Account account in accountManager.Accounts)
+                {
+                    // TODO: Check the sync schedule to see if it's time to perform a sync
 
-            // If debugging is enabled, launch the agent again in one minute.
+                    // Check for new mail
+
+                    // TODO: Sync all labels. For now we'll just sync the inbox.
+                    Label label = await account.GetLabelAsync(forceSync: true);
+
+                    // TODO: What is the official way to count new mail?
+                    // The number of unread messages that have arrived that have a date later than when we last opened the app.
+                    newMailCount += label.Conversations.Where(conversation => conversation.HasUnread).Count();
+
+                    await account.LogoutAsync();
+                }
+
+                if (newMailCount > 0)
+                {
+                    // Launch a toast to show that the agent is running.
+                    // The toast will not be shown if the foreground application is running.
+                    ShellToast toast = new ShellToast();
+                    toast.Title = "New messages are available";
+                    toast.Content = "You have " + newMailCount + " new messages";
+                    toast.Show();
+                }
 #if DEBUG_AGENT
-  ScheduledActionService.LaunchForTest(task.Name, TimeSpan.FromSeconds(60));
+                else
+                {
+                    ShellToast toast = new ShellToast();
+                    toast.Title = "No new messages";
+                    toast.Content = "You have " + newMailCount + " new messages";
+                    toast.Show();
+                }
 #endif
+
+                // Update the live tile
+                ShellTile tile = ShellTile.ActiveTiles.FirstOrDefault();
+                if (tile != null)
+                {
+                    IconicTileData data = new IconicTileData();
+                    data.Count = newMailCount;
+                    tile.Update(data);
+
+                    // TODO: Include message snyppits for new mail on large tile.
+                }
+
+                // TODO: Update lock screen count, content
+
+                // If debugging is enabled, launch the agent again in one minute.
+#if DEBUG_AGENT
+                ScheduledActionService.LaunchForTest(task.Name, TimeSpan.FromSeconds(60));
+#endif
+            }
+            catch(Exception ex)
+            {
+                ShellToast toast = new ShellToast();
+                toast.Title = ex.GetType().Name;
+                toast.Content = ex.Message;
+                toast.Show();
+
+                throw;
+            }
 
             NotifyComplete();
         }

@@ -92,6 +92,10 @@
       <Project>{2FC8E860-7602-4F3D-8F15-912C686F87AA}</Project>
       <Name>WinPhone.Mail.Gmail.Shared</Name>
     </ProjectReference>
+    <ProjectReference Include="..\WinPhone.Mail.Protocols\WinPhone.Mail.Protocols.Phone.csproj">
+      <Project>{A332811E-4832-4E87-8C7F-442C6F76D5E6}</Project>
+      <Name>WinPhone.Mail.Protocols.Phone</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />
