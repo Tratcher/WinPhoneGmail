@@ -217,6 +217,10 @@ namespace WinPhone.Mail.Protocols
                     {
                         nestedBody.AppendLine(data);
                         data = reader.ReadLine(ref maxLength, a.Encoding, termChar);
+                        if (data == null)
+                        {
+                            throw new EndOfStreamException("Unexpected end of file");
+                        }
                     }
                     a.SetBody(nestedBody.ToString());
                     attachments.Add(a);
