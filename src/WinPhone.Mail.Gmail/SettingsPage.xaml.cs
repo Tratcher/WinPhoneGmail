@@ -2,6 +2,7 @@
 using System;
 using System.Windows;
 using System.Windows.Navigation;
+using Windows.System;
 using WinPhone.Mail.Gmail.Shared.Accounts;
 using WinPhone.Mail.Gmail.Shared.Storage;
 
@@ -43,6 +44,11 @@ namespace WinPhone.Mail.Gmail
         private void AboutButton_Click(object sender, RoutedEventArgs e)
         {
             NavigationService.Navigate(new Uri("/AboutPage.xaml", UriKind.Relative));
+        }
+
+        private async void AddToLockScreen_Click(object sender, RoutedEventArgs e)
+        {
+            await Launcher.LaunchUriAsync(new Uri("ms-settings-lock:"));
         }
     }
 }

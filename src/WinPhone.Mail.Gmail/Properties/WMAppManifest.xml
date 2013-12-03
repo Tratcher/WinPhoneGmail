@@ -16,26 +16,28 @@
     <Tokens>
       <PrimaryToken TokenID="WinPhone.MailToken" TaskName="_default">
         <TemplateIconic>
-          <SmallImageURI IsRelative="true" IsResource="false">Assets\ApplicationIcon.png</SmallImageURI>
+          <SmallImageURI IsRelative="true" IsResource="false">Assets\TileIconSmall.png</SmallImageURI>
           <Count>0</Count>
-          <IconImageURI IsRelative="true" IsResource="false">Assets\ApplicationIcon.png</IconImageURI>
-          <Title>
-          </Title>
+          <IconImageURI IsRelative="true" IsResource="false">Assets\TileIcon.png</IconImageURI>
+          <Title>Gmail</Title>
           <Message>
           </Message>
           <BackgroundColor>
           </BackgroundColor>
           <HasLarge>True</HasLarge>
-          <LargeContent1>
-          </LargeContent1>
-          <LargeContent2>
-          </LargeContent2>
-          <LargeContent3>
-          </LargeContent3>
-          <DeviceLockImageURI IsRelative="true" IsResource="false">Assets\ApplicationIcon.png</DeviceLockImageURI>
+          <!--
+          <LargeContent1>Message Subject</LargeContent1>
+          <LargeContent2>From</LargeContent2>
+          <LargeContent3>Message Body</LargeContent3>
+          -->
+          <DeviceLockImageURI IsRelative="true" IsResource="false">Assets\TileIcon.png</DeviceLockImageURI>
         </TemplateIconic>
       </PrimaryToken>
     </Tokens>
+    <Extensions>
+      <Extension ExtensionName="LockScreen_Notification_IconCount" ConsumerID="{111DFF24-AA15-4A96-8006-2BFF8122084F}" TaskID="_default" />
+      <Extension ExtensionName="LockScreen_Notification_TextField" ConsumerID="{111DFF24-AA15-4A96-8006-2BFF8122084F}" TaskID="_default" />
+    </Extensions>
     <ScreenResolutions>
       <ScreenResolution Name="ID_RESOLUTION_WVGA" />
       <ScreenResolution Name="ID_RESOLUTION_WXGA" />
