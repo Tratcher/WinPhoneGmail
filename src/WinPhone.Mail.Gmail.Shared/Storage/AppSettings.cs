@@ -10,6 +10,7 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
     public class AppSettings
     {
         private const string AccountsKey = "Accounts";
+        private const string ActivationTimeKey = "LastAppActivationTime";
 
         public static AccountInfo[] GetAccounts()
         {
@@ -25,6 +26,30 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
             {
             }
             return new AccountInfo[0];
+        }
+
+        public static DateTime LastAppActivationTime
+        {
+            get
+            {
+                try
+                {
+                    DateTime value;
+                    if (IsolatedStorageSettings.ApplicationSettings.TryGetValue(ActivationTimeKey, out value))
+                    {
+                        return value;
+                    }
+                }
+                catch (IsolatedStorageException)
+                {
+                }
+                return DateTime.MinValue; // Never?
+            }
+            set
+            {
+                IsolatedStorageSettings.ApplicationSettings[ActivationTimeKey] = value;
+                IsolatedStorageSettings.ApplicationSettings.Save();
+            }
         }
 
         public static void SaveAccounts(AccountInfo[] accounts)

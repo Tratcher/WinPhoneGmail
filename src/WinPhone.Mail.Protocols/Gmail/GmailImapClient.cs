@@ -42,12 +42,12 @@ namespace WinPhone.Mail.Protocols.Gmail
             // TODO: Do a test send to verify connectivity? Auto-disconnect and reconnect?
         }
 
-        public async Task<List<ConversationThread>> GetConversationsAsync(bool headersOnly)
+        public async Task<List<ConversationThread>> GetConversationsAsync(bool headersOnly, TimeSpan range)
         {
             await CheckConnectedAsync();
 
             // TODO: Configurable range
-            SearchCondition condition = SearchCondition.Since(DateTime.Now - TimeSpan.FromDays(30));
+            SearchCondition condition = SearchCondition.Since(DateTime.Now - range);
             string[] uids = await Client.SearchAsync(condition, uid: true);
 
             List<ConversationThread> conversations = new List<ConversationThread>();

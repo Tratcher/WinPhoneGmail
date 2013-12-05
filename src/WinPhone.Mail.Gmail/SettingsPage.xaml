@@ -28,6 +28,7 @@
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
             <Button Content="Accounts" Margin="10,10,10,0" VerticalAlignment="Top" Click="AccountsClick"/>
+            <Button Content="Sync" Margin="10,82,10,0" VerticalAlignment="Top" Click="SyncButton_Click"/>
             <Button Content="Clear ALL Data" Margin="10,0,10,82" VerticalAlignment="Bottom" Click="ClearAllDataClick"/>
             <Button Content="About" Margin="10,0,10,10" VerticalAlignment="Bottom" Click="AboutButton_Click" />
             <Button Content="Add to lock screen" Margin="10,0,10,154" VerticalAlignment="Bottom" Click="AddToLockScreen_Click" />

@@ -20,6 +20,11 @@ namespace WinPhone.Mail.Gmail
             NavigationService.Navigate(new Uri("/AccountsPage.xaml", UriKind.Relative));
         }
 
+        private void SyncButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/SyncSettingsPage.xaml", UriKind.Relative));
+        }
+
         // Burn it all
         private void ClearAllDataClick(object sender, RoutedEventArgs e)
         {

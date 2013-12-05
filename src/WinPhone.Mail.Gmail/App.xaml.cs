@@ -11,7 +11,9 @@ using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Navigation;
 using WinPhone.Mail.Gmail.Resources;
+using WinPhone.Mail.Gmail.Shared;
 using WinPhone.Mail.Gmail.Shared.Accounts;
+using WinPhone.Mail.Gmail.Shared.Storage;
 
 namespace WinPhone.Mail.Gmail
 {
@@ -76,6 +78,8 @@ namespace WinPhone.Mail.Gmail
         // This code will not execute when the application is reactivated
         private void Application_Launching(object sender, LaunchingEventArgs e)
         {
+            InitializeAccounts();
+            ResetLiveTile();
             StartPeriodicAgent();
         }
 
@@ -83,11 +87,13 @@ namespace WinPhone.Mail.Gmail
         // This code will not execute when the application is first launched
         private void Application_Activated(object sender, ActivatedEventArgs e)
         {
+            InitializeAccounts();
             ResetLiveTile();
         }
 
         private void ResetLiveTile()
         {
+            AppSettings.LastAppActivationTime = DateTime.Now;
             ShellTile tile = ShellTile.ActiveTiles.FirstOrDefault();
             if (tile != null)
             {
@@ -95,6 +101,8 @@ namespace WinPhone.Mail.Gmail
                 data.Count = 0;
                 tile.Update(data);
             }
+
+            AccountManager.ResetMailCounts();
         }
 
         // Code to execute when the application is deactivated (sent to background)
@@ -170,8 +178,6 @@ namespace WinPhone.Mail.Gmail
 
             // Remove this handler since it is no longer needed
             RootFrame.Navigated -= CompleteInitializePhoneApplication;
-
-            InitializeAccounts();
         }
 
         private void InitializeAccounts()
@@ -283,6 +289,12 @@ namespace WinPhone.Mail.Gmail
                 catch (Exception)
                 {
                 }
+            }
+
+            // Only schedule the background agent if any of the accounts have sync enabled.
+            if (AccountManager.Accounts.All(account => account.Info.Frequency == Constants.Sync.Manual))
+            {
+                return;
             }
 
             _periodicBackgroundTask = new PeriodicTask(_periodicBackgroundTaskName);

@@ -46,7 +46,7 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
 
             List<LabelInfo> labels = new List<LabelInfo>();
 
-            IsolatedStorageFileStream stream = _storage.OpenFile(path, FileMode.Open);
+            IsolatedStorageFileStream stream = _storage.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             using (StreamReader reader = new StreamReader(stream.AsInputStream().AsStreamForRead()))
             {
                 string line = await reader.ReadLineAsync();

@@ -118,8 +118,9 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             }
 
             bool headersOnly = (ActiveLabel.Conversations != null && ActiveLabel.Conversations.Count != 0); // Optimize for the first download.
-            List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(headersOnly);
+            List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(headersOnly, Info.Range);
 
+            ActiveLabel.Info.LastSync = DateTime.Now;
             ActiveLabel.Conversations = await ReconcileConversationsAsync(serverConversations, ActiveLabel.Conversations ?? new List<ConversationThread>());
 
             // Write back to storage.
@@ -129,6 +130,7 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
                 // TODO: Only store conversations that have changed.
                 await MailStorage.StoreConverationsAsync(ActiveLabel.Conversations);
             }
+            await SaveLabelSettingsAsync(); // Remember last sync time.
             return ActiveLabel;
         }
 

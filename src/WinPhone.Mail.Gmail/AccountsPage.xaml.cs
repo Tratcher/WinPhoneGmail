@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using WinPhone.Mail.Gmail.Resources;
+using WinPhone.Mail.Gmail.Shared;
 using WinPhone.Mail.Gmail.Shared.Accounts;
 using WinPhone.Mail.Gmail.Shared.Storage;
 
@@ -122,7 +123,10 @@ namespace WinPhone.Mail.Gmail
                 {
                     Address = AccountAddressBox.Text,
                     Password = AccountPasswordBox.Password,
-                    DisplayName = DisplayNameBox.Text
+                    DisplayName = DisplayNameBox.Text,
+                    Frequency = Constants.Sync.DefaultFrequency,
+                    Range = Constants.Range.DefaultRange,
+                    Notifications = NotificationOptions.Always,
                 }));
 
                 // Refresh

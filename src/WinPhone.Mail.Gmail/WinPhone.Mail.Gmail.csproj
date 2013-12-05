@@ -113,6 +113,9 @@
     <Compile Include="LabelSettingsPage.xaml.cs">
       <DependentUpon>LabelSettingsPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="SyncSettingsPage.xaml.cs">
+      <DependentUpon>SyncSettingsPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UIHelpers\StarFromMessageConverter.cs" />
     <Compile Include="UIHelpers\LabelsConverter.cs" />
     <Compile Include="LocalizedStrings.cs" />
@@ -177,6 +180,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="SettingsPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SyncSettingsPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

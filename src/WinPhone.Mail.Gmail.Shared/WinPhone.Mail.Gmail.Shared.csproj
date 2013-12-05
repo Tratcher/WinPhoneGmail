@@ -86,7 +86,9 @@
     <Compile Include="Accounts\Account.cs" />
     <Compile Include="Accounts\AccountManager.cs" />
     <Compile Include="Accounts\DebugAccount.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Label.cs" />
+    <Compile Include="NotificationOptions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Storage\AccountInfo.cs" />
     <Compile Include="Storage\AppSettings.cs" />

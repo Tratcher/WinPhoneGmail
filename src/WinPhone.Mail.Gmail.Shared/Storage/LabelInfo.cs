@@ -14,6 +14,8 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
 
         public string Color { get; set; }
 
+        public DateTime LastSync { get; set; }
+
         public override string ToString()
         {
             return Name;

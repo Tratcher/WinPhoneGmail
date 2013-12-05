@@ -73,5 +73,15 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
         {
             AppSettings.SaveAccounts(Accounts.Select(ac => ac.Info).ToArray());
         }
+
+        public void ResetMailCounts()
+        {
+            foreach (Account account in Accounts)
+            {
+                account.Info.NewMailCount = 0;
+            }
+
+            SaveAccounts();
+        }
     }
 }

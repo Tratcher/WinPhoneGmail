@@ -9,6 +9,8 @@ using System.Diagnostics;
 using System.Windows;
 using WinPhone.Mail.Gmail.Shared;
 using WinPhone.Mail.Gmail.Shared.Accounts;
+using WinPhone.Mail.Gmail.Shared.Storage;
+using WinPhone.Mail.Protocols.Gmail;
 
 namespace WinPhone.Mail.Gmail.BackgroundTask
 {
@@ -70,28 +72,67 @@ namespace WinPhone.Mail.Gmail.BackgroundTask
 
                 AccountManager accountManager = new AccountManager();
                 int newMailCount = 0;
+                bool notify = false;
+                DateTime lastAppActivationTime = AppSettings.LastAppActivationTime;
                 foreach (Account account in accountManager.Accounts)
                 {
-                    // TODO: Check the sync schedule to see if it's time to perform a sync
+                    // TODO: Per label frequency?
+                    if (account.Info.Frequency == Constants.Sync.Manual)
+                    {
+                        continue;
+                    }
 
-                    // Check for new mail
+                    int accountNewMail = 0;
+                    // TODO: Messages may be double counted across labels. Deduplicate by GUID?
+                    foreach (LabelInfo labelInfo in await account.GetLabelsAsync(forceSync: false))
+                    {
+                        if (labelInfo.Store)
+                        {
+                            // Check the sync schedule to see if it's time to perform a sync
+                            bool forceSync = account.Info.Frequency < DateTime.Now - labelInfo.LastSync;
 
-                    // TODO: Sync all labels. For now we'll just sync the inbox.
-                    Label label = await account.GetLabelAsync(forceSync: true);
+                            // Get the messages, from online or storage
+                            Label label = await account.GetLabelAsync(forceSync);
 
-                    // TODO: What is the official way to count new mail?
-                    // The number of unread messages that have arrived that have a date later than when we last opened the app.
-                    newMailCount += label.Conversations.Where(conversation => conversation.HasUnread).Count();
+                            // We count messages because we want to be notified if new messages arrive on the same conversation.
+                            // The number of unread messages that have arrived with a date later than when we last opened the app.
+                            foreach (ConversationThread conversation in label.Conversations)
+                            {
+                                accountNewMail += conversation.Messages
+                                        .Where(message => !message.Seen)
+                                        .Where(message => message.Date > lastAppActivationTime)
+                                        .Count();
+                            }
+                        }
+                    }
+
+                    int accountPriorNewMail = account.Info.NewMailCount;
+                    account.Info.NewMailCount = accountNewMail;
+
+                    if (account.Info.Notifications == NotificationOptions.FirstOnly
+                        && accountPriorNewMail == 0 && accountNewMail > 0)
+                    {
+                        notify = true;
+                    }
+                    // TODO: This check is inaccurate if we go on another system and read some messages and then receive more. (e.g. -2, +2)
+                    else if (account.Info.Notifications == NotificationOptions.Always
+                        && accountNewMail > accountPriorNewMail)
+                    {
+                        notify = true;
+                    }
+
+                    newMailCount += accountNewMail;
 
                     await account.LogoutAsync();
                 }
 
-                if (newMailCount > 0)
+                accountManager.SaveAccounts();
+
+                if (notify)
                 {
-                    // Launch a toast to show that the agent is running.
                     // The toast will not be shown if the foreground application is running.
                     ShellToast toast = new ShellToast();
-                    toast.Title = "New messages are available";
+                    toast.Title = "Gmail";
                     toast.Content = "You have " + newMailCount + " new messages";
                     toast.Show();
                 }
@@ -99,13 +140,13 @@ namespace WinPhone.Mail.Gmail.BackgroundTask
                 else
                 {
                     ShellToast toast = new ShellToast();
-                    toast.Title = "No new messages";
-                    toast.Content = "You have " + newMailCount + " new messages";
+                    toast.Title = "Gmail";
+                    toast.Content = "You still have " + newMailCount + " new messages";
                     toast.Show();
                 }
 #endif
 
-                // Update the live tile
+                // Update the live tile and lock screen
                 ShellTile tile = ShellTile.ActiveTiles.FirstOrDefault();
                 if (tile != null)
                 {
@@ -113,24 +154,24 @@ namespace WinPhone.Mail.Gmail.BackgroundTask
                     data.Count = newMailCount;
                     tile.Update(data);
 
-                    // TODO: Include message snyppits for new mail on large tile.
+                    // TODO: Include message snyppits for new mail on large tile and lock screen.
                 }
 
-                // TODO: Update lock screen count, content
-
-                // If debugging is enabled, launch the agent again in one minute.
 #if DEBUG_AGENT
+                // If debugging is enabled, launch the agent again in one minute.
                 ScheduledActionService.LaunchForTest(task.Name, TimeSpan.FromSeconds(60));
 #endif
             }
             catch(Exception ex)
             {
+#if DEBUG
                 ShellToast toast = new ShellToast();
                 toast.Title = ex.GetType().Name;
                 toast.Content = ex.Message;
                 toast.Show();
-
+#else
                 throw;
+#endif
             }
 
             NotifyComplete();
