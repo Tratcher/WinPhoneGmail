@@ -165,6 +165,15 @@ namespace WinPhone.Mail.Gmail
                     SyncIcon.Source = label.Info.Store ? null : new BitmapImage(new Uri("/Assets/AppBar/not.png", UriKind.Relative));
                 }
             }
+            catch (Exception ex)
+            {
+#if DEBUG
+                // Don't crash, we need a chance to recover from corrupt data without un-installing the app.
+                MessageBox.Show(ex.ToString());
+#else
+                throw;
+#endif
+            }
             finally
             {
                 ProgressIndicator.IsIndeterminate = false;
