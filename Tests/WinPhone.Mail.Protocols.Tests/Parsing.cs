@@ -461,14 +461,16 @@ Content-Disposition: attachment
         {
             var msg = new WinPhone.Mail.Protocols.MailMessage()
             {
-                From = new MailAddress("test@test.com")
+                From = new MailAddress("test@test.com"),
+                Scope = Scope.HeadersAndBody,
             };
             var firstAttachmentContents = "This is a test.";
             var attachment = new Attachment()
             {
                 Body = Convert.ToBase64String(Encoding.Default.GetBytes(firstAttachmentContents)),
                 ContentTransferEncoding = "base64",
-                Encoding = Encoding.ASCII
+                Encoding = Encoding.ASCII,
+                Scope = Scope.HeadersAndBody,
             };
             attachment.Headers.Add("Content-Type", new HeaderValue(@"text/plain; filename=""Readme.txt"""));
             msg.Attachments.Add(attachment);
@@ -480,7 +482,8 @@ Content-Disposition: attachment
             {
                 Body = Convert.ToBase64String(secondAttachmentContents),
                 ContentTransferEncoding = "base64",
-                Encoding = Encoding.ASCII
+                Encoding = Encoding.ASCII,
+                Scope = Scope.HeadersAndBody,
             };
             attachment.Headers.Add("Content-Type", new HeaderValue(@"application/binary; filename=""Data.bin"""));
             msg.Attachments.Add(attachment);
@@ -559,7 +562,7 @@ Content-Disposition: attachment
         private WinPhone.Mail.Protocols.MailMessage GetMessage(string raw)
         {
             var msg = new WinPhone.Mail.Protocols.MailMessage();
-            msg.Load(raw, false);
+            msg.Load(raw, Scope.HeadersAndBody);
 
             return msg;
         }
@@ -658,7 +661,7 @@ Content-Disposition: attachment
         public void SaveAndLoadHeadersOnly()
         {
             MailMessage message1 = new MailMessage();
-            message1.HeadersOnly = true;
+            message1.Scope = Scope.HeadersAndMime;
 
             message1.Sender = new MailAddress("sender@example.com");
             message1.From = new MailAddress("from@example.com");
@@ -676,7 +679,7 @@ Content-Disposition: attachment
             buffer.Seek(0, SeekOrigin.Begin);
 
             MailMessage message2 = new MailMessage();
-            message2.Load(buffer, true, 0);
+            message2.Load(buffer, Scope.Headers, 0);
 
             Assert.Equal(message1.Sender.ToString(), message2.Sender.ToString());
             Assert.Equal(message1.From.ToString(), message2.From.ToString());
@@ -695,7 +698,7 @@ Content-Disposition: attachment
         public void SaveAndLoadHeadersOnlyMultipart()
         {
             MailMessage message1 = new MailMessage();
-            message1.HeadersOnly = true;
+            message1.Scope = Scope.HeadersAndMime;
 
             message1.Sender = new MailAddress("sender@example.com");
             message1.From = new MailAddress("from@example.com");
@@ -724,7 +727,7 @@ Content-Disposition: attachment
             buffer.Seek(0, SeekOrigin.Begin);
 
             MailMessage message2 = new MailMessage();
-            message2.Load(buffer, true, 0);
+            message2.Load(buffer, Scope.HeadersAndMime, 0);
 
             Assert.Equal(message1.Sender.ToString(), message2.Sender.ToString());
             Assert.Equal(message1.From.ToString(), message2.From.ToString());

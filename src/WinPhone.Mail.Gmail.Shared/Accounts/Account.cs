@@ -130,7 +130,7 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             {
                 // Allow us to view mail without storing it to disk.
                 // TODO: Consider downloading only headers and then downloading the body & attachments if we open it.
-                List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(headersOnly: false, range: Info.Range);
+                List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(Scope.HeadersAndBody, range: Info.Range);
                 ActiveLabel.Conversations = serverConversations;
             }
 

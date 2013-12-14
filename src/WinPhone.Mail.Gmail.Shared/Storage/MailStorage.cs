@@ -253,7 +253,7 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
             await StoreMessageFlagsAsync(message.GetThreadId(), message.GetMessageId(), Utilities.FlagsToFlagString(message.Flags));
             await StoreMessageLabelsAsync(message.GetThreadId(), message.GetMessageId(), message.GetLabelsHeader());
             await StoreMessageHeadersAsync(message);
-            if (!message.HeadersOnly)
+            if (message.Scope >= Scope.HeadersAndBodySnyppit)
             {
                 // TODO: Verify BodyId is set.
                 // Body parts
@@ -423,7 +423,7 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
             {
                 // TODO: Async
                 MailMessage message = new MailMessage();
-                message.Load(stream, true, 0);
+                message.Load(stream, Scope.HeadersAndMime, 0);
                 return Task.FromResult(message);
             }
         }

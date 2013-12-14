@@ -47,6 +47,12 @@ namespace WinPhone.Mail.Protocols
             }
         }
 
+        public Scope Scope
+        {
+            get;
+            set;
+        }
+
         protected System.Text.Encoding _DefaultEncoding = Utilities.ASCII; //  System.Text.Encoding.UTF8; // System.Text.Encoding.GetEncoding("Windows-1252");
         protected System.Text.Encoding _Encoding;
         public virtual System.Text.Encoding Encoding
@@ -96,6 +102,8 @@ namespace WinPhone.Mail.Protocols
 
                 ContentTransferEncoding = string.Empty;
             }
+
+            Scope = Scope.HeadersAndBody;
 
             Body = value;
         }

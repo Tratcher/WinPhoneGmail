@@ -112,6 +112,7 @@
     <Compile Include="Imap\MessageEventArgs.cs" />
     <Compile Include="MailAddress.cs" />
     <Compile Include="MailAddressParser.cs" />
+    <Compile Include="Scope.cs" />
     <Compile Include="Smtp\SmtpClient.cs" />
     <Compile Include="Transport\BufferedReadStream.cs" />
     <Compile Include="Transport\DuplexStream.cs" />

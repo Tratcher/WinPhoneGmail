@@ -786,7 +786,7 @@ YEKT +05"
         public static MailMessage ParseEnvelope(string rawEnvelope)
         {
             MailMessage messageData = new MailMessage();
-            messageData.HeadersOnly = true;
+            messageData.Scope = Scope.Headers;
 
             IList<string> tokens = ParseTokenList(rawEnvelope);
             if (tokens.Count != 10)
@@ -841,6 +841,8 @@ YEKT +05"
             }
             else
             {
+                messageData.Scope = Scope.HeadersAndMime;
+
                 // Multipart
                 int tokenIndex = 0;
                 // Starts with a list of part descriptors:

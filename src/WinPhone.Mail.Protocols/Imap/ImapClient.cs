@@ -465,39 +465,39 @@ namespace WinPhone.Mail.Protocols
             return Task.FromResult(0);
         }
 
-        public virtual Task<MailMessage> GetMessageAsync(string uid, bool headersonly = false)
+        public virtual Task<MailMessage> GetMessageAsync(string uid, Scope scope = Scope.HeadersAndBody)
         {
-            return GetMessageAsync(uid, headersonly, setseen: false);
+            return GetMessageAsync(uid, scope, setseen: false);
         }
 
-        public virtual Task<MailMessage> GetMessageAsync(int index, bool headersonly = false)
+        public virtual Task<MailMessage> GetMessageAsync(int index, Scope scope = Scope.HeadersAndBody)
         {
-            return GetMessageAsync(index, headersonly, setseen: false);
+            return GetMessageAsync(index, scope, setseen: false);
         }
 
-        public virtual async Task<MailMessage> GetMessageAsync(int index, bool headersonly, bool setseen)
+        public virtual async Task<MailMessage> GetMessageAsync(int index, Scope scope, bool setseen)
         {
-            return (await GetMessagesAsync(index, index, headersonly, setseen)).FirstOrDefault();
+            return (await GetMessagesAsync(index, index, scope, setseen)).FirstOrDefault();
         }
 
-        public virtual async Task<MailMessage> GetMessageAsync(string uid, bool headersonly, bool setseen)
+        public virtual async Task<MailMessage> GetMessageAsync(string uid, Scope scope, bool setseen)
         {
-            return (await GetMessagesAsync(uid, uid, headersonly, setseen)).FirstOrDefault();
+            return (await GetMessagesAsync(uid, uid, scope, setseen)).FirstOrDefault();
         }
 
-        public virtual Task<MailMessage[]> GetMessagesAsync(string startUID, string endUID, bool headersonly = true, bool setseen = false)
+        public virtual Task<MailMessage[]> GetMessagesAsync(string startUID, string endUID, Scope scope = Scope.HeadersAndBody, bool setseen = false)
         {
-            return GetMessagesAsync(startUID, endUID, true, headersonly, setseen);
+            return GetMessagesAsync(startUID, endUID, true, scope, setseen);
         }
 
-        public virtual Task<MailMessage[]> GetMessagesAsync(int startIndex, int endIndex, bool headersonly = true, bool setseen = false)
+        public virtual Task<MailMessage[]> GetMessagesAsync(int startIndex, int endIndex, Scope scope = Scope.HeadersAndBody, bool setseen = false)
         {
-            return GetMessagesAsync((startIndex + 1).ToString(), (endIndex + 1).ToString(), false, headersonly, setseen);
+            return GetMessagesAsync((startIndex + 1).ToString(), (endIndex + 1).ToString(), false, scope, setseen);
         }
 
         public virtual Task DownloadMessageAsync(Stream stream, int index, bool setseen)
         {
-            return GetMessagesAsync((index + 1).ToString(), (index + 1).ToString(), false, false, setseen, (message, size, headers) =>
+            return GetMessagesAsync((index + 1).ToString(), (index + 1).ToString(), false, Scope.HeadersAndBody, setseen, (message, size, headers) =>
             {
                 Utilities.CopyStream(message, stream, size);
                 return Task.FromResult<MailMessage>(null);
@@ -506,18 +506,18 @@ namespace WinPhone.Mail.Protocols
 
         public virtual Task DownloadMessageAsync(Stream stream, string uid, bool setseen)
         {
-            return GetMessagesAsync(uid, uid, true, false, setseen, (message, size, headers) =>
+            return GetMessagesAsync(uid, uid, true, Scope.HeadersAndBody, setseen, (message, size, headers) =>
             {
                 Utilities.CopyStream(message, stream, size);
                 return Task.FromResult<MailMessage>(null);
             });
         }
 
-        public virtual async Task<MailMessage[]> GetMessagesAsync(string start, string end, bool uid, bool headersonly, bool setseen)
+        public virtual async Task<MailMessage[]> GetMessagesAsync(string start, string end, bool uid, Scope scope, bool setseen)
         {
             var x = new List<MailMessage>();
 
-            await GetMessagesAsync(start, end, uid, headersonly, setseen,
+            await GetMessagesAsync(start, end, uid, scope, setseen,
                 async (stream, size, imapHeaders) =>
                 {
                     var mail = new MailMessage { Encoding = Encoding };
@@ -530,7 +530,7 @@ namespace WinPhone.Mail.Protocols
                         mail.SetFlags(imapHeaders["Flags"]);
 
                     await _Stream.EnsureBufferAsync(mail.Size);
-                    mail.Load(_Stream, headersonly, mail.Size);
+                    mail.Load(_Stream, scope, mail.Size);
 
                     foreach (var key in imapHeaders.Keys.Except(new[] { "UID", "Flags", "BODY[]", "BODY[HEADER]" }, StringComparer.OrdinalIgnoreCase))
                         mail.Headers.Add(key, new HeaderValue(imapHeaders[key]));
@@ -544,7 +544,7 @@ namespace WinPhone.Mail.Protocols
             return x.ToArray();
         }
 
-        public virtual async Task GetMessagesAsync(string start, string end, bool uid, bool headersonly, bool setseen, Func<Stream, int, IDictionary<string, string>, Task<MailMessage>> action)
+        public virtual async Task GetMessagesAsync(string start, string end, bool uid, Scope scope, bool setseen, Func<Stream, int, IDictionary<string, string>, Task<MailMessage>> action)
         {
             await CheckMailboxSelectedAsync();
             await IdlePauseAsync();
@@ -556,7 +556,7 @@ namespace WinPhone.Mail.Protocols
                 + "FETCH " + start + ":" + end
                 + " (" + _FetchHeaders + "UID FLAGS BODY"
                 + (setseen ? null : ".PEEK")
-                + "[" + (headersonly ? "HEADER" : null) + "])";
+                + "[" + (scope == Scope.Headers ? "HEADER" : null) + "])";
 
             string response;
 

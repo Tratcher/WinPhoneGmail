@@ -43,7 +43,7 @@ namespace WinPhone.Mail.Protocols.Gmail
             // TODO: Do a test send to verify connectivity? Auto-disconnect and reconnect?
         }
 
-        public async Task<List<ConversationThread>> GetConversationsAsync(bool headersOnly, TimeSpan range)
+        public async Task<List<ConversationThread>> GetConversationsAsync(Scope scope, TimeSpan range)
         {
             await CheckConnectedAsync();
 
@@ -58,13 +58,13 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
             else if (uids.Length == 1)
             {
-                MailMessage message = await Client.GetMessageAsync(uids[0], headersOnly);
+                MailMessage message = await Client.GetMessageAsync(uids[0], scope);
                 messages = new MailMessage[] { message };
             }
             else
             {
                 // TODO: Consider comma joined list of UIDs
-                messages = await Client.GetMessagesAsync(uids[0], uids[uids.Length - 1], headersOnly);
+                messages = await Client.GetMessagesAsync(uids[0], uids[uids.Length - 1], scope);
             }
 
             // Group by thread ID
@@ -195,7 +195,7 @@ namespace WinPhone.Mail.Protocols.Gmail
 
         public async Task<MailMessage> DownloadMessageAsync(string uid)
         {
-            MailMessage message = await Client.GetMessageAsync(uid, headersonly: false);
+            MailMessage message = await Client.GetMessageAsync(uid, Scope.HeadersAndBody);
             FixUpLabels(message);
             return message;
         }

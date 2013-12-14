@@ -104,9 +104,9 @@ namespace Tests
                 {
                     (await mail.GetMessageCountAsync()).ShouldBeInRange(1, int.MaxValue);
 
-                    var msg = await mail.GetMessageAsync(0, true);
+                    var msg = await mail.GetMessageAsync(0, Scope.Headers);
                     msg.Subject.ShouldNotBeNullOrEmpty();
-                    msg = await mail.GetMessageAsync(0, false);
+                    msg = await mail.GetMessageAsync(0, Scope.HeadersAndBody);
                     msg.Body.ShouldNotBeNullOrEmpty();
 
                     await mail.DisconnectAsync();
@@ -198,7 +198,7 @@ namespace Tests
             int numMessages = 10;
             using (var imap = await GetClientAsync<ImapClient>())
             {
-                var msgs = await imap.GetMessagesAsync(0, numMessages - 1, false);
+                var msgs = await imap.GetMessagesAsync(0, numMessages - 1, Scope.HeadersAndBody);
                 msgs.Length.ShouldBe(numMessages);
 
                 for (var i = 0; i < 1000; i++)
@@ -209,7 +209,7 @@ namespace Tests
                     msg.ContentType.ShouldStartWith("text/");
                 }
 
-                msgs = await imap.GetMessagesAsync(0, numMessages - 1, true);
+                msgs = await imap.GetMessagesAsync(0, numMessages - 1, Scope.Headers);
                 msgs.Length.ShouldBe(numMessages);
                 msgs.Count(x => string.IsNullOrEmpty(x.Subject)).ShouldBe(0);
             }
@@ -231,7 +231,7 @@ namespace Tests
                 using (var file = new System.IO.FileStream(filename, System.IO.FileMode.Open))
                 {
                     var msg = new WinPhone.Mail.Protocols.MailMessage();
-                    msg.Load(file, headersOnly: false, maxLength: 0);
+                    msg.Load(file, Scope.HeadersAndBody, maxLength: 0);
                     msg.Subject.ShouldNotBeNullOrEmpty();
                 }
 

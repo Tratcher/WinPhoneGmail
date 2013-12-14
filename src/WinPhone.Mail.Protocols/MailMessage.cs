@@ -87,20 +87,19 @@ namespace WinPhone.Mail.Protocols
         public virtual string MessageID { get; set; }
         public virtual string Uid { get; set; }
         public virtual MailPriority Importance { get; set; }
-        public virtual bool HeadersOnly { get; set; }
 
-        public virtual void Load(string message, bool headersOnly = false)
+        public virtual void Load(string message, Scope scope = Scope.HeadersAndBody)
         {
             if (string.IsNullOrEmpty(message)) return;
             using (var mem = new MemoryStream(_DefaultEncoding.GetBytes(message)))
             {
-                Load(mem, headersOnly, message.Length);
+                Load(mem, scope, message.Length);
             }
         }
 
-        public virtual void Load(Stream reader, bool headersOnly, int maxLength, char? termChar = null)
+        public virtual void Load(Stream reader,  Scope scope, int maxLength, char? termChar = null)
         {
-            HeadersOnly = headersOnly;
+            Scope = scope;
             Headers = null;
             Body = null;
 
@@ -117,14 +116,15 @@ namespace WinPhone.Mail.Protocols
             }
             RawHeaders = headers.ToString();
 
-            // if (!headersOnly) // Read the mime structure anyways, but the body will be empty.
+            if (Scope > Scope.Headers)
             {
                 string boundary = Headers.GetBoundary();
                 if (!string.IsNullOrEmpty(boundary))
                 {
                     var atts = new List<Attachment>();
+                    // Read the mime structure anyways, but the body might be empty.
                     var body = ParseMime(reader, boundary, ref maxLength, atts, Encoding, termChar);
-                    if (!headersOnly && !string.IsNullOrEmpty(body))
+                    if (Scope > Scope.HeadersAndMime && !string.IsNullOrEmpty(body))
                         SetBody(body);
 
                     foreach (var att in atts)
@@ -133,7 +133,7 @@ namespace WinPhone.Mail.Protocols
                     if (maxLength > 0)
                         reader.ReadToEnd(maxLength, Encoding);
                 }
-                else if (!headersOnly)
+                else if (Scope > Scope.HeadersAndMime)
                 {
                     //	sometimes when email doesn't have a body, we get here with maxLength == 0 and we shouldn't read any further
                     string body = String.Empty;
@@ -294,7 +294,7 @@ namespace WinPhone.Mail.Protocols
                 txt.WriteLine("--" + boundary);
                 txt.WriteLine(string.Join("\r\n", view.Headers.Select(h => string.Format("{0}: {1}", h.Key, h.Value))));
                 txt.WriteLine();
-                if (!HeadersOnly)
+                if (view.Scope >= Scope.HeadersAndBodySnyppit)
                 {
                     txt.WriteLine(view.Body);
                 }
@@ -307,7 +307,7 @@ namespace WinPhone.Mail.Protocols
                 txt.WriteLine("--" + boundary);
                 txt.WriteLine(string.Join("\r\n", att.Headers.Select(h => string.Format("{0}: {1}", h.Key, h.Value))));
                 txt.WriteLine();
-                if (!HeadersOnly)
+                if (att.Scope >= Scope.HeadersAndBodySnyppit)
                 {
                     txt.WriteLine(att.Body);
                 }

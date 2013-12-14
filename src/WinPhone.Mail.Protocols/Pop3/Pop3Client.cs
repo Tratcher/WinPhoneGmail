@@ -47,21 +47,21 @@ namespace WinPhone.Mail.Protocols
             return int.Parse(result.Split(' ')[1]);
         }
 
-        public virtual Task<MailMessage> GetMessageAsync(int index, bool headersOnly = false)
+        public virtual Task<MailMessage> GetMessageAsync(int index, Scope scope = Scope.HeadersAndBody)
         {
-            return GetMessageAsync((index + 1).ToString(), headersOnly);
+            return GetMessageAsync((index + 1).ToString(), scope);
         }
 
         private static Regex rxOctets = new Regex(@"(\d+)\s+octets", RegexOptions.IgnoreCase);
 
-        public virtual async Task<MailMessage> GetMessageAsync(string uid, bool headersOnly = false)
+        public virtual async Task<MailMessage> GetMessageAsync(string uid, Scope scope = Scope.HeadersAndBody)
         {
             CheckConnectionStatus();
-            var line = await SendCommandGetResponseAsync(string.Format(headersOnly ? "TOP {0} 0" : "RETR {0}", uid));
+            var line = await SendCommandGetResponseAsync(string.Format(scope == Scope.Headers ? "TOP {0} 0" : "RETR {0}", uid));
             var size = rxOctets.Match(line).Groups[1].Value.ToInt();
             CheckResultOK(line);
             var msg = new MailMessage();
-            msg.Load(_Stream, headersOnly, size, '.');
+            msg.Load(_Stream, scope, size, '.');
 
             msg.Uid = uid;
             var last = await GetResponseAsync();

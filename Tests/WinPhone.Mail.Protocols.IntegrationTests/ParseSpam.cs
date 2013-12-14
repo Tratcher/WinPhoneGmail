@@ -25,7 +25,7 @@ namespace Tests {
 				var file = files[i];
 				var txt = System.IO.File.ReadAllText(file);
 				using (var stream = System.IO.File.OpenRead(file))
-					msg.Load(stream, false, (int)stream.Length);
+					msg.Load(stream, Scope.HeadersAndBody, (int)stream.Length);
 
 				if (msg.ContentTransferEncoding.IndexOf("quoted", StringComparison.OrdinalIgnoreCase) == -1) {
 					continue;
