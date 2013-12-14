@@ -1,5 +1,7 @@
-﻿using System.Linq;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using WinPhone.Mail.Gmail.Shared.Storage;
 
@@ -82,6 +84,93 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             }
 
             SaveAccounts();
+        }
+
+        // Called from the background to sync all mail accounts and labels.
+        //
+        // Algorithm: Favors new mail detection over local disk cleanup
+        // For each account:
+        //  For each Label:
+        //   Determine if this label has completely sync'd within it's desired frequency.
+        //   Determine oldest date: Now - Range
+        //   Query server for ids of messages in folder since oldest date (async while loading local list?)
+        //   Load stored message list (Ids only)
+        //   For each new item in the remote list:
+        //   - Download & save headers, flags, & labels, add to local list, save (TODO: What if another label already had this message?)
+        //   - Anything that is unread counts as new mail. It wasn't downloaded last time we opened the app, so the message date is irrelevant.
+        //   - Queue body and attachments for download later.
+        //   For each item that was already in the local list
+        //   - query for updated flags and labels
+        //   - Anything that is unread since the last time we opened the app counts as new mail.
+        //   - Queue body and attachments for download later (if they weren't downloaded on a previous sync)
+        // For each account:
+        //  Download & save queued text bodies, then html, then attachments
+        // For each account:
+        //  Remove anything from the local list that does not appear in the remote list. GC.
+        public async Task<Tuple<int, bool>> SyncAllMailAsync(CancellationToken cancellationToken)
+        {
+            int newMailCount = 0;
+            bool notify = false;
+            foreach (Account account in Accounts)
+            {
+                // TODO: Per label frequency?
+                if (account.Info.Frequency == Constants.Sync.Manual)
+                {
+                    continue;
+                }
+
+                int accountNewMail = 0;
+                // TODO: Messages may be double counted across labels. Deduplicate by GUID?
+                foreach (LabelInfo labelInfo in await account.GetLabelsAsync(forceSync: false))
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    if (labelInfo.Store)
+                    {
+                        // Check the sync schedule to see if it's time to perform a sync
+                        bool sync = account.Info.Frequency < DateTime.Now - labelInfo.LastSync;
+
+                        if (sync)
+                        {
+                            await account.SelectLabelAsync(labelInfo);
+                            accountNewMail += await account.SyncMessageHeadersAsync(cancellationToken);
+                            await account.SyncMessageBodiesAsync(cancellationToken);
+                            // TODO: Attachments
+                        }
+                    }
+                }
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                // TODO: Only do this if sync is called from the background?
+                int accountPriorNewMail = account.Info.NewMailCount;
+                account.Info.NewMailCount = newMailCount;
+                SaveAccounts();
+
+                if (account.Info.Notifications == NotificationOptions.FirstOnly
+                    && accountPriorNewMail == 0 && accountNewMail > 0)
+                {
+                    notify = true;
+                }
+                // TODO: This check is inaccurate if we go on another system and read some messages and then receive more. (e.g. -2, +2)
+                else if (account.Info.Notifications == NotificationOptions.Always
+                    && accountNewMail > accountPriorNewMail)
+                {
+                    notify = true;
+                }
+
+                newMailCount += accountNewMail;
+
+                await account.LogoutAsync();
+            }
+
+            return new Tuple<int, bool>(newMailCount, notify);
         }
     }
 }

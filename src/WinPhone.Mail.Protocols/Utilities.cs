@@ -766,5 +766,230 @@ YEKT +05"
         {
             return '<' + mailAddress.Address + '>';
         }
+
+        // A parenthesized list that describes the envelope structure of a
+        // message...
+        // The fields of the envelope structure are in the following
+        // order: date, subject, from, sender, reply-to, to, cc, bcc,
+        // in-reply-to, and message-id.  The date, subject, in-reply-to,
+        // and message-id fields are strings.  The from, sender, reply-to,
+        // to, cc, and bcc fields are parenthesized lists of address
+        // structures.
+        // Example: (line breaks added for clarity)
+        // "Mon, 2 Dec 2013 22:11:30 -0800"
+        // "New mail count test"
+        // (("Chris Ross" NIL "tracher" "gmail.com"))
+        // (("Chris Ross" NIL "tracher" "gmail.com"))
+        // (("Chris Ross" NIL "tracher" "gmail.com"))
+        // (("Chris Ross" NIL "tracher" "gmail.com")) NIL NIL NIL
+        // "<CANP0M55SKr86pwm3QyJxRUA481thuJ_sDopMXp=mQLuEE-7DjQ@mail.gmail.com>"
+        public static MailMessage ParseEnvelope(string rawEnvelope)
+        {
+            MailMessage messageData = new MailMessage();
+            messageData.HeadersOnly = true;
+
+            IList<string> tokens = ParseTokenList(rawEnvelope);
+            if (tokens.Count != 10)
+            {
+                throw new InvalidDataException("Token mismatch: " + tokens);
+            }
+
+            messageData.Date = Utilities.ToNullDate(tokens[0]) ?? DateTime.MinValue;
+            messageData.Subject = tokens[1];
+            messageData.From = ParseAddressTokenList(tokens[2]).FirstOrDefault();
+            messageData.Sender = ParseAddressTokenList(tokens[3]).FirstOrDefault();
+            messageData.ReplyTo = ParseAddressTokenList(tokens[4]);
+            messageData.To = ParseAddressTokenList(tokens[5]);
+            messageData.Cc = ParseAddressTokenList(tokens[6]);
+            messageData.Bcc = ParseAddressTokenList(tokens[7]);
+            if (!string.Equals("NIL", tokens[8]))
+            {
+                messageData.Headers.Add("in-reply-to", new HeaderValue(tokens[8]));
+            }
+            messageData.MessageID = tokens[9];
+
+            return messageData;
+        }
+
+        // A parenthesized list that describes the [MIME-IMB] body
+        // structure of a message.
+        // Multiple parts are indicated by parenthesis nesting.  Instead
+        // of a body type as the first element of the parenthesized list,
+        // there is a sequence of one or more nested body structures.  The
+        // second element of the parenthesized list is the multipart
+        // subtype (mixed, digest, parallel, alternative, etc.).
+        // Example: (line breaks added for clarity)
+        // ("TEXT" "PLAIN" ("CHARSET" "ISO-8859-1") NIL NIL "7BIT" 2 1 NIL NIL NIL)
+        // ("TEXT" "HTML" ("CHARSET" "ISO-8859-1") NIL NIL "7BIT" 27 1 NIL NIL NIL)
+        // "ALTERNATIVE" ("BOUNDARY" "047d7bea2f06ddf77e04ec9b2a60") NIL NIL)
+        // Or for non-multipart:
+        // "TEXT" "PLAIN" ("CHARSET" "ISO-8859-1") NIL NIL "7BIT" 13 1 NIL NIL NIL
+        public static MailMessage ParseBodyStructure(string rawBodyStructure, MailMessage messageData)
+        {
+            IList<string> tokens = ParseTokenList(rawBodyStructure);
+
+            // Multipart or not?
+            IList<string> subTokens = ParseTokenList(tokens[0]);
+            if (subTokens.Count == 1)
+            {
+                // Singlepart
+                messageData.ContentType = GetContentType(tokens);
+                messageData.ContentTransferEncoding = tokens[5];
+                messageData.BodyId = "1";
+                // TODO: Size
+                // TODO: What are all the other fields?
+            }
+            else
+            {
+                // Multipart
+                int tokenIndex = 0;
+                // Starts with a list of part descriptors:
+                // "TEXT" "PLAIN" ("CHARSET" "ISO-8859-1") NIL NIL "7BIT" 13 1 NIL NIL NIL
+                while (subTokens.Count > 1)
+                {
+                    Attachment bodyPart = new Attachment();
+                    bodyPart.ContentType = GetContentType(subTokens);
+                    bodyPart.ContentTransferEncoding = subTokens[5];
+                    bodyPart.BodyId = (tokenIndex + 1).ToString(CultureInfo.InvariantCulture);
+                    // TODO: Size
+                    // TODO: What are all the other fields?
+
+                    // TODO: Attachments vs Alternate views?
+                    if (bodyPart.IsAttachment)
+                    {
+                        messageData.Attachments.Add(bodyPart);
+                    }
+                    else
+                    {
+                        messageData.AlternateViews.Add(bodyPart);
+                    }
+
+                    tokenIndex++;
+                    subTokens = ParseTokenList(tokens[tokenIndex]);
+                }
+
+                subTokens = ParseTokenList(tokens[tokenIndex + 1]);
+                messageData.ContentType = "multipart/" + tokens[tokenIndex] + "; " + subTokens[0] + "=" + subTokens[1];
+            }
+
+            return messageData;
+        }
+
+        // Type, subtype, paramter list, body id, body description, body encoding, body size
+        // "TEXT" "PLAIN" ("CHARSET" "ISO-8859-1") NIL NIL "7BIT" 13 1 NIL NIL NIL
+        public static string GetContentType(IList<string> tokens)
+        {
+            IList<string> subTokens = ParseTokenList(tokens[2]);
+            if (subTokens.Count >= 2)
+            {
+                return tokens[0] + "/" + tokens[1] + "; " + subTokens[0] + "=" + subTokens[1];
+            }
+            return tokens[0] + "/" + tokens[1];
+        }
+
+        // ("Chris Ross" NIL "tracher" "gmail.com")("Chris Ross" NIL "tracher" "gmail.com")
+        public static IList<MailAddress> ParseAddressTokenList(string input)
+        {
+            if (string.Equals("NIL", input))
+            {
+                return new MailAddress[0];
+            }
+            IList<MailAddress> addresses = new List<MailAddress>();
+            IList<string> tokens = ParseTokenList(input);
+
+            // "Chris Ross" NIL "tracher" "gmail.com"
+            foreach (string token in tokens)
+            {
+                IList<string> addressTokens = ParseTokenList(token);
+                if (addressTokens.Count != 4)
+                {
+                    throw new InvalidDataException("Invalid token count: " + addressTokens.Count);
+                }
+                MailAddress address;
+                if (!string.Equals("NIL", addressTokens[0]))
+                {
+                    address = new MailAddress(addressTokens[2] + "@" + addressTokens[3], addressTokens[0]);
+                }
+                else
+                {
+                    address = new MailAddress(addressTokens[2] + "@" + addressTokens[3]);
+                }
+                addresses.Add(address);
+            }
+
+            return addresses;
+        }
+
+        // Parse a space seperated list where tokens may be in quotes and/or parens.
+        public static IList<string> ParseTokenList(string input)
+        {
+            IList<string> tokens = new List<string>();
+            bool inQuotes = false;
+            int parenCount = 0;
+            int tokenStart = 0;
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                    if (!inQuotes && parenCount == 0)
+                    {
+                        // Without quotes
+                        string token = input.Substring(tokenStart + 1, i - tokenStart - 1);
+                        tokens.Add(token);
+                        tokenStart = i + 1;
+                    }
+                }
+                else if (!inQuotes && c == '(')
+                {
+                    parenCount++;
+                }
+                else if (!inQuotes && c == ')')
+                {
+                    parenCount--;
+                    if (parenCount < 0)
+                    {
+                        throw new InvalidDataException("Unmatched ')'");
+                    }
+                    if (parenCount == 0)
+                    {
+                        // Remove parens
+                        string token = input.Substring(tokenStart + 1, i - tokenStart - 1);
+                        tokens.Add(token);
+                        tokenStart = i + 1;
+                    }
+                }
+                else if (!inQuotes && parenCount == 0 && c == ' ')
+                {
+                    string token = input.Substring(tokenStart, i - tokenStart);
+                    if (!string.IsNullOrWhiteSpace(token))
+                    {
+                        tokens.Add(token);
+                    }
+                    tokenStart = i + 1;
+                }
+            }
+
+            // Last token
+            if (inQuotes)
+            {
+                throw new InvalidDataException("Unmatched '\"'");
+            }
+            if (parenCount > 0)
+            {
+                throw new InvalidDataException("Unmatched '('");
+            }
+            if (tokenStart != input.Length)
+            {
+                string token = input.Substring(tokenStart, input.Length - tokenStart);
+                if (!string.IsNullOrWhiteSpace(token))
+                {
+                    tokens.Add(token);
+                }
+            }
+
+            return tokens;
+        }
     }
 }

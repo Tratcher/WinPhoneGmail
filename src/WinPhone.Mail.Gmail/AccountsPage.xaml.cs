@@ -141,7 +141,15 @@ namespace WinPhone.Mail.Gmail
 
         private void DoneClick(object sender, EventArgs e)
         {
-            NavigationService.GoBack();
+            if (NavigationService.CanGoBack)
+            {
+                NavigationService.GoBack();
+            }
+            else
+            {
+                NavigationService.Navigate(new Uri("/MainPage.xaml", UriKind.Relative));
+                NavigationService.RemoveBackEntry();
+            }
         }
     }
 }

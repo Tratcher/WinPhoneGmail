@@ -23,11 +23,24 @@ namespace WinPhone.Mail.Protocols
 
         public virtual bool OnServer { get; internal set; }
 
-        internal bool IsAttachment
+        public bool IsAttachment
         {
             get
             {
                 return ContentDisposition == "attachment" || !string.IsNullOrEmpty(Filename);
+            }
+            set
+            {
+                if (value)
+                {
+                    _ContentDisposition = null;
+                    Headers["Content-Disposition"] = new HeaderValue("attachment");
+                }
+                else
+                {
+                    _ContentDisposition = null;
+                    Headers.Remove("Content-Disposition");
+                }
             }
         }
 

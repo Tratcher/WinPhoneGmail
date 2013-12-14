@@ -15,12 +15,23 @@ namespace WinPhone.Mail.Protocols.Gmail
             return message.Headers.GetLabels();
         }
 
+        public static void SetLabels(this MailMessage message, string labels)
+        {
+            // Space separated list with special items in quotes.
+            message.Headers[GConstants.LabelsHeader] = new HeaderValue(labels);
+        }
+
         // Returns message labels, including special labels
         public static List<string> GetLabels(this HeaderDictionary headers)
         {
             // Space separated list with special items in quotes.
             string rawLabels = headers[GConstants.LabelsHeader].Value;
             return Utilities.SplitQuotedList(rawLabels, ' ').Select(label => Utilities.RemoveQuotes(label)).ToList();
+        }
+
+        public static string GetLabelsHeader(this MailMessage message)
+        {
+            return message.Headers[GConstants.LabelsHeader].Value;
         }
 
         public static string GetThreadId(this MailMessage message)

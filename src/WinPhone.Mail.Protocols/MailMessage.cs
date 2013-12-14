@@ -76,10 +76,10 @@ namespace WinPhone.Mail.Protocols
 
         public virtual int Size { get; internal set; }
         public virtual string Subject { get; set; }
-        public virtual ICollection<MailAddress> To { get; private set; }
-        public virtual ICollection<MailAddress> Cc { get; private set; }
-        public virtual ICollection<MailAddress> Bcc { get; private set; }
-        public virtual ICollection<MailAddress> ReplyTo { get; private set; }
+        public virtual ICollection<MailAddress> To { get; set; }
+        public virtual ICollection<MailAddress> Cc { get; set; }
+        public virtual ICollection<MailAddress> Bcc { get; set; }
+        public virtual ICollection<MailAddress> ReplyTo { get; set; }
         public virtual ICollection<Attachment> Attachments { get; set; }
         public virtual AlternateViewCollection AlternateViews { get; set; }
         public virtual MailAddress From { get; set; }
@@ -104,7 +104,6 @@ namespace WinPhone.Mail.Protocols
             Headers = null;
             Body = null;
 
-
             var headers = new StringBuilder();
             string line;
             while ((line = reader.ReadLine(ref maxLength, _DefaultEncoding, termChar)) != null)
@@ -118,14 +117,14 @@ namespace WinPhone.Mail.Protocols
             }
             RawHeaders = headers.ToString();
 
-            if (!headersOnly)
+            // if (!headersOnly) // Read the mime structure anyways, but the body will be empty.
             {
                 string boundary = Headers.GetBoundary();
                 if (!string.IsNullOrEmpty(boundary))
                 {
                     var atts = new List<Attachment>();
                     var body = ParseMime(reader, boundary, ref maxLength, atts, Encoding, termChar);
-                    if (!string.IsNullOrEmpty(body))
+                    if (!headersOnly && !string.IsNullOrEmpty(body))
                         SetBody(body);
 
                     foreach (var att in atts)
@@ -134,7 +133,7 @@ namespace WinPhone.Mail.Protocols
                     if (maxLength > 0)
                         reader.ReadToEnd(maxLength, Encoding);
                 }
-                else
+                else if (!headersOnly)
                 {
                     //	sometimes when email doesn't have a body, we get here with maxLength == 0 and we shouldn't read any further
                     string body = String.Empty;
@@ -156,11 +155,6 @@ namespace WinPhone.Mail.Protocols
 
             Importance = Headers.GetEnum<MailPriority>("Importance");
             Subject = Headers["Subject"].RawValue;
-            string flags = Headers["Flags"].RawValue;
-            if (!string.IsNullOrEmpty(flags))
-            {
-                SetFlags(flags);
-            }
         }
 
         private static string ParseMime(Stream reader, string boundary, ref int maxLength, ICollection<Attachment> attachments, Encoding encoding, char? termChar)
@@ -230,7 +224,7 @@ namespace WinPhone.Mail.Protocols
         }
 
         private static Dictionary<string, int> _FlagCache = System.Enum.GetValues(typeof(Flags)).Cast<Flags>().ToDictionary(x => x.ToString(), x => (int)x, StringComparer.OrdinalIgnoreCase);
-        internal void SetFlags(string flags)
+        public void SetFlags(string flags)
         {
             RawFlags = flags.Split(' ').Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             Flags = (Flags)RawFlags.Select(x =>
@@ -272,10 +266,6 @@ namespace WinPhone.Mail.Protocols
             if (Importance != MailPriority.Normal)
                 txt.WriteLine("Importance: {0}", (int)Importance);
             txt.WriteLine("Subject: {0}", Subject);
-            if (Flags != Protocols.Flags.None)
-            {
-                txt.WriteLine("Flags: {0}", Utilities.FlagsToFlagString(Flags));
-            }
 
             string boundary = null;
             if (Attachments.Any() || AlternateViews.Any())
@@ -304,7 +294,10 @@ namespace WinPhone.Mail.Protocols
                 txt.WriteLine("--" + boundary);
                 txt.WriteLine(string.Join("\r\n", view.Headers.Select(h => string.Format("{0}: {1}", h.Key, h.Value))));
                 txt.WriteLine();
-                txt.WriteLine(view.Body);
+                if (!HeadersOnly)
+                {
+                    txt.WriteLine(view.Body);
+                }
             });
 
 
@@ -314,7 +307,10 @@ namespace WinPhone.Mail.Protocols
                 txt.WriteLine("--" + boundary);
                 txt.WriteLine(string.Join("\r\n", att.Headers.Select(h => string.Format("{0}: {1}", h.Key, h.Value))));
                 txt.WriteLine();
-                txt.WriteLine(att.Body);
+                if (!HeadersOnly)
+                {
+                    txt.WriteLine(att.Body);
+                }
             });
 
             if (boundary != null)

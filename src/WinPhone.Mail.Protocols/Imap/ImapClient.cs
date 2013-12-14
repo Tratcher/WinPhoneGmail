@@ -1,14 +1,12 @@
-using WinPhone.Mail.Protocols.Imap;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.IO;
 using System.Threading.Tasks;
+using WinPhone.Mail.Protocols.Imap;
 
 namespace WinPhone.Mail.Protocols
 {
@@ -575,6 +573,118 @@ namespace WinPhone.Mail.Protocols
                 var imapHeaders = Utilities.ParseImapHeader(response.Substring(response.IndexOf('(') + 1));
                 var size = (imapHeaders["BODY[HEADER]"] ?? imapHeaders["BODY[]"]).Trim('{', '}').ToInt();
                 var msg = await action(_Stream, size, imapHeaders);
+
+                response = await GetResponseAsync();
+                var n = response.Trim().LastOrDefault();
+                if (n != ')')
+                {
+                    System.Diagnostics.Debugger.Break();
+                    RaiseWarning(null, "Expected \")\" in stream, but received \"" + response + "\"");
+                }
+            }
+
+            await IdleResumeAsync();
+        }
+
+        // Assumes no body is requested.
+        public virtual async Task GetFieldsAsync(string start, string end, bool uid, string[] fields, Action<SafeDictionary<string, string>> onFieldsReceived)
+        {
+            await CheckMailboxSelectedAsync();
+            await IdlePauseAsync();
+
+            string tag = GetTag();
+            string command =
+                tag
+                + (uid ? "UID " : null)
+                + "FETCH " + start + ":" + end
+                + " (" + string.Join(" ", fields) + ")";
+
+            string response;
+
+            await SendCommandAsync(command);
+            while (true)
+            {
+                response = await GetResponseAsync();
+                if (string.IsNullOrEmpty(response) || response.Contains(tag + "OK"))
+                    break;
+
+                if (response[0] != '*' || !response.Contains("FETCH ("))
+                    continue;
+
+                var imapHeaders = Utilities.ParseImapHeader(response.Substring(response.IndexOf('(') + 1));
+                onFieldsReceived(imapHeaders);
+            }
+
+            await IdleResumeAsync();
+        }
+
+        public virtual async Task GetEnvelopeAndStructureAsync(IEnumerable<string> ids, bool uid, IList<string> fields,
+            Func<MailMessage, Task> onDataReceived, CancellationToken cancellationToken)
+        {
+            await CheckMailboxSelectedAsync();
+            await IdlePauseAsync();
+
+            string tag = GetTag();
+            string command =
+                tag
+                + (uid ? "UID " : null)
+                + "FETCH " + string.Join(",", ids)
+                + " (" + string.Join(" ", fields) + " UID ENVELOPE BODYSTRUCTURE)";
+
+            string response;
+
+            await SendCommandAsync(command);
+            while (true)
+            {
+                response = await GetResponseAsync();
+                if (string.IsNullOrEmpty(response) || response.Contains(tag + "OK"))
+                    break;
+
+                if (response[0] != '*' || !response.Contains("FETCH ("))
+                    continue;
+
+                var imapHeaders = Utilities.ParseImapHeader(response.Substring(response.IndexOf('(') + 1));
+                MailMessage messageData = Utilities.ParseEnvelope(imapHeaders["ENVELOPE"]);
+                Utilities.ParseBodyStructure(imapHeaders["BODYSTRUCTURE"], messageData);
+                messageData.Uid = imapHeaders["UID"];
+                foreach (var key in imapHeaders.Keys.Except(new[] { "UID", "ENVELOPE", "BODYSTRUCTURE" }, StringComparer.OrdinalIgnoreCase))
+                    messageData.Headers.Add(key, new HeaderValue(imapHeaders[key]));
+                await onDataReceived(messageData);
+            }
+
+            await IdleResumeAsync();
+        }
+
+        public virtual async Task GetBodyPartAsync(IEnumerable<string> ids, bool uid, IList<string> fields, string partId,
+            Func<Stream, int, Task> onDataReceived, CancellationToken cancellationToken)
+        {
+            await CheckMailboxSelectedAsync();
+            await IdlePauseAsync();
+
+            string tag = GetTag();
+            string command =
+                tag
+                + (uid ? "UID " : null)
+                + "FETCH " + string.Join(",", ids)
+                + " (" + string.Join(" ", fields) + " UID BODY.PEEK[" + partId + "])";
+
+            string response;
+
+            await SendCommandAsync(command);
+            while (true)
+            {
+                response = await GetResponseAsync();
+                if (string.IsNullOrEmpty(response) || response.Contains(tag + "OK"))
+                    break;
+
+                if (response[0] != '*' || !response.Contains("FETCH ("))
+                    continue;
+
+                var imapHeaders = Utilities.ParseImapHeader(response.Substring(response.IndexOf('(') + 1));
+                int size = imapHeaders["BODY[" + partId + "]"].Trim('{', '}').ToInt();
+
+                await _Stream.EnsureBufferAsync(size);
+                await onDataReceived(_Stream, size);
 
                 response = await GetResponseAsync();
                 var n = response.Trim().LastOrDefault();

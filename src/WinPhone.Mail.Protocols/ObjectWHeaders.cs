@@ -1,5 +1,6 @@
 ﻿
 using System;
+
 namespace WinPhone.Mail.Protocols
 {
     public abstract class ObjectWHeaders
@@ -63,6 +64,18 @@ namespace WinPhone.Mail.Protocols
         }
 
         public virtual string Body { get; set; }
+
+        public string BodyId
+        {
+            get
+            {
+                return Headers["x-BodyId"].Value;
+            }
+            set
+            {
+                Headers["x-BodyId"] = new HeaderValue(value);
+            }
+        }
 
         internal void SetBody(string value)
         {

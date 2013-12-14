@@ -103,11 +103,12 @@
     <Compile Include="Gmail\GmailExtensions.cs" />
     <Compile Include="Gmail\GmailImapClient.cs" />
     <Compile Include="Gmail\GmailSmtpClient.cs" />
+    <Compile Include="Gmail\GmailMessageInfo.cs" />
     <Compile Include="Imap\ImapClient.cs" />
     <Compile Include="Imap\ModifiedUtf7Encoding.cs" />
     <Compile Include="Imap\SearchCondition.cs" />
     <Compile Include="HeaderCollection.cs" />
-    <Compile Include="HeaderObject.cs" />
+    <Compile Include="ObjectWHeaders.cs" />
     <Compile Include="Imap\MessageEventArgs.cs" />
     <Compile Include="MailAddress.cs" />
     <Compile Include="MailAddressParser.cs" />

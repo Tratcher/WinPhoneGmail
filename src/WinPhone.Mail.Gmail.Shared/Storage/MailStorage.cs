@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.IsolatedStorage;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -19,6 +20,10 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
         private const string LabelsFile = "Labels.csv";
         private const string LabelsDir = "Labels";
         private const string ConversationsDir = "Conversations";
+        private const string HeadersFile = "Headers.txt";
+        private const string FlagsFile = "Flags.txt";
+        private const string MessageLabelsFile = "Labels.txt";
+        private const string MessagePartFile = "BodyPart{0}.txt";
 
         private readonly string _accountName;
         private readonly IsolatedStorageFile _storage;
@@ -71,7 +76,7 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
         }
 
         // Stores the list of labels and their settings.
-        public async Task SaveLabelInfoAsync(List<LabelInfo> labels)
+        public async Task SaveLabelInfoAsync(IList<LabelInfo> labels)
         {
             if (labels == null || labels.Count == 0)
             {
@@ -205,15 +210,9 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
 
             foreach (var conversation in conversations)
             {
-                string conversationDir = Path.Combine(conversationsDir, conversation.ID);
-                if (!_storage.DirectoryExists(conversationDir))
-                {
-                    _storage.CreateDirectory(conversationDir);
-                }
-
                 foreach (var message in conversation.Messages)
                 {
-                    await StoreMessageAsync(conversationDir, message);
+                    await StoreMessageAsync(message);
                 }
             }
         }
@@ -231,12 +230,7 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
 
             foreach (var messageId in messageIds)
             {
-                string uid = messageId.Uid;
-                string googleUid = messageId.MessageId;
-                string conversationId = messageId.ThreadId;
-                string conversationDir = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId);
-
-                MailMessage message = await GetMessageAsync(conversationDir, googleUid, uid);
+                MailMessage message = await GetMessageAsync(messageId.ThreadId, messageId.MessageId, messageId.Uid);
                 if (message != null)
                 {
                     messages.Add(message);
@@ -250,52 +244,224 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
             {
                 conversations.Add(new ConversationThread(group.OrderByDescending(message => message.Date).ToList()));
             }
-            return conversations;
+            return conversations.OrderByDescending(message => message.LatestDate).ToList();
         }
 
-        public Task StoreMessageAsync(MailMessage message)
+        // Break the message up into parts: Flags, labels, headers/structure, and body parts
+        public async Task StoreMessageAsync(MailMessage message)
         {
-            string conversationDir = Path.Combine(AccountDir, _accountName, ConversationsDir, message.GetThreadId());
-            return StoreMessageAsync(conversationDir, message);
+            await StoreMessageFlagsAsync(message.GetThreadId(), message.GetMessageId(), Utilities.FlagsToFlagString(message.Flags));
+            await StoreMessageLabelsAsync(message.GetThreadId(), message.GetMessageId(), message.GetLabelsHeader());
+            await StoreMessageHeadersAsync(message);
+            if (!message.HeadersOnly)
+            {
+                // TODO: Verify BodyId is set.
+                // Body parts
+                if (!message.AlternateViews.Any() && !message.Attachments.Any())
+                {
+                    // Simple body
+                    await StoreMessagePartAsync(message.GetThreadId(), message.GetMessageId(), message.BodyId, message.Body);
+                }
+                else
+                {
+                    // Multipart body
+                    foreach (Attachment view in message.AlternateViews)
+                    {
+                        await StoreMessagePartAsync(message.GetThreadId(), message.GetMessageId(), view.BodyId, view.Body);
+                    }
+                    foreach (Attachment attachment in message.Attachments)
+                    {
+                        await StoreMessagePartAsync(message.GetThreadId(), message.GetMessageId(), attachment.BodyId, attachment.Body);
+                    }
+                }
+            }
         }
 
-        private Task StoreMessageAsync(string conversationDir, MailMessage message)
+        private async Task<MailMessage> GetMessageAsync(string conversationId, string messageId, string labelUid)
         {
-            string messageFile = Path.Combine(conversationDir, message.GetMessageId() + ".msg");
+            MailMessage message = await GetMessageHeadersAsync(conversationId, messageId);
+            string labels = await GetMessageLabelsAsync(conversationId, messageId);
+            string flags = await GetMessageFlagsAsync(conversationId, messageId);
+            if (message == null || labels == null || flags == null)
+            {
+                return null;
+            }
+            message.SetLabels(labels);
+            message.SetFlags(flags);
+            message.Uid = labelUid;
 
-            using (Stream fileStream = _storage.CreateFile(messageFile))
+            if (message.AlternateViews.Any())
+            {
+                // TODO: Lazy load on demand?
+                foreach (Attachment view in message.AlternateViews)
+                {
+                    view.Body = await GetMessagePartAsync(conversationId, messageId, view.BodyId);
+                }
+            }
+            else
+            {
+                message.Body = await GetMessagePartAsync(conversationId, messageId, message.BodyId);
+            }
+
+            return message;
+        }
+
+        public bool HasMessageFlags(string conversationId, string messageId)
+        {
+            string flagsFile = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId, FlagsFile);
+            return _storage.FileExists(flagsFile);
+        }
+
+        public Task StoreMessageFlagsAsync(MailMessage message)
+        {
+            return StoreMessageFlagsAsync(message.GetThreadId(), message.GetMessageId(), Utilities.FlagsToFlagString(message.Flags));
+        }
+
+        public async Task StoreMessageFlagsAsync(string conversationId, string messageId, string flags)
+        {
+            string messageDir = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId);
+            if (!_storage.DirectoryExists(messageDir))
+            {
+                _storage.CreateDirectory(messageDir);
+            }
+            string flagsFile = Path.Combine(messageDir, FlagsFile);
+            Stream stream = _storage.CreateFile(flagsFile);
+            using (StreamWriter writer = new StreamWriter(stream))
+            {
+                await writer.WriteLineAsync(flags);
+            }
+        }
+
+        public async Task<string> GetMessageFlagsAsync(string conversationId, string messageId)
+        {
+            string messageDir = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId);
+            string flagsFile = Path.Combine(messageDir, FlagsFile);
+            if (!_storage.DirectoryExists(messageDir) || !_storage.FileExists(flagsFile))
+            {
+                return null;
+            }
+            Stream stream = _storage.OpenFile(flagsFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                return await reader.ReadLineAsync();
+            }
+        }
+
+        public bool HasMessageLables(string conversationId, string messageId)
+        {
+            string labelsFile = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId, LabelsFile);
+            return _storage.FileExists(labelsFile);
+        }
+
+        public Task StoreMessageLabelsAsync(MailMessage message)
+        {
+            return StoreMessageLabelsAsync(message.GetThreadId(), message.GetMessageId(), message.GetLabelsHeader());
+        }
+
+        public async Task StoreMessageLabelsAsync(string conversationId, string messageId, string labels)
+        {
+            string messageDir = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId);
+            if (!_storage.DirectoryExists(messageDir))
+            {
+                _storage.CreateDirectory(messageDir);
+            }
+            string labelsFile = Path.Combine(messageDir, MessageLabelsFile);
+            Stream stream = _storage.CreateFile(labelsFile);
+            using (StreamWriter writer = new StreamWriter(stream))
+            {
+                await writer.WriteLineAsync(labels);
+            }
+        }
+
+        public async Task<string> GetMessageLabelsAsync(string conversationId, string messageId)
+        {
+            string messageDir = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId);
+            string labelsFile = Path.Combine(messageDir, MessageLabelsFile);
+            if (!_storage.DirectoryExists(messageDir) || !_storage.FileExists(labelsFile))
+            {
+                return null;
+            }
+            Stream stream = _storage.OpenFile(labelsFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                return await reader.ReadLineAsync();
+            }
+        }
+
+        public bool HasMessageHeaders(string conversationId, string messageId)
+        {
+            string headersFile = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId, HeadersFile);
+            return _storage.FileExists(headersFile);
+        }
+
+        public Task StoreMessageHeadersAsync(MailMessage headers)
+        {
+            string messageDir = Path.Combine(AccountDir, _accountName, ConversationsDir, headers.GetThreadId(), headers.GetMessageId());
+            if (!_storage.DirectoryExists(messageDir))
+            {
+                _storage.CreateDirectory(messageDir);
+            }
+            string headersFile = Path.Combine(messageDir, HeadersFile);
+            using (Stream stream = _storage.CreateFile(headersFile))
             {
                 // TODO: Async
-                message.Save(fileStream);
+                headers.Save(stream);
             }
             return Task.FromResult(0);
         }
 
-        private Task<MailMessage> GetMessageAsync(string conversationDir, string googleUid, string labelUid)
+        public Task<MailMessage> GetMessageHeadersAsync(string conversationId, string messageId)
         {
-            string messageFile = Path.Combine(conversationDir, googleUid + ".msg");
-            if (!_storage.FileExists(messageFile))
+            string messageDir = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId);
+            string headersFile = Path.Combine(messageDir, HeadersFile);
+            if (!_storage.DirectoryExists(messageDir) || !_storage.FileExists(headersFile))
             {
                 return null;
             }
-            using (Stream fileStream = _storage.OpenFile(messageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+            Stream stream = _storage.OpenFile(headersFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using (stream)
             {
-                MailMessage message = new MailMessage();
-
                 // TODO: Async
-                message.Load(fileStream, headersOnly: false, maxLength: 1024 * 1024);
-                message.Uid = labelUid;
-
+                MailMessage message = new MailMessage();
+                message.Load(stream, true, 0);
                 return Task.FromResult(message);
             }
         }
 
-        public bool MessageIsStored(MailMessage message)
+        public bool HasMessagePart(string conversationId, string messageId, string partNumber)
         {
-            string conversationDir = Path.Combine(AccountDir, _accountName, ConversationsDir, message.GetThreadId());
-            string messageFile = Path.Combine(conversationDir, message.GetMessageId() + ".msg");
+            string partFile = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId, 
+                string.Format(CultureInfo.InvariantCulture, MessagePartFile, partNumber));
+            return _storage.FileExists(partFile);
+        }
 
-            return _storage.FileExists(messageFile);
+        public async Task StoreMessagePartAsync(string conversationId, string messageId, string partNumber, string bodyPart)
+        {
+            string messageDir = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId);
+            if (!_storage.DirectoryExists(messageDir))
+            {
+                _storage.CreateDirectory(messageDir);
+            }
+            string partFile = Path.Combine(messageDir, string.Format(CultureInfo.InvariantCulture, MessagePartFile, partNumber));
+            using (StreamWriter writer = new StreamWriter(_storage.CreateFile(partFile), Encoding.UTF8))
+            {
+                await writer.WriteAsync(bodyPart);
+            }
+        }
+
+        public async Task<string> GetMessagePartAsync(string conversationId, string messageId, string partNumber)
+        {
+            string messageDir = Path.Combine(AccountDir, _accountName, ConversationsDir, conversationId, messageId);
+            string partFile = Path.Combine(messageDir, string.Format(CultureInfo.InvariantCulture, MessagePartFile, partNumber));
+            if (!_storage.DirectoryExists(messageDir) || !_storage.FileExists(partFile))
+            {
+                return null;
+            }
+            Stream stream = _storage.OpenFile(partFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+            {
+                return await reader.ReadToEndAsync();
+            }
         }
 
         public void DeleteAccount()

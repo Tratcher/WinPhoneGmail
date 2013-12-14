@@ -1,9 +1,10 @@
-﻿using WinPhone.Mail.Protocols;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using WinPhone.Mail.Protocols;
 using WinPhone.Mail.Protocols.Gmail;
 
 namespace ConsoleApplication1
@@ -17,17 +18,24 @@ namespace ConsoleApplication1
 
             try
             {
-                /*
                 using (var imap = new GmailImapClient(username, password))
                 {
-                    List<ConversationThread> conversations = imap.GetConversationsAsync(headersOnly: true).Result;
-                    foreach (var conversation in conversations)
+                    IList<GmailMessageInfo> messageInfos = imap.GetCurrentMessageIdsAsync(DateTime.Now - TimeSpan.FromDays(60)).Result;
+                    foreach (var messageInfo in messageInfos)
                     {
-                        Console.WriteLine(conversation.Subject);
+                        imap.Client.GetBodyPartAsync(messageInfos.Select(ids => ids.Uid), true,
+                            new[] { GConstants.MessageIdHeader, GConstants.ThreadIdHeader }, "1",
+                            async (stream, size) =>
+                            {
+                                Console.WriteLine();
+                            },
+                            CancellationToken.None).Wait();
+
+                        Console.WriteLine(messageInfo.ThreadId + " " + messageInfo.MessageId + " " + messageInfo.Flags + " " + messageInfo.Labels);
                     }
                 }
-                */
 
+                /*
                 using (var smtp = new GmailSmtpClient(username, password))
                 {
                     MailMessage message = new MailMessage();
@@ -41,6 +49,7 @@ namespace ConsoleApplication1
 
                     smtp.SendAsync(message).Wait();
                 }
+                */
             }
             catch (Exception ex)
             {

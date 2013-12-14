@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using WinPhone.Mail.Protocols.Imap;
 
@@ -46,7 +47,6 @@ namespace WinPhone.Mail.Protocols.Gmail
         {
             await CheckConnectedAsync();
 
-            // TODO: Configurable range
             SearchCondition condition = SearchCondition.Since(DateTime.Now - range);
             string[] uids = await Client.SearchAsync(condition, uid: true);
 
@@ -77,6 +77,76 @@ namespace WinPhone.Mail.Protocols.Gmail
             return conversations;
         }
 
+        public async Task<IList<GmailMessageInfo>> GetCurrentMessageIdsAsync(DateTime since)
+        {
+            await CheckConnectedAsync();
+
+            SearchCondition condition = SearchCondition.Since(since);
+            string[] uids = await Client.SearchAsync(condition, uid: true);
+            IList<GmailMessageInfo> ids;
+            if (uids.Length == 0)
+            {
+                return new GmailMessageInfo[0];
+            }
+
+            ids = new List<GmailMessageInfo>();
+
+            // TODO: Consider comma joined list of UIDs
+            await Client.GetFieldsAsync(uids[0], uids[uids.Length - 1], uid: true,
+                fields: new[] { GConstants.LabelsHeader, GConstants.MessageIdHeader, GConstants.ThreadIdHeader, "UID", "FLAGS", "INTERNALDATE" },
+                onFieldsReceived: fields =>
+                {
+                    GmailMessageInfo messageInfo = new GmailMessageInfo()
+                    {
+                        Uid = fields["UID"],
+                        Flags = fields["Flags"],
+                        MessageId = fields[GConstants.MessageIdHeader],
+                        ThreadId = fields[GConstants.ThreadIdHeader],
+                        Labels = FixUpLabels(fields[GConstants.LabelsHeader]),
+                        Date = fields["INTERNALDATE"].ToNullDate() ?? DateTime.MinValue,
+                    };
+                    ids.Add(messageInfo);
+                });
+
+            return ids;
+        }
+
+        public async Task GetEnvelopeAndStructureAsync(IEnumerable<string> ids, Func<MailMessage, Task> onDataReceived,
+            CancellationToken cancellationToken)
+        {
+            await CheckConnectedAsync();
+
+            if (ids.Count() == 0)
+            {
+                return;
+            }
+
+            await Client.GetEnvelopeAndStructureAsync(ids, uid: true,
+                fields: new[] { GConstants.MessageIdHeader, GConstants.ThreadIdHeader },
+                onDataReceived: onDataReceived, cancellationToken: cancellationToken);
+        }
+
+        public async Task GetBodyPartAsync(string uid, ObjectWHeaders content, Func<Task> onDataReceived,
+            CancellationToken cancellationToken)
+        {
+            await CheckConnectedAsync();
+
+            await Client.GetBodyPartAsync(new[] { uid }, uid: true, partId: content.BodyId,
+                fields: new[] { GConstants.MessageIdHeader, GConstants.ThreadIdHeader },
+                onDataReceived: async (stream, size) =>
+                {
+                    string body = String.Empty;
+                    if (size > 0)
+                    {
+                        body = stream.ReadToEnd(size, content.Encoding);
+                    }
+
+                    content.SetBody(body);
+
+                    await onDataReceived();
+                }, cancellationToken: cancellationToken);
+        }
+
         // IMAP messages for a given label do not actually list that label in the label header.  Append it
         // so there's less confusion correlating across different mailboxes.
         private void FixUpLabels(MailMessage message)
@@ -98,7 +168,31 @@ namespace WinPhone.Mail.Protocols.Gmail
             }
         }
 
-        // TODO: Starting with a message that's headers only, download and populate the body
+        private string FixUpLabels(string labels)
+        {
+            // Convert the special inbox label to match the inbox mailbox name.
+            labels = labels.Replace(GConstants.InboxLabel, GConstants.Inbox);
+
+            if (Client.SelectedMailbox.Equals(GConstants.AllMailMailbox, StringComparison.Ordinal)
+                || Client.SelectedMailbox.Equals(GConstants.StarredMailbox, StringComparison.Ordinal))
+            {
+                // These are special mailboxes that don't appear as labels.
+                // TODO: Others?
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(labels))
+                {
+                    labels = Utilities.QuoteStringWithSpaces(Client.SelectedMailbox);
+                }
+                else
+                {
+                    labels = string.Join(" ", labels, Utilities.QuoteStringWithSpaces(Client.SelectedMailbox));
+                }
+            }
+            return labels;
+        }
+
         public async Task<MailMessage> DownloadMessageAsync(string uid)
         {
             MailMessage message = await Client.GetMessageAsync(uid, headersonly: false);

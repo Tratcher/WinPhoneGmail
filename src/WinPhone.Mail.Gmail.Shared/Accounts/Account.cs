@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.System;
@@ -117,107 +118,206 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
                 return ActiveLabel;
             }
 
-            bool headersOnly = (ActiveLabel.Conversations != null && ActiveLabel.Conversations.Count != 0); // Optimize for the first download.
-            List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(headersOnly, Info.Range);
-
-            ActiveLabel.Info.LastSync = DateTime.Now;
-            ActiveLabel.Conversations = await ReconcileConversationsAsync(serverConversations, ActiveLabel.Conversations ?? new List<ConversationThread>());
-
-            // Write back to storage.
             if (ActiveLabel.Info.Store)
             {
-                await MailStorage.StoreLabelMessageListAsync(ActiveLabel.Info.Name, ActiveLabel.Conversations);
-                // TODO: Only store conversations that have changed.
-                await MailStorage.StoreConverationsAsync(ActiveLabel.Conversations);
+                await SyncMessageHeadersAsync(CancellationToken.None);
+                await SyncMessageBodiesAsync(CancellationToken.None);
+                // TODO: Attachments
+
+                ActiveLabel.Conversations = await MailStorage.GetConversationsAsync(ActiveLabel.Info.Name);
             }
-            await SaveLabelSettingsAsync(); // Remember last sync time.
+            else
+            {
+                // Allow us to view mail without storing it to disk.
+                // TODO: Consider downloading only headers and then downloading the body & attachments if we open it.
+                List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(headersOnly: false, range: Info.Range);
+                ActiveLabel.Conversations = serverConversations;
+            }
+
             return ActiveLabel;
         }
 
-        private async Task<List<ConversationThread>> ReconcileConversationsAsync(List<ConversationThread> serverConversations, List<ConversationThread> clientConversations)
+        //   Determine oldest date: Now - Range
+        //   Query server for ids of messages in folder since oldest date (async while loading local list?)
+        //   Load stored message list (Ids only)
+        //   For each new item in the remote list:
+        //   - Download & save headers, flags, & labels, add to local list, save (TODO: What if another label already had this message?)
+        //   - Anything that is unread counts as new mail. It wasn't downloaded last time we opened the app, so the message date is irrelevant.
+        //   - Queue body and attachments for download later.
+        //   For each item that was already in the local list
+        //   - query for updated flags and labels
+        //   - Anything that is unread since the last time we opened the app counts as new mail.
+        //   - Queue body and attachments for download later (if they weren't downloaded on a previous sync)
+        public async Task<int> SyncMessageHeadersAsync(CancellationToken cancellationToken)
         {
-            // TODO: Reconcile vs stored, remove no longer referenced conversations.
-            List<ConversationThread> reconciledConversations = new List<ConversationThread>();
-            await SyncUtilities.CompareListsAsync(serverConversations, clientConversations,
-                thread => thread.ID, // Selector
-                async (serverThread, clientThread) => // Match
-                {
-                    ConversationThread newThread = await ReconcileMessagesAsync(serverThread, clientThread);
-                    reconciledConversations.Add(newThread);
-                },
-                async (serverThread) => // Server side only
-                {
-                    List<MailMessage> messages = new List<MailMessage>();
+            DateTime syncMailSince = DateTime.Now - Info.Range;
+            Task<IList<GmailMessageInfo>> remoteMessageInfoTask = GmailImap.GetCurrentMessageIdsAsync(syncMailSince);
+            List<MessageIdInfo> localIds = await MailStorage.GetLabelMessageListAsync(ActiveLabel.Info.Name) ?? new List<MessageIdInfo>();
+            IList<GmailMessageInfo> remoteMessageInfos = await remoteMessageInfoTask;
+            IEnumerable<MessageIdInfo> remoteIds = remoteMessageInfos.Select(info => new MessageIdInfo()
+            {
+                Uid = info.Uid,
+                MessageId = info.MessageId,
+                ThreadId = info.ThreadId,
+            });
 
-                    // Download the body
-                    foreach (var message in serverThread.Messages)
+            DateTime lastAppActivation = AppSettings.LastAppActivationTime;
+            int newMessages = remoteMessageInfos
+                .Where(info => info.Date > lastAppActivation && !info.Flags.Contains(@"\Seen")).Count();
+
+            IList<MessageIdInfo> messagesInBothPlaces = new List<MessageIdInfo>();
+            IList<MessageIdInfo> messagesOnlyRemote = new List<MessageIdInfo>();
+            IList<MessageIdInfo> messagesOnlyLocal = new List<MessageIdInfo>();
+            IList<MessageIdInfo> messageHeadersToDownload = new List<MessageIdInfo>();
+
+            if (cancellationToken.IsCancellationRequested) return newMessages;
+
+            SyncUtilities.CompareLists(remoteIds, localIds, info => info.Uid,
+                (remote, local) => messagesInBothPlaces.Add(local),
+                remoteOnly => messagesOnlyRemote.Add(remoteOnly),
+                localOnly => messagesOnlyLocal.Add(localOnly));
+
+            if (cancellationToken.IsCancellationRequested) return newMessages;
+
+            bool localMessageListModified = false;
+            foreach (MessageIdInfo idInfo in messagesOnlyRemote)
+            {
+                // Check if the item is already on disk (from another label)
+                if (MailStorage.HasMessageHeaders(idInfo.ThreadId, idInfo.MessageId))
+                {
+                    // If so, update the labels and flags.
+                    messagesInBothPlaces.Add(idInfo);
+                }
+                // If not, download the headers / message structure.
+                else
+                {
+                    messageHeadersToDownload.Add(idInfo);
+                }
+
+                // Add to labe's list.
+                localIds.Add(idInfo);
+                localMessageListModified = true;
+            }
+
+            if (messageHeadersToDownload.Count > 0)
+            {
+                // Bulk download headers
+                await GmailImap.GetEnvelopeAndStructureAsync(messageHeadersToDownload.Select(ids => ids.Uid),
+                    async data =>
                     {
-                        if (message.HeadersOnly)
-                        {
-                            // TODO: PERF: Figure out how to just download the body, we already have the headers.
-                            messages.Add(await GmailImap.DownloadMessageAsync(message.Uid));
-                        }
-                        else
-                        {
-                            messages.Add(message);
-                        }
-                    }
+                        // Find the matching Ids
+                        string messageId = data.GetMessageId();
+                        GmailMessageInfo info = remoteMessageInfos.First(infos => infos.MessageId.Equals(messageId));
 
-                    serverThread = new ConversationThread(messages.OrderByDescending(message => message.Date).ToList());
-                    reconciledConversations.Add(serverThread);
-                },
-                async (clientThread) => // Client only, purge
-                {
-                    // TODO: Garbage collection. What if this thread is still referenced from another label?
-                });
+                        if (cancellationToken.IsCancellationRequested) return;
 
-            return reconciledConversations.OrderByDescending(thread => thread.LatestDate).ToList();
+                        // Save headers, labels, and flags to disk
+                        await MailStorage.StoreMessageFlagsAsync(info.ThreadId, info.MessageId, info.Flags);
+                        await MailStorage.StoreMessageLabelsAsync(info.ThreadId, info.MessageId, info.Labels);
+                        await MailStorage.StoreMessageHeadersAsync(data);
+                    },
+                    cancellationToken);
+            }
+
+            if (cancellationToken.IsCancellationRequested) return newMessages;
+
+            if (localMessageListModified)
+            {
+                await MailStorage.StoreLabelMessageListAsync(ActiveLabel.Info.Name, localIds);
+            }
+
+            foreach (MessageIdInfo idInfo in messagesInBothPlaces)
+            {
+                if (cancellationToken.IsCancellationRequested) return newMessages;
+                // Find the matching Ids
+                GmailMessageInfo info = remoteMessageInfos.First(infos => infos.MessageId.Equals(idInfo.MessageId));
+                // Update the labels and flags.
+                await MailStorage.StoreMessageFlagsAsync(info.ThreadId, info.MessageId, info.Flags);
+                await MailStorage.StoreMessageLabelsAsync(info.ThreadId, info.MessageId, info.Labels);
+            }
+
+            if (cancellationToken.IsCancellationRequested) return newMessages;
+
+            // Only remember our last sync time if we (mostly) finished.
+            ActiveLabel.Info.LastSync = DateTime.Now;
+            await SaveLabelSettingsAsync();
+
+            if (messagesOnlyLocal.Any())
+            {
+                // Remove deleted mails from label list
+                localIds = localIds.Except(messagesOnlyLocal).ToList();
+                await MailStorage.StoreLabelMessageListAsync(ActiveLabel.Info.Name, localIds);
+                // TODO: GC message data.
+            }
+
+            return newMessages;
         }
 
-        // TODO: What about new messages in an old conversation?  We might have to reconcile individual messages at this stage.
-        private async Task<ConversationThread> ReconcileMessagesAsync(ConversationThread serverThread, ConversationThread clientThread)
+        // Examine the local data store to see if there are any message bodies that still need to be downloaded.
+        public async Task SyncMessageBodiesAsync(CancellationToken cancellationToken)
         {
-            List<MailMessage> reconciledMessages = new List<MailMessage>();
-            await SyncUtilities.CompareListsAsync(serverThread.Messages, clientThread.Messages,
-                message => message.GetMessageId(), // Selector
-                async (serverMessage, clientMessage) => // Match
-                {
-                    if (serverMessage.HeadersOnly)
-                    {
-                        // Overwrite the local headers that may have been update on the server.
-                        // Flags and labels are the primary things we expect to change.
-                        clientMessage.Flags = serverMessage.Flags;
-                        clientMessage.Headers[GConstants.LabelsHeader] = serverMessage.Headers[GConstants.LabelsHeader];
-                        reconciledMessages.Add(clientMessage);
-                    }
-                    else
-                    {
-                        reconciledMessages.Add(serverMessage);
-                    }
-                },
-                async (serverMessage) => // Server side only
-                {
-                    if (serverMessage.HeadersOnly)
-                    {
-                        // TODO: Figure out how to just download the body, we already have the headers.
-                        reconciledMessages.Add(await GmailImap.DownloadMessageAsync(serverMessage.Uid));
-                    }
-                    else
-                    {
-                        reconciledMessages.Add(serverMessage);
-                    }
-                },
-                async (clientMessage) => // Client only, purge
-                {
-                    // TODO: Garbage collection. What if this thread is still referenced from another label?
-                });
+            List<MessageIdInfo> localIds = await MailStorage.GetLabelMessageListAsync(ActiveLabel.Info.Name) ?? new List<MessageIdInfo>();
+            List<KeyValuePair<MessageIdInfo, ObjectWHeaders>> bodiesToDownload = new List<KeyValuePair<MessageIdInfo, ObjectWHeaders>>();
 
-            return new ConversationThread(reconciledMessages.OrderByDescending(message => message.Date).ToList());
+            foreach (MessageIdInfo ids in localIds)
+            {
+                if (cancellationToken.IsCancellationRequested) return;
+
+                MailMessage headers = await MailStorage.GetMessageHeadersAsync(ids.ThreadId, ids.MessageId);
+                if (headers == null)
+                {
+                    // Downloading headers should have happened elsewhere.
+                    continue;
+                }
+
+                if (headers.ContentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (Attachment view in headers.AlternateViews)
+                    {
+                        if (!MailStorage.HasMessagePart(ids.ThreadId, ids.MessageId, view.BodyId))
+                        {
+                            bodiesToDownload.Add(new KeyValuePair<MessageIdInfo, ObjectWHeaders>(ids, view));
+                        }
+                    }
+                    // Attachments will be downloaded seperately as well.
+                    // TODO: but maybe we could build the list here while we're looking?
+                }
+                else
+                {
+                    // Primary body, no attachments or alternate views
+                    if (!MailStorage.HasMessagePart(ids.ThreadId, ids.MessageId, headers.BodyId))
+                    {
+                        // TODO: How to say which part?
+                        bodiesToDownload.Add(new KeyValuePair<MessageIdInfo, ObjectWHeaders>(ids, headers));
+                    }
+                }
+            }
+
+            if (cancellationToken.IsCancellationRequested) return;
+
+            // TODO: Batch
+            foreach (var pair in bodiesToDownload)
+            {
+                if (cancellationToken.IsCancellationRequested) return;
+
+                // TODO: Consider only downloading the first X bytes of each message, and loading more only on demand.
+                // TODO: Consider streaming the body directly to disk.  Even more so for attachments.
+                await GmailImap.GetBodyPartAsync(pair.Key.Uid, pair.Value,
+                    async () =>
+                    {
+                        if (cancellationToken.IsCancellationRequested) return;
+
+                        await MailStorage.StoreMessagePartAsync(pair.Key.ThreadId, pair.Key.MessageId, pair.Value.BodyId, pair.Value.Body);
+
+                        // Release the body for GC. Otherwise the bodiesToDownload list will keep everything im memory.
+                        pair.Value.Body = null;
+                    }, cancellationToken);
+            }
         }
 
         public virtual Task SelectLabelAsync(LabelInfo label)
         {
-            if (!label.Name.Equals(ActiveLabel.Info.Name))
+            if (ActiveLabel == null || !label.Name.Equals(ActiveLabel.Info.Name))
             {
                 ActiveLabel = new Label() { Info = label };
                 // TODO: Put in command queue and run later.
@@ -240,12 +340,13 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             {
                 if (message.Seen != read)
                 {
+                    // Update in memory
                     message.Seen = read;
 
-                    if (MailStorage.MessageIsStored(message))
+                    if (MailStorage.HasMessageFlags(message.GetThreadId(), message.GetMessageId()))
                     {
-                        // Update in memory
-                        await MailStorage.StoreMessageAsync(message);
+                        // Update on disk
+                        await MailStorage.StoreMessageFlagsAsync(message);
                     }
 
                     changedMessages.Add(message);
@@ -271,9 +372,10 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             foreach (MailMessage message in messages)
             {
                 message.Flagged = starred;
-                if (MailStorage.MessageIsStored(message))
+                if (MailStorage.HasMessageFlags(message.GetThreadId(), message.GetMessageId()))
                 {
-                    await MailStorage.StoreMessageAsync(message);
+                    // Update on disk
+                    await MailStorage.StoreMessageFlagsAsync(message);
                 }
             }
             if (messages.Any())
@@ -288,11 +390,12 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
         {
             foreach (var message in messages)
             {
-                message.AddLabel(labelName);
                 // Store in memory
-                if (MailStorage.MessageIsStored(message))
+                message.AddLabel(labelName);
+                if (MailStorage.HasMessageLables(message.GetThreadId(), message.GetMessageId()))
                 {
-                    await MailStorage.StoreMessageAsync(message);
+                    // Update on disk
+                    await MailStorage.StoreMessageLabelsAsync(message);
                 }
 
                 // TODO: Store in the message list for that label
@@ -327,10 +430,10 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             // Update the messages to remove the label.
             foreach (MailMessage message in messages)
             {
-                if (message.RemoveLabel(label) && MailStorage.MessageIsStored(message))
+                if (message.RemoveLabel(label) && MailStorage.HasMessageLables(message.GetThreadId(), message.GetMessageId()))
                 {
                     // Store changes
-                    await MailStorage.StoreMessageAsync(message);
+                    await MailStorage.StoreMessageLabelsAsync(message);
                 }
             }
 
@@ -354,9 +457,10 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
                 if (message.RemoveLabel(labelName))
                 {
                     changedMessages.Add(message);
-                    if (MailStorage.MessageIsStored(message))
+                    if (MailStorage.HasMessageLables(message.GetThreadId(), message.GetMessageId()))
                     {
-                        await MailStorage.StoreMessageAsync(message);
+                        // Update on disk
+                        await MailStorage.StoreMessageLabelsAsync(message);
                     }
                 }
             }
@@ -404,10 +508,10 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             {
                 // TODO: Remove from all label lists?  Add to trash label list if sync'd?
                 message.AddLabel(labelName);
-                // TODO: Store in memory
-                if (MailStorage.MessageIsStored(message))
+                if (MailStorage.HasMessageLables(message.GetThreadId(), message.GetMessageId()))
                 {
-                    await MailStorage.StoreMessageAsync(message);
+                    // Update on disk
+                    await MailStorage.StoreMessageLabelsAsync(message);
                 }
             }
 

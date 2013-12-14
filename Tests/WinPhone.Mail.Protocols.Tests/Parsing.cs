@@ -1,5 +1,6 @@
 ﻿using Shouldly;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -216,6 +217,14 @@ Sincerely,
 E-mail Deployment Division
 1 (800) 281-8610
 ";
+
+        string envelope = "\"Mon, 2 Dec 2013 22:11:30 -0800\" \"New mail count test\" ((\"From Chris Ross\" NIL \"tracher\" \"gmail.com\")) ((\"Sender Chris Ross\" NIL \"tracher\" \"gmail.com\"))  ((\"Reply to Chris Ross\" NIL \"tracher\" \"gmail.com\"))  ((\"to Chris Ross\" NIL \"tracher\" \"gmail.com\")) NIL NIL NIL \"<CANP0M55SKr86pwm3QyJxRUA481thuJ_sDopMXp=mQLuEE-7DjQ@mail.gmail.com>\"";
+
+        string multipartBodyStructure = "(\"TEXT\" \"PLAIN\" (\"CHARSET\" \"ISO-8859-1\") NIL NIL \"7BIT\" 2 1 NIL NIL NIL)(\"TEXT\" \"HTML\" (\"CHARSET\" \"ISO-8859-1\") NIL NIL \"7BIT\" 27 1 NIL NIL NIL) \"ALTERNATIVE\" (\"BOUNDARY\" \"047d7bea2f06ddf77e04ec9b2a60\") NIL NIL";
+        string singleBodyStructure = "\"TEXT\" \"PLAIN\" (\"CHARSET\" \"ISO-8859-1\") NIL NIL \"7BIT\" 13 1 NIL NIL NIL";
+
+        string addressListTokens = "(\"Chris Ross\" NIL \"tracher\" \"gmail.com\")(\"Chris Ross\" NIL \"tracher\" \"gmail.com\")";
+
         #endregion
 
         [Fact]
@@ -578,6 +587,164 @@ Content-Disposition: attachment
             var b64 = "SSBkb24ndCB3YW5uYSB3b3JrLCBJIGp1c3Qgd2Fu\nbmEgYmFuZyBvbiBteSBkcnVtcyBhbGwgZGF5IQ";
             var text = Utilities.DecodeBase64(b64);
             text.ShouldBe("I don't wanna work, I just wanna bang on my drums all day!");
+        }
+
+        [Fact]
+        public void ParseTokenList()
+        {
+            IList<string> tokens = Utilities.ParseTokenList(envelope);
+            Assert.Equal(10, tokens.Count);
+
+            tokens = Utilities.ParseTokenList(multipartBodyStructure);
+            Assert.Equal(6, tokens.Count);
+
+            tokens = Utilities.ParseTokenList(singleBodyStructure);
+            Assert.Equal(11, tokens.Count);
+        }
+
+        [Fact]
+        public void ParseAddressTokenList()
+        {
+            IList<MailAddress> tokens = Utilities.ParseAddressTokenList(addressListTokens);
+            Assert.Equal(2, tokens.Count);
+        }
+
+        [Fact]
+        public void ParseEnvelope()
+        {
+            MailMessage message = Utilities.ParseEnvelope(envelope);
+            Assert.Equal(new DateTime(2013, 12, 2, 22, 11, 30, DateTimeKind.Local), message.Date);
+            Assert.Equal("New mail count test", message.Subject);
+            Assert.Equal("\"From Chris Ross\" <tracher@gmail.com>", message.From.ToString());
+            Assert.Equal("\"Sender Chris Ross\" <tracher@gmail.com>", message.Sender.ToString());
+            Assert.Equal(1, message.ReplyTo.Count);
+            Assert.Equal("\"Reply to Chris Ross\" <tracher@gmail.com>", message.ReplyTo.First().ToString());
+            Assert.Equal(1, message.To.Count);
+            Assert.Equal("\"to Chris Ross\" <tracher@gmail.com>", message.To.First().ToString());
+            Assert.Equal(0, message.Cc.Count);
+            Assert.Equal(0, message.Bcc.Count);
+            Assert.Equal(string.Empty, message.Headers["in-reply-to"].RawValue);
+            Assert.Equal("<CANP0M55SKr86pwm3QyJxRUA481thuJ_sDopMXp=mQLuEE-7DjQ@mail.gmail.com>", message.MessageID);
+        }
+
+        [Fact]
+        public void ParseBodyStructure()
+        {
+            MailMessage message = new MailMessage();
+            Utilities.ParseBodyStructure(singleBodyStructure, message);
+            Assert.Equal("text/plain", message.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("ISO-8859-1", message.Charset);
+            Assert.Equal("7BIT", message.ContentTransferEncoding);
+
+            message = new MailMessage();
+            Utilities.ParseBodyStructure(multipartBodyStructure, message);
+            Assert.Equal("multipart/alternative", message.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("047d7bea2f06ddf77e04ec9b2a60", message.Headers.GetBoundary());
+            Assert.Equal(2, message.AlternateViews.Count);
+            Assert.Equal(0, message.Attachments.Count);
+
+            Attachment view = message.AlternateViews.First();
+            Assert.Equal("text/plain", view.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("ISO-8859-1", view.Charset);
+            Assert.Equal("7BIT", view.ContentTransferEncoding);
+
+            view = message.AlternateViews.Skip(1).First();
+            Assert.Equal("text/html", view.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("ISO-8859-1", view.Charset);
+            Assert.Equal("7BIT", view.ContentTransferEncoding);
+        }
+
+        [Fact]
+        public void SaveAndLoadHeadersOnly()
+        {
+            MailMessage message1 = new MailMessage();
+            message1.HeadersOnly = true;
+
+            message1.Sender = new MailAddress("sender@example.com");
+            message1.From = new MailAddress("from@example.com");
+            message1.To.Add(new MailAddress("to@example.com"));
+            message1.Cc.Add(new MailAddress("cc@example.com"));
+            message1.Bcc.Add(new MailAddress("bcc@example.com"));
+            message1.Subject = "Subject line";
+
+            message1.ContentType = "text/plain; charset=utf-8";
+
+            MemoryStream buffer = new MemoryStream();
+            TextWriter writer = new StreamWriter(buffer);
+            message1.Save(writer);
+            writer.Flush();
+            buffer.Seek(0, SeekOrigin.Begin);
+
+            MailMessage message2 = new MailMessage();
+            message2.Load(buffer, true, 0);
+
+            Assert.Equal(message1.Sender.ToString(), message2.Sender.ToString());
+            Assert.Equal(message1.From.ToString(), message2.From.ToString());
+            Assert.Equal(message1.To.First().ToString(), message2.To.First().ToString());
+            Assert.Equal(message1.Cc.First().ToString(), message2.Cc.First().ToString());
+            Assert.Equal(message1.Bcc.First().ToString(), message2.Bcc.First().ToString());
+
+            Assert.Equal(message1.Subject, message2.Subject);
+            Assert.Equal(message1.ContentType, message2.ContentType);
+            Assert.Equal(message1.Body, message2.Body);
+            Assert.Equal(message1.AlternateViews.Count, message1.AlternateViews.Count);
+            Assert.Equal(message1.Attachments.Count, message1.Attachments.Count);
+        }
+
+        [Fact]
+        public void SaveAndLoadHeadersOnlyMultipart()
+        {
+            MailMessage message1 = new MailMessage();
+            message1.HeadersOnly = true;
+
+            message1.Sender = new MailAddress("sender@example.com");
+            message1.From = new MailAddress("from@example.com");
+            message1.To.Add(new MailAddress("to@example.com"));
+            message1.Cc.Add(new MailAddress("cc@example.com"));
+            message1.Bcc.Add(new MailAddress("bcc@example.com"));
+            message1.Subject = "Subject line";
+
+            message1.ContentType = "multipart/mixed; boundary=abcdefg";
+            message1.AlternateViews.Add(new Attachment()
+            {
+               ContentType = "text/plain; charset=utf-8",
+               ContentTransferEncoding = "7BIT",
+            });
+            message1.Attachments.Add(new Attachment()
+            {
+                ContentType = "text/plain; charset=utf-8",
+                ContentTransferEncoding = "7BIT",
+                IsAttachment = true,
+            });
+
+            MemoryStream buffer = new MemoryStream();
+            TextWriter writer = new StreamWriter(buffer);
+            message1.Save(writer);
+            writer.Flush();
+            buffer.Seek(0, SeekOrigin.Begin);
+
+            MailMessage message2 = new MailMessage();
+            message2.Load(buffer, true, 0);
+
+            Assert.Equal(message1.Sender.ToString(), message2.Sender.ToString());
+            Assert.Equal(message1.From.ToString(), message2.From.ToString());
+            Assert.Equal(message1.To.First().ToString(), message2.To.First().ToString());
+            Assert.Equal(message1.Cc.First().ToString(), message2.Cc.First().ToString());
+            Assert.Equal(message1.Bcc.First().ToString(), message2.Bcc.First().ToString());
+
+            Assert.Equal(message1.Subject, message2.Subject);
+            Assert.Equal(message1.ContentType, message2.ContentType);
+            Assert.Equal(message1.Body, message2.Body);
+            Assert.Equal(message1.AlternateViews.Count, message1.AlternateViews.Count);
+            Assert.Equal(message1.Attachments.Count, message1.Attachments.Count);
+
+            Assert.Equal(message1.AlternateViews.First().ContentType, message2.AlternateViews.First().ContentType);
+            Assert.Equal(message1.AlternateViews.First().ContentTransferEncoding, message2.AlternateViews.First().ContentTransferEncoding);
+            Assert.Equal(message1.AlternateViews.First().IsAttachment, message2.AlternateViews.First().IsAttachment);
+
+            Assert.Equal(message1.Attachments.First().ContentType, message2.Attachments.First().ContentType);
+            Assert.Equal(message1.Attachments.First().ContentTransferEncoding, message2.Attachments.First().ContentTransferEncoding);
+            Assert.Equal(message1.Attachments.First().IsAttachment, message2.Attachments.First().IsAttachment);
         }
     }
 }
