@@ -162,7 +162,7 @@ namespace WinPhone.Mail.Gmail
                     DataContext = label;
                     MailList.ItemsSource = label.Conversations;
 
-                    SyncIcon.Source = label.Info.Store ? null : new BitmapImage(new Uri("/Assets/AppBar/not.png", UriKind.Relative));
+                    SyncIcon.Source = label.Info.StoreMessages ? null : new BitmapImage(new Uri("/Assets/AppBar/not.png", UriKind.Relative));
                 }
             }
             catch (Exception ex)
@@ -259,9 +259,9 @@ namespace WinPhone.Mail.Gmail
             if (account != null)
             {
                 Label label = account.ActiveLabel;
-                if (!label.Info.Store)
+                if (!label.Info.StoreMessages)
                 {
-                    label.Info.Store = true;
+                    label.Info.StoreMessages = true;
 
                     await account.SaveLabelSettingsAsync();
                     SyncIcon.Source = null;

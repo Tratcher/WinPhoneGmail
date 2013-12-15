@@ -55,7 +55,7 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             if (Labels.Count == 0)
             {
                 // Default label settings for a new account
-                Labels.Add(new LabelInfo() { Name = GConstants.Inbox, Store = true });
+                Labels.Add(new LabelInfo() { Name = GConstants.Inbox, StoreMessages = true });
             }
 
             // Sync with server
@@ -101,10 +101,10 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
                 };
             }
 
-            if (ActiveLabel.Conversations == null && ActiveLabel.Info.Store)
+            if (ActiveLabel.Conversations == null && ActiveLabel.Info.StoreMessages)
             {
                 // From disk
-                ActiveLabel.Conversations = await MailStorage.GetConversationsAsync(ActiveLabel.Info.Name);
+                ActiveLabel.Conversations = await MailStorage.GetConversationsAsync(ActiveLabel.Info.Name, Scope.HeadersAndMime);
             }
 
             if (!forceSync && ActiveLabel.Conversations != null)
@@ -112,25 +112,30 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
                 return ActiveLabel;
             }
 
-            if (!forceSync && !ActiveLabel.Info.Store)
+            if (!forceSync && !ActiveLabel.Info.StoreMessages)
             {
                 // Don't sync non-stored labels by default. Require force sync.
                 return ActiveLabel;
             }
 
-            if (ActiveLabel.Info.Store)
+            if (ActiveLabel.Info.StoreMessages)
             {
                 await SyncMessageHeadersAsync(CancellationToken.None);
                 await SyncMessageBodiesAsync(CancellationToken.None);
-                // TODO: Attachments
 
-                ActiveLabel.Conversations = await MailStorage.GetConversationsAsync(ActiveLabel.Info.Name);
+                if (ActiveLabel.Info.StoreAttachments)
+                {
+                    await SyncAttachmentsAsync(CancellationToken.None);
+                }
+
+                ActiveLabel.Conversations = await MailStorage.GetConversationsAsync(ActiveLabel.Info.Name, Scope.HeadersAndMime);
             }
             else
             {
                 // Allow us to view mail without storing it to disk.
                 // TODO: Consider downloading only headers and then downloading the body & attachments if we open it.
-                List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(Scope.HeadersAndBody, range: Info.Range);
+                List<ConversationThread> serverConversations = await GmailImap.GetConversationsAsync(Scope.HeadersAndMime,
+                    range: Info.Range, cancellationToken: CancellationToken.None);
                 ActiveLabel.Conversations = serverConversations;
             }
 
@@ -270,7 +275,7 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
                     continue;
                 }
 
-                if (headers.ContentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase))
+                if (headers.HasMutipartBody)
                 {
                     foreach (Attachment view in headers.AlternateViews)
                     {
@@ -287,7 +292,6 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
                     // Primary body, no attachments or alternate views
                     if (!MailStorage.HasMessagePart(ids.ThreadId, ids.MessageId, headers.BodyId))
                     {
-                        // TODO: How to say which part?
                         bodiesToDownload.Add(new KeyValuePair<MessageIdInfo, ObjectWHeaders>(ids, headers));
                     }
                 }
@@ -315,6 +319,56 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             }
         }
 
+        // Examine the local data store to see if there are any attachment bodies that still need to be downloaded.
+        public async Task SyncAttachmentsAsync(CancellationToken cancellationToken)
+        {
+            List<MessageIdInfo> localIds = await MailStorage.GetLabelMessageListAsync(ActiveLabel.Info.Name) ?? new List<MessageIdInfo>();
+            List<KeyValuePair<MessageIdInfo, ObjectWHeaders>> attachmentsToDownload = new List<KeyValuePair<MessageIdInfo, ObjectWHeaders>>();
+
+            foreach (MessageIdInfo ids in localIds)
+            {
+                if (cancellationToken.IsCancellationRequested) return;
+
+                MailMessage headers = await MailStorage.GetMessageHeadersAsync(ids.ThreadId, ids.MessageId);
+                if (headers == null)
+                {
+                    // Downloading headers should have happened elsewhere.
+                    continue;
+                }
+
+                if (headers.HasMutipartBody)
+                {
+                    foreach (Attachment attachment in headers.Attachments)
+                    {
+                        if (!MailStorage.HasMessagePart(ids.ThreadId, ids.MessageId, attachment.BodyId))
+                        {
+                            attachmentsToDownload.Add(new KeyValuePair<MessageIdInfo, ObjectWHeaders>(ids, attachment));
+                        }
+                    }
+                }
+            }
+
+            if (cancellationToken.IsCancellationRequested) return;
+
+            // TODO: Batch by bodyId?
+            foreach (var pair in attachmentsToDownload)
+            {
+                if (cancellationToken.IsCancellationRequested) return;
+
+                // TODO: Consider streaming the body directly to disk.  Even more so for attachments.
+                await GmailImap.GetBodyPartAsync(pair.Key.Uid, pair.Value,
+                    async () =>
+                    {
+                        if (cancellationToken.IsCancellationRequested) return;
+
+                        await MailStorage.StoreMessagePartAsync(pair.Key.ThreadId, pair.Key.MessageId, pair.Value.BodyId, pair.Value.Body);
+
+                        // Release the body for GC. Otherwise the bodiesToDownload list will keep everything im memory.
+                        pair.Value.Body = null;
+                    }, cancellationToken);
+            }
+        }
+
         public virtual Task SelectLabelAsync(LabelInfo label)
         {
             if (ActiveLabel == null || !label.Name.Equals(ActiveLabel.Info.Name))
@@ -328,9 +382,31 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
 
         public virtual async Task SelectConversationAsync(ConversationThread conversation)
         {
-            // TODO: Sync full conversation body, from disk or network.
             ActiveConversation = conversation;
             await SetReadStatusAsync(conversation.Messages, true);
+
+            // Sync full conversation body, from disk or network.
+            foreach (MailMessage message in conversation.Messages)
+            {
+                ObjectWHeaders view = message.GetHtmlView() ?? message.GetTextView() ?? message;
+                if (view.Scope < Scope.HeadersAndBody)
+                {
+                    if (MailStorage.HasMessagePart(conversation.ID, message.GetMessageId(), view.BodyId))
+                    {
+                        view.Body = await MailStorage.GetMessagePartAsync(conversation.ID, message.GetMessageId(), view.BodyId);
+                    }
+                    else
+                    {
+                        await GmailImap.GetBodyPartAsync(message.Uid, view, async () =>
+                        {
+                            if (ActiveLabel.Info.StoreMessages)
+                            {
+                                await MailStorage.StoreMessagePartAsync(conversation.ID, message.GetMessageId(), view.BodyId, view.Body);
+                            }
+                        }, CancellationToken.None);
+                    }
+                }
+            }
         }
 
         public virtual async Task SetReadStatusAsync(List<MailMessage> messages, bool read)
@@ -470,7 +546,7 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             // Look up UIDs. If they're not here, we may need to check online.
             List<string> localMessageIds = new List<string>(); // Ids for messages we have referenced from a locally sync'd label.
             List<string> nonlocalMessageIds = new List<string>(); // Ids for messages we'll have to lookup online.
-            List<MessageIdInfo> labelMessageIds = (labelInfo.Store ? await MailStorage.GetLabelMessageListAsync(labelName) : null)
+            List<MessageIdInfo> labelMessageIds = (labelInfo.StoreMessages ? await MailStorage.GetLabelMessageListAsync(labelName) : null)
                 ?? new List<MessageIdInfo>();
 
             SyncUtilities.CompareLists(changedMessages.Select(message => message.GetMessageId()), labelMessageIds.Select(ids => ids.MessageId), id => id,
@@ -481,7 +557,7 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
 
             // Remove from that labelList
             List<MessageIdInfo> updatedLabelMessageIds = labelMessageIds.Where(messageIds => !localMessageIds.Contains(messageIds.MessageId)).ToList();
-            if (labelInfo.Store)
+            if (labelInfo.StoreMessages)
             {
                 await MailStorage.StoreLabelMessageListAsync(labelName, updatedLabelMessageIds);
             }
@@ -546,17 +622,30 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
 
         public async Task OpenAttachmentAsync(MailMessage message, Attachment attachment)
         {
-            // TODO: For this to work the attachment needs to be stored in a seperate file from the e-mail.
-            // I've already considered breaking up the message so parts that could be downloaded and stored sepeartely.
-            // Especially since attchments take forever to download (our mail parsing algorithm may be very slow, one byte at a time).
-            //
-            // For now just store a temp copy of the file somewhere that we can open.
-            //
-            // http://architects.dzone.com/articles/lap-around-windows-phone-8-sdk
-            // StorageFile file = await ApplicationData.Current.LocalFolder.GetFileAsync("rss.log");
-            // Windows.System.Launcher.LaunchFileAsync(file);
+            // Lazy load
+            if (attachment.Scope < Scope.HeadersAndBody)
+            {
+                // Check local storage
+                if (MailStorage.HasMessagePart(message.GetThreadId(), message.GetMessageId(), attachment.BodyId))
+                {
+                    // TODO: Can we open the attachment directly from isolated storage?
+                    attachment.Body = await MailStorage.GetMessagePartAsync(message.GetThreadId(), message.GetMessageId(), attachment.BodyId);
+                }
+                else
+                {
+                    // Download from the network
+                    await GmailImap.GetBodyPartAsync(message.Uid, attachment, async () =>
+                    {
+                        if (ActiveLabel.Info.StoreMessages && ActiveLabel.Info.StoreAttachments)
+                        {
+                            await MailStorage.StoreMessagePartAsync(message.GetThreadId(), message.GetMessageId(), attachment.BodyId, attachment.Body);
+                        }
+                    }, CancellationToken.None);
+                }
+            }
 
             StorageFile file = await MailStorage.SaveAttachmentToTempAsync(attachment);
+            // http://architects.dzone.com/articles/lap-around-windows-phone-8-sdk
             await Launcher.LaunchFileAsync(file);
 
             // TODO: Delete temp files on app close?

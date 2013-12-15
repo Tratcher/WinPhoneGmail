@@ -73,6 +73,12 @@ namespace WinPhone.Mail.Gmail
             if (account != null)
             {
                 Conversation = account.ActiveConversation;
+                if (Conversation == null)
+                {
+                    // This happens after opening an attachment and then hitting back.
+                    // TODO: Why do we lose app state after opening an attachment?
+                    NavigationService.GoBack();
+                }
                 DataContext = null; // Force refresh after editing labels
                 DataContext = Conversation;
             }

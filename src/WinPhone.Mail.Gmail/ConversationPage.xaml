@@ -28,6 +28,7 @@
             <uihelpers:LabelsConverter x:Name="Labels" />
             <uihelpers:StarFromMessageConverter x:Name="Star" />
             <uihelpers:ToAndCcConverter x:Name="ToAndCc" />
+            <uihelpers:AttachmentLineConverter x:Name="AttachmentLine" />
         </Grid.Resources>
 
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" >
@@ -57,7 +58,7 @@
                         <ListBox x:Name="AttachmentsList" ItemsSource="{Binding Path=Attachments}" SelectionChanged="AttachmentsList_SelectionChanged" MaxHeight="50" BorderBrush="{StaticResource PhoneBorderBrush}" BorderThickness="0,1,0,3">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding Path=Filename}" />
+                                    <TextBlock Text="{Binding BindsDirectlyToSource=True, Converter={StaticResource AttachmentLine}}" />
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>

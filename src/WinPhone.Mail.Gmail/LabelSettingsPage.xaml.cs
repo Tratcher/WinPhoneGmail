@@ -31,11 +31,11 @@ namespace WinPhone.Mail.Gmail
             if (account != null)
             {
                 Label label = account.ActiveLabel;
-                label.Info.Store = !label.Info.Store;
+                label.Info.StoreMessages = !label.Info.StoreMessages;
 
                 await account.SaveLabelSettingsAsync();
 
-                if (!label.Info.Store)
+                if (!label.Info.StoreMessages)
                 {
                     // Remove from local storage
                     await account.MailStorage.DeleteLabelMessageListAsync(label.Info.Name);
@@ -49,6 +49,20 @@ namespace WinPhone.Mail.Gmail
                         await account.MailStorage.StoreConverationsAsync(label.Conversations);
                     }
                 }
+            }
+        }
+
+        private async void StoreAttachmentsCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            Account account = App.AccountManager.GetCurrentAccount();
+            if (account != null)
+            {
+                Label label = account.ActiveLabel;
+                label.Info.StoreAttachments = !label.Info.StoreAttachments;
+
+                await account.SaveLabelSettingsAsync();
+
+                // TODO: Purge saved attachments?
             }
         }
     }

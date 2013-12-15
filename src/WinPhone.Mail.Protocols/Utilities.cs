@@ -864,15 +864,7 @@ YEKT +05"
                                 + '.' + (subtokenIndex + 1).ToString(CultureInfo.InvariantCulture);
                             // TODO: Size
                             // TODO: What are all the other fields?
-
-                            if (bodyPart.IsAttachment)
-                            {
-                                messageData.Attachments.Add(bodyPart);
-                            }
-                            else
-                            {
-                                messageData.AlternateViews.Add(bodyPart);
-                            }
+                            messageData.Add(bodyPart);
 
                             subtokenIndex++;
                             subSubTokens = ParseTokenList(subTokens[subtokenIndex]);
@@ -890,14 +882,7 @@ YEKT +05"
                         // TODO: Size
                         // TODO: What are all the other fields?
 
-                        if (bodyPart.IsAttachment)
-                        {
-                            messageData.Attachments.Add(bodyPart);
-                        }
-                        else
-                        {
-                            messageData.AlternateViews.Add(bodyPart);
-                        }
+                        messageData.Add(bodyPart);
                     }
                     tokenIndex++;
                     subTokens = ParseTokenList(tokens[tokenIndex]);

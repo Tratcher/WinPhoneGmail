@@ -43,7 +43,7 @@ namespace WinPhone.Mail.Protocols.Gmail
             // TODO: Do a test send to verify connectivity? Auto-disconnect and reconnect?
         }
 
-        public async Task<List<ConversationThread>> GetConversationsAsync(Scope scope, TimeSpan range)
+        public async Task<List<ConversationThread>> GetConversationsAsync(Scope scope, TimeSpan range, CancellationToken cancellationToken)
         {
             await CheckConnectedAsync();
 
@@ -51,20 +51,44 @@ namespace WinPhone.Mail.Protocols.Gmail
             string[] uids = await Client.SearchAsync(condition, uid: true);
 
             List<ConversationThread> conversations = new List<ConversationThread>();
-            MailMessage[] messages;
+            IList<MailMessage> messages;
             if (uids.Length == 0)
             {
                 messages = new MailMessage[0];
             }
-            else if (uids.Length == 1)
-            {
-                MailMessage message = await Client.GetMessageAsync(uids[0], scope);
-                messages = new MailMessage[] { message };
-            }
             else
             {
-                // TODO: Consider comma joined list of UIDs
-                messages = await Client.GetMessagesAsync(uids[0], uids[uids.Length - 1], scope);
+                if (scope == Scope.HeadersAndBody || scope == Scope.Headers)
+                {
+                    // TODO: Consider comma joined list of UIDs
+                    messages = await Client.GetMessagesAsync(uids[0], uids[uids.Length - 1], scope);
+                }
+                else if (scope == Scope.HeadersAndMime)
+                {
+                    messages = new List<MailMessage>();
+                    IList<GmailMessageInfo> infos = await GetMessageIdsAsync(uids);
+
+                    await GetEnvelopeAndStructureAsync(uids,
+                        message =>
+                        {
+                            // Find the matching Ids
+                            string messageId = message.GetMessageId();
+                            GmailMessageInfo info = infos.First(i => i.MessageId.Equals(messageId));
+
+                            message.SetLabels(info.Labels);
+                            message.SetFlags(info.Flags);
+                            message.Uid = info.Uid;
+
+                            messages.Add(message);
+
+                            return Task.FromResult(0);
+                        },
+                        cancellationToken);
+                }
+                else
+                {
+                    throw new NotSupportedException(scope.ToString());
+                }
             }
 
             // Group by thread ID
@@ -82,9 +106,17 @@ namespace WinPhone.Mail.Protocols.Gmail
             await CheckConnectedAsync();
 
             SearchCondition condition = SearchCondition.Since(since);
-            string[] uids = await Client.SearchAsync(condition, uid: true);
+            IList<string> uids = await Client.SearchAsync(condition, uid: true);
+
+            return await GetMessageIdsAsync(uids);
+        }
+
+        public async Task<IList<GmailMessageInfo>> GetMessageIdsAsync(IList<string> uids)
+        {
+            await CheckConnectedAsync();
+
             IList<GmailMessageInfo> ids;
-            if (uids.Length == 0)
+            if (uids.Count == 0)
             {
                 return new GmailMessageInfo[0];
             }
@@ -92,7 +124,7 @@ namespace WinPhone.Mail.Protocols.Gmail
             ids = new List<GmailMessageInfo>();
 
             // TODO: Consider comma joined list of UIDs
-            await Client.GetFieldsAsync(uids[0], uids[uids.Length - 1], uid: true,
+            await Client.GetFieldsAsync(uids[0], uids[uids.Count - 1], uid: true,
                 fields: new[] { GConstants.LabelsHeader, GConstants.MessageIdHeader, GConstants.ThreadIdHeader, "UID", "FLAGS", "INTERNALDATE" },
                 onFieldsReceived: fields =>
                 {

@@ -64,8 +64,9 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
                         labels.Add(new LabelInfo()
                         {
                             Name = Utilities.RemoveQuotes(items[0]),
-                            Store = bool.Parse(items[1]),
-                            Color = items[2]
+                            StoreMessages = bool.Parse(items[1]),
+                            StoreAttachments = bool.Parse(items[2]),
+                            Color = items[3],
                         });
                     }
                     line = await reader.ReadLineAsync();
@@ -96,8 +97,8 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
                 for (int i = 0; i < labels.Count; i++)
                 {
                     LabelInfo label = labels[i];
-                    string line = string.Format(CultureInfo.InvariantCulture, "\"{0}\", {1}, {2}\r\n", 
-                        label.Name, label.Store, label.Color);
+                    string line = string.Format(CultureInfo.InvariantCulture, "\"{0}\", {1}, {2}, {3}\r\n",
+                        label.Name, label.StoreMessages, label.StoreAttachments, label.Color);
                     await writer.WriteAsync(line);
                 }
             }
@@ -218,7 +219,7 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
         }
 
         // Get all the conversations listed under the given label
-        public async Task<List<ConversationThread>> GetConversationsAsync(string labelName)
+        public async Task<List<ConversationThread>> GetConversationsAsync(string labelName, Scope scope)
         {
             List<MessageIdInfo> messageIds = await GetLabelMessageListAsync(labelName);
             if (messageIds == null)
@@ -230,7 +231,7 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
 
             foreach (var messageId in messageIds)
             {
-                MailMessage message = await GetMessageAsync(messageId.ThreadId, messageId.MessageId, messageId.Uid);
+                MailMessage message = await GetMessageAsync(messageId.ThreadId, messageId.MessageId, messageId.Uid, scope);
                 if (message != null)
                 {
                     messages.Add(message);
@@ -277,7 +278,7 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
             }
         }
 
-        private async Task<MailMessage> GetMessageAsync(string conversationId, string messageId, string labelUid)
+        private async Task<MailMessage> GetMessageAsync(string conversationId, string messageId, string labelUid, Scope scope)
         {
             MailMessage message = await GetMessageHeadersAsync(conversationId, messageId);
             string labels = await GetMessageLabelsAsync(conversationId, messageId);
@@ -290,17 +291,19 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
             message.SetFlags(flags);
             message.Uid = labelUid;
 
-            if (message.AlternateViews.Any())
+            if (scope > Scope.HeadersAndMime)
             {
-                // TODO: Lazy load on demand?
-                foreach (Attachment view in message.AlternateViews)
+                if (message.AlternateViews.Any())
                 {
-                    view.Body = await GetMessagePartAsync(conversationId, messageId, view.BodyId);
+                    foreach (Attachment view in message.AlternateViews)
+                    {
+                        view.Body = await GetMessagePartAsync(conversationId, messageId, view.BodyId);
+                    }
                 }
-            }
-            else
-            {
-                message.Body = await GetMessagePartAsync(conversationId, messageId, message.BodyId);
+                else
+                {
+                    message.Body = await GetMessagePartAsync(conversationId, messageId, message.BodyId);
+                }
             }
 
             return message;

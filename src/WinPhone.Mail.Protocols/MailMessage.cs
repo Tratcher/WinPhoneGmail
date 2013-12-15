@@ -88,6 +88,26 @@ namespace WinPhone.Mail.Protocols
         public virtual string Uid { get; set; }
         public virtual MailPriority Importance { get; set; }
 
+        public bool HasMutipartBody
+        {
+            get
+            {
+                return ContentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        public virtual void Add(Attachment viewOrAttachment)
+        {
+            if (viewOrAttachment.IsAttachment)
+            {
+                Attachments.Add(viewOrAttachment);
+            }
+            else
+            {
+                AlternateViews.Add(viewOrAttachment);
+            }
+        }
+
         public virtual void Load(string message, Scope scope = Scope.HeadersAndBody)
         {
             if (string.IsNullOrEmpty(message)) return;
@@ -123,12 +143,16 @@ namespace WinPhone.Mail.Protocols
                 {
                     var atts = new List<Attachment>();
                     // Read the mime structure anyways, but the body might be empty.
-                    var body = ParseMime(reader, boundary, ref maxLength, atts, Encoding, termChar);
+                    var body = ParseMime(reader, boundary, ref maxLength, atts, Encoding, termChar, scope);
                     if (Scope > Scope.HeadersAndMime && !string.IsNullOrEmpty(body))
+                    {
                         SetBody(body);
+                    }
 
                     foreach (var att in atts)
-                        (att.IsAttachment ? Attachments : AlternateViews).Add(att);
+                    {
+                        Add(att);
+                    }
 
                     if (maxLength > 0)
                         reader.ReadToEnd(maxLength, Encoding);
@@ -157,7 +181,7 @@ namespace WinPhone.Mail.Protocols
             Subject = Headers["Subject"].RawValue;
         }
 
-        private static string ParseMime(Stream reader, string boundary, ref int maxLength, ICollection<Attachment> attachments, Encoding encoding, char? termChar)
+        private static string ParseMime(Stream reader, string boundary, ref int maxLength, ICollection<Attachment> attachments, Encoding encoding, char? termChar, Scope scope)
         {
             var maxLengthSpecified = maxLength > 0;
             string data = null,
@@ -198,7 +222,7 @@ namespace WinPhone.Mail.Protocols
                 var nestedboundary = a.Headers.GetBoundary();
                 if (!string.IsNullOrEmpty(nestedboundary))
                 {
-                    ParseMime(reader, nestedboundary, ref maxLength, attachments, encoding, termChar);
+                    ParseMime(reader, nestedboundary, ref maxLength, attachments, encoding, termChar, scope);
                     while (!data.StartsWith(bounderInner))
                         data = reader.ReadLine(ref maxLength, encoding, termChar);
                 }
@@ -216,7 +240,10 @@ namespace WinPhone.Mail.Protocols
                             throw new EndOfStreamException("Unexpected end of file");
                         }
                     }
-                    a.SetBody(nestedBody.ToString());
+                    if (scope > Scope.HeadersAndMime)
+                    {
+                        a.SetBody(nestedBody.ToString());
+                    }
                     attachments.Add(a);
                 }
             }

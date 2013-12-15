@@ -138,6 +138,7 @@
       <DependentUpon>SettingsPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="UIHelpers\StarFromConversationConverter.cs" />
+    <Compile Include="UIHelpers\AttachmentLineConverter.cs" />
     <Compile Include="UIHelpers\VisibilityConverter.cs" />
     <Compile Include="UIHelpers\StoreStatusConverter.cs" />
     <Compile Include="UIHelpers\ToAndCcConverter.cs" />

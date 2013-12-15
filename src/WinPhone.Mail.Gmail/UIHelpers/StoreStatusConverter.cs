@@ -11,7 +11,7 @@ namespace WinPhone.Mail.Gmail.UIHelpers
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             LabelInfo labelInfo = (LabelInfo)value;
-            if (labelInfo.Store)
+            if (labelInfo.StoreMessages)
             {
                 return new BitmapImage(new Uri("/Assets/AppBar/save.small.png", UriKind.Relative));
             }

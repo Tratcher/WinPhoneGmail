@@ -10,7 +10,9 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
     {
         public string Name { get; set; }
 
-        public bool Store { get; set; }
+        public bool StoreMessages { get; set; }
+
+        public bool StoreAttachments { get; set; }
 
         public string Color { get; set; }
 
