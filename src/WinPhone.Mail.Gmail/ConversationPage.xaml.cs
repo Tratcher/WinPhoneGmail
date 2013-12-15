@@ -162,7 +162,7 @@ namespace WinPhone.Mail.Gmail
 
             ObjectWHeaders view = message.GetHtmlView() ?? message.GetTextView() ?? message;
 
-            string body = view.Body;
+            string body = view.Body ?? "Unable to load body.";
             // Content-type detection.
             if (string.IsNullOrEmpty(view.ContentType) || view.ContentType.Equals("text/plain", StringComparison.OrdinalIgnoreCase))
             {

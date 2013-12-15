@@ -842,6 +842,7 @@ YEKT +05"
             else
             {
                 messageData.Scope = Scope.HeadersAndMime;
+                Attachment bodyPart;
 
                 // Multipart
                 int tokenIndex = 0;
@@ -849,23 +850,55 @@ YEKT +05"
                 // "TEXT" "PLAIN" ("CHARSET" "ISO-8859-1") NIL NIL "7BIT" 13 1 NIL NIL NIL
                 while (subTokens.Count > 1)
                 {
-                    Attachment bodyPart = new Attachment();
-                    bodyPart.ContentType = GetContentType(subTokens);
-                    bodyPart.ContentTransferEncoding = subTokens[5];
-                    bodyPart.BodyId = (tokenIndex + 1).ToString(CultureInfo.InvariantCulture);
-                    // TODO: Size
-                    // TODO: What are all the other fields?
-
-                    // TODO: Attachments vs Alternate views?
-                    if (bodyPart.IsAttachment)
+                    int subtokenIndex = 0;
+                    // Check for nested MIME, flatten it.
+                    IList<string> subSubTokens = ParseTokenList(subTokens[subtokenIndex]);
+                    if (subSubTokens.Count > 1)
                     {
-                        messageData.Attachments.Add(bodyPart);
+                        do
+                        {
+                            bodyPart = new Attachment();
+                            bodyPart.ContentType = GetContentType(subSubTokens);
+                            bodyPart.ContentTransferEncoding = subSubTokens[5];
+                            bodyPart.BodyId = (tokenIndex + 1).ToString(CultureInfo.InvariantCulture)
+                                + '.' + (subtokenIndex + 1).ToString(CultureInfo.InvariantCulture);
+                            // TODO: Size
+                            // TODO: What are all the other fields?
+
+                            if (bodyPart.IsAttachment)
+                            {
+                                messageData.Attachments.Add(bodyPart);
+                            }
+                            else
+                            {
+                                messageData.AlternateViews.Add(bodyPart);
+                            }
+
+                            subtokenIndex++;
+                            subSubTokens = ParseTokenList(subTokens[subtokenIndex]);
+                        }
+                        while (subSubTokens.Count > 1);
+
+                        // Ignore the content-type and boundary for nested mime.
                     }
                     else
                     {
-                        messageData.AlternateViews.Add(bodyPart);
-                    }
+                        bodyPart = new Attachment();
+                        bodyPart.ContentType = GetContentType(subTokens);
+                        bodyPart.ContentTransferEncoding = subTokens[5];
+                        bodyPart.BodyId = (tokenIndex + 1).ToString(CultureInfo.InvariantCulture);
+                        // TODO: Size
+                        // TODO: What are all the other fields?
 
+                        if (bodyPart.IsAttachment)
+                        {
+                            messageData.Attachments.Add(bodyPart);
+                        }
+                        else
+                        {
+                            messageData.AlternateViews.Add(bodyPart);
+                        }
+                    }
                     tokenIndex++;
                     subTokens = ParseTokenList(tokens[tokenIndex]);
                 }
@@ -879,6 +912,8 @@ YEKT +05"
 
         // Type, subtype, paramter list, body id, body description, body encoding, body size
         // "TEXT" "PLAIN" ("CHARSET" "ISO-8859-1") NIL NIL "7BIT" 13 1 NIL NIL NIL
+        // OR for an attachment:
+        // "IMAGE" "PNG" ("NAME" "Screenshot_2013-10-26-14-07-32.png") NIL NIL "BASE64" 261216 NIL ("ATTACHMENT" ("FILENAME" "Screenshot_2013-10-26-14-07-32.png")) NIL
         public static string GetContentType(IList<string> tokens)
         {
             IList<string> subTokens = ParseTokenList(tokens[2]);

@@ -5,6 +5,11 @@ namespace WinPhone.Mail.Protocols
 {
     public abstract class ObjectWHeaders
     {
+        public ObjectWHeaders()
+        {
+            Scope = Protocols.Scope.Headers;
+        }
+
         public virtual string RawHeaders { get; internal set; }
         private HeaderDictionary _Headers;
         public virtual HeaderDictionary Headers

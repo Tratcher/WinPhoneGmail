@@ -225,6 +225,8 @@ E-mail Deployment Division
 
         string addressListTokens = "(\"Chris Ross\" NIL \"tracher\" \"gmail.com\")(\"Chris Ross\" NIL \"tracher\" \"gmail.com\")";
 
+        string nestedMultipart = "((\"TEXT\" \"PLAIN\" (\"CHARSET\" \"ISO-8859-1\") NIL NIL \"7BIT\" 8 1 NIL NIL NIL)(\"TEXT\" \"HTML\" (\"CHARSET\" \"ISO-8859-1\") NIL NIL \"7BIT\" 44 2 NIL NIL NIL) \"ALTERNATIVE\" (\"BOUNDARY\" \"047d7ba97f3abafafc04e9ab4937\") NIL NIL)(\"IMAGE\" \"PNG\" (\"NAME\" \"Screenshot_2013-10-26-14-07-32.png\") NIL NIL \"BASE64\" 261216 NIL (\"ATTACHMENT\" (\"FILENAME\" \"Screenshot_2013-10-26-14-07-32.png\")) NIL)(\"IMAGE\" \"PNG\" (\"NAME\" \"Screenshot_2013-10-26-14-07-46.png\") NIL NIL \"BASE64\" 227304 NIL (\"ATTACHMENT\" (\"FILENAME\" \"Screenshot_2013-10-26-14-07-46.png\")) NIL)(\"IMAGE\" \"PNG\" (\"NAME\" \"Screenshot_2013-10-26-14-05-49.png\") NIL NIL \"BASE64\" 151590 NIL (\"ATTACHMENT\" (\"FILENAME\" \"Screenshot_2013-10-26-14-05-49.png\")) NIL) \"MIXED\" (\"BOUNDARY\" \"047d7ba97f3abafb0004e9ab4939\") NIL NIL";
+
         #endregion
 
         [Fact]
@@ -655,6 +657,47 @@ Content-Disposition: attachment
             Assert.Equal("text/html", view.ContentType, StringComparer.OrdinalIgnoreCase);
             Assert.Equal("ISO-8859-1", view.Charset);
             Assert.Equal("7BIT", view.ContentTransferEncoding);
+        }
+
+        [Fact]
+        public void ParseNestedMultipartBodyStructure()
+        {
+            MailMessage message = new MailMessage();
+            Utilities.ParseBodyStructure(nestedMultipart, message);
+            Assert.Equal("multipart/mixed", message.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("047d7ba97f3abafb0004e9ab4939", message.Headers.GetBoundary());
+            Assert.Equal(2, message.AlternateViews.Count);
+            Assert.Equal(3, message.Attachments.Count);
+
+            Attachment view = message.AlternateViews.First();
+            Assert.Equal("text/plain", view.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("ISO-8859-1", view.Charset);
+            Assert.Equal("7BIT", view.ContentTransferEncoding);
+            Assert.Equal("1.1", view.BodyId);
+
+            view = message.AlternateViews.Skip(1).First();
+            Assert.Equal("text/html", view.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("ISO-8859-1", view.Charset);
+            Assert.Equal("7BIT", view.ContentTransferEncoding);
+            Assert.Equal("1.2", view.BodyId);
+
+            Attachment attachment = message.Attachments.First();
+            Assert.Equal("image/png", attachment.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("Screenshot_2013-10-26-14-07-32.png", attachment.Filename);
+            Assert.Equal("BASE64", attachment.ContentTransferEncoding);
+            Assert.Equal("2", attachment.BodyId);
+
+            attachment = message.Attachments.Skip(1).First();
+            Assert.Equal("image/png", attachment.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("Screenshot_2013-10-26-14-07-46.png", attachment.Filename);
+            Assert.Equal("BASE64", attachment.ContentTransferEncoding);
+            Assert.Equal("3", attachment.BodyId);
+
+            attachment = message.Attachments.Skip(2).First();
+            Assert.Equal("image/png", attachment.ContentType, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("Screenshot_2013-10-26-14-05-49.png", attachment.Filename);
+            Assert.Equal("BASE64", attachment.ContentTransferEncoding);
+            Assert.Equal("4", attachment.BodyId);
         }
 
         [Fact]
