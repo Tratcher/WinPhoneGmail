@@ -227,6 +227,8 @@ E-mail Deployment Division
 
         string nestedMultipart = "((\"TEXT\" \"PLAIN\" (\"CHARSET\" \"ISO-8859-1\") NIL NIL \"7BIT\" 8 1 NIL NIL NIL)(\"TEXT\" \"HTML\" (\"CHARSET\" \"ISO-8859-1\") NIL NIL \"7BIT\" 44 2 NIL NIL NIL) \"ALTERNATIVE\" (\"BOUNDARY\" \"047d7ba97f3abafafc04e9ab4937\") NIL NIL)(\"IMAGE\" \"PNG\" (\"NAME\" \"Screenshot_2013-10-26-14-07-32.png\") NIL NIL \"BASE64\" 261216 NIL (\"ATTACHMENT\" (\"FILENAME\" \"Screenshot_2013-10-26-14-07-32.png\")) NIL)(\"IMAGE\" \"PNG\" (\"NAME\" \"Screenshot_2013-10-26-14-07-46.png\") NIL NIL \"BASE64\" 227304 NIL (\"ATTACHMENT\" (\"FILENAME\" \"Screenshot_2013-10-26-14-07-46.png\")) NIL)(\"IMAGE\" \"PNG\" (\"NAME\" \"Screenshot_2013-10-26-14-05-49.png\") NIL NIL \"BASE64\" 151590 NIL (\"ATTACHMENT\" (\"FILENAME\" \"Screenshot_2013-10-26-14-05-49.png\")) NIL) \"MIXED\" (\"BOUNDARY\" \"047d7ba97f3abafb0004e9ab4939\") NIL NIL";
 
+        string imapHeader = "X-GM-THRID 1454534995031287656 X-GM-MSGID 1454535169876473534 X-GM-LABELS (\"\\Important\" \"\\Sent\") UID 16638 INTERNALDATE \"16-Dec-2013 00:13:53 +0000\" FLAGS (\\Seen))";
+
         #endregion
 
         [Fact]
@@ -791,6 +793,25 @@ Content-Disposition: attachment
             Assert.Equal(message1.Attachments.First().ContentType, message2.Attachments.First().ContentType);
             Assert.Equal(message1.Attachments.First().ContentTransferEncoding, message2.Attachments.First().ContentTransferEncoding);
             Assert.Equal(message1.Attachments.First().IsAttachment, message2.Attachments.First().IsAttachment);
+        }
+
+        // Line breaks added for clarity
+        // X-GM-THRID 1454534995031287656
+        // X-GM-MSGID 1454535169876473534
+        // X-GM-LABELS ("\\Important" "\\Sent")
+        // UID 16638
+        // INTERNALDATE "16-Dec-2013 00:13:53 +0000"
+        // FLAGS (\Seen))
+        [Fact]
+        public void ParseImapHeader()
+        {
+            SafeDictionary<string, string> headers = Utilities.ParseImapHeader(imapHeader);
+            Assert.Equal("1454534995031287656", headers["X-GM-THRID"]);
+            Assert.Equal("1454535169876473534", headers["X-GM-MSGID"]);
+            Assert.Equal("\"\\Important\" \"\\Sent\"", headers["X-GM-LABELS"]);
+            Assert.Equal("16638", headers["UID"]);
+            Assert.Equal("\"16-Dec-2013 00:13:53 +0000\"", headers["INTERNALDATE"]);
+            Assert.Equal("\\Seen", headers["FLAGS"]);
         }
     }
 }

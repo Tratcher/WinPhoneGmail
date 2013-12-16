@@ -36,8 +36,10 @@ namespace WinPhone.Mail.Protocols
             var values = new SafeDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             string name = null;
             int nump = 0;
+            bool inQuotes = false;
             var temp = new StringBuilder();
             if (data != null)
+            {
                 foreach (var c in data)
                 {
                     if (c == ' ')
@@ -48,33 +50,49 @@ namespace WinPhone.Mail.Protocols
                             temp.Clear();
 
                         }
-                        else if (nump == 0)
+                        else if (nump == 0 && !inQuotes)
                         {
                             values[name] = temp.ToString();
                             name = null;
                             temp.Clear();
                         }
                         else
+                        {
                             temp.Append(c);
+                        }
+                    }
+                    else if (c == '"')
+                    {
+                        inQuotes = !inQuotes;
+                        temp.Append(c);
                     }
                     else if (c == '(')
                     {
                         if (nump > 0)
+                        {
                             temp.Append(c);
+                        }
                         nump++;
                     }
                     else if (c == ')')
                     {
                         nump--;
                         if (nump > 0)
+                        {
                             temp.Append(c);
+                        }
                     }
                     else
+                    {
                         temp.Append(c);
+                    }
                 }
+            }
 
             if (name != null)
+            {
                 values[name] = temp.ToString();
+            }
 
             return values;
         }

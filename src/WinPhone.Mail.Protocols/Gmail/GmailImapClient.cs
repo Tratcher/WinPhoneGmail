@@ -135,7 +135,7 @@ namespace WinPhone.Mail.Protocols.Gmail
                         MessageId = fields[GConstants.MessageIdHeader],
                         ThreadId = fields[GConstants.ThreadIdHeader],
                         Labels = FixUpLabels(fields[GConstants.LabelsHeader]),
-                        Date = fields["INTERNALDATE"].ToNullDate() ?? DateTime.MinValue,
+                        Date = Utilities.RemoveQuotes(fields["INTERNALDATE"]).ToNullDate() ?? DateTime.MinValue,
                     };
                     ids.Add(messageInfo);
                 });

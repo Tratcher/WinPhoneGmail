@@ -61,12 +61,14 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
                     {
                         List<string> items = Utilities.SplitQuotedList(line, ',');
                         Debug.Assert(items.Count == 3);
+                        string lastSyncItem = Utilities.RemoveQuotes(items[3]);
                         labels.Add(new LabelInfo()
                         {
                             Name = Utilities.RemoveQuotes(items[0]),
                             StoreMessages = bool.Parse(items[1]),
                             StoreAttachments = bool.Parse(items[2]),
-                            Color = items[3],
+                            LastSync = string.IsNullOrEmpty(lastSyncItem) ? null
+                                : (DateTime?)DateTime.Parse(lastSyncItem, CultureInfo.InvariantCulture),
                         });
                     }
                     line = await reader.ReadLineAsync();
@@ -97,8 +99,8 @@ namespace WinPhone.Mail.Gmail.Shared.Storage
                 for (int i = 0; i < labels.Count; i++)
                 {
                     LabelInfo label = labels[i];
-                    string line = string.Format(CultureInfo.InvariantCulture, "\"{0}\", {1}, {2}, {3}\r\n",
-                        label.Name, label.StoreMessages, label.StoreAttachments, label.Color);
+                    string line = string.Format(CultureInfo.InvariantCulture, "\"{0}\",{1},{2},\"{3}\"\r\n",
+                        label.Name, label.StoreMessages, label.StoreAttachments, label.LastSync);
                     await writer.WriteAsync(line);
                 }
             }

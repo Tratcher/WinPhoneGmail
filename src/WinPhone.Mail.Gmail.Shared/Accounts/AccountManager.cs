@@ -131,15 +131,19 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
                     if (labelInfo.StoreMessages)
                     {
                         // Check the sync schedule to see if it's time to perform a sync
-                        bool sync = account.Info.Frequency < DateTime.Now - labelInfo.LastSync;
+                        bool sync = labelInfo.LastSync.HasValue ? account.Info.Frequency < DateTime.Now - labelInfo.LastSync : true;
 
                         if (sync)
                         {
                             await account.SelectLabelAsync(labelInfo);
                             accountNewMail += await account.SyncMessageHeadersAsync(cancellationToken);
                             await account.SyncMessageBodiesAsync(cancellationToken);
-                            // TODO: Attachments are slow, do them in their own loop at the end.
-                            await account.SyncAttachmentsAsync(cancellationToken);
+
+                            if (labelInfo.StoreAttachments)
+                            {
+                                // TODO: Attachments are slow, do them in their own loop at the end.
+                                await account.SyncAttachmentsAsync(cancellationToken);
+                            }
                         }
                     }
                 }
