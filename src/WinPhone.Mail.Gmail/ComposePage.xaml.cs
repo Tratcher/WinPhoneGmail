@@ -52,7 +52,7 @@ namespace WinPhone.Mail.Gmail
             labelMenuItem.Click += LabelClick;
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             // The query parameter is used to tell us if we're in a reply mode.
             string[] parts = e.Uri.ToString().Split('?');
@@ -113,7 +113,8 @@ namespace WinPhone.Mail.Gmail
                     _additionalHeaders.Add(new KeyValuePair<string, string>("References", lastMessage.MessageID));
                 }
 
-                ObjectWHeaders view = lastMessage.GetTextView() ?? lastMessage;
+                ObjectWHeaders view = lastMessage.GetTextView();
+                await account.LazyLoadBodyPartAsync(lastMessage, view);
 
                 BodyField.Text = "\r\n\r\nOn "
                     + lastMessage.Date.ToString("ddd, MMM d, yyyy a\\t h:mm tt") + ", " + lastMessage.From + " wrote:\r\n\r\n> "

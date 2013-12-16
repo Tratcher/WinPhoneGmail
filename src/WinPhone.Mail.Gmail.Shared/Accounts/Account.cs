@@ -388,23 +388,28 @@ namespace WinPhone.Mail.Gmail.Shared.Accounts
             // Sync full conversation body, from disk or network.
             foreach (MailMessage message in conversation.Messages)
             {
-                ObjectWHeaders view = message.GetHtmlView() ?? message.GetTextView() ?? message;
-                if (view.Scope < Scope.HeadersAndBody)
+                ObjectWHeaders view = message.GetHtmlView();
+                await LazyLoadBodyPartAsync(message, view);
+            }
+        }
+
+        public virtual async Task LazyLoadBodyPartAsync(MailMessage message, ObjectWHeaders part)
+        {
+            if (part.Scope < Scope.HeadersAndBody)
+            {
+                if (MailStorage.HasMessagePart(message.GetThreadId(), message.GetMessageId(), part.BodyId))
                 {
-                    if (MailStorage.HasMessagePart(conversation.ID, message.GetMessageId(), view.BodyId))
+                    part.Body = await MailStorage.GetMessagePartAsync(message.GetThreadId(), message.GetMessageId(), part.BodyId);
+                }
+                else
+                {
+                    await GmailImap.GetBodyPartAsync(message.Uid, part, async () =>
                     {
-                        view.Body = await MailStorage.GetMessagePartAsync(conversation.ID, message.GetMessageId(), view.BodyId);
-                    }
-                    else
-                    {
-                        await GmailImap.GetBodyPartAsync(message.Uid, view, async () =>
+                        if (ActiveLabel.Info.StoreMessages)
                         {
-                            if (ActiveLabel.Info.StoreMessages)
-                            {
-                                await MailStorage.StoreMessagePartAsync(conversation.ID, message.GetMessageId(), view.BodyId, view.Body);
-                            }
-                        }, CancellationToken.None);
-                    }
+                            await MailStorage.StoreMessagePartAsync(message.GetThreadId(), message.GetMessageId(), part.BodyId, part.Body);
+                        }
+                    }, CancellationToken.None);
                 }
             }
         }

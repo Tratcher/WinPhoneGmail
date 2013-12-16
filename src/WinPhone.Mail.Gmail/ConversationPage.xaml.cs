@@ -166,7 +166,7 @@ namespace WinPhone.Mail.Gmail
             // TODO: Resize the browser to fit the content?
             // http://dan.clarke.name/2011/05/resizing-wp7-webbrowser-height-to-fit-content/
 
-            ObjectWHeaders view = message.GetHtmlView() ?? message.GetTextView() ?? message;
+            ObjectWHeaders view = message.GetHtmlView();
 
             string body = view.Body ?? "Unable to load body.";
             // Content-type detection.

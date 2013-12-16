@@ -98,7 +98,7 @@ namespace WinPhone.Mail.Protocols.Gmail
                 conversation.Messages.ForEach(message => FixUpLabels(message));
                 conversations.Add(conversation);
             }
-            return conversations;
+            return conversations.OrderByDescending(conversation => conversation.LatestDate).ToList();
         }
 
         public async Task<IList<GmailMessageInfo>> GetCurrentMessageIdsAsync(DateTime since)
